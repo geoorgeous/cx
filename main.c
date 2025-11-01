@@ -193,7 +193,7 @@ int main(int, const char*[]) {
     asset_package_init(&asset_package);
 
     struct gltf gltf;
-    gltf_load_from_file("Industrial_exterior_v2.glb", &gltf);
+    gltf_load_from_file("res/Industrial_exterior_v2.glb", &gltf);
 
     struct import_gltf_result import_gltf_result;
     import_gltf(&gltf, &asset_package, &import_gltf_result);
