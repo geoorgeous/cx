@@ -45,7 +45,5 @@
 # debug information files
 *.dwo
 
-*.bat
-
 .vscode/
 res/
