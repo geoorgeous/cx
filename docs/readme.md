@@ -26,10 +26,9 @@ This project uses source code from the [stb repository](https://github.com/nothi
 A list of resources I've used throughout this project which I've found very useful.
 
 - [C standard library reference](https://cppreference.com/w/c.html)
+- [Casey Muratori - Implementing GJK](https://caseymuratori.com/blog_0003)
 - [Dirk Gregorius (Valve) - Implementing Quickhull](https://media.steampowered.com/apps/valve/2014/DirkGregorius_ImplementingQuickHull.pdf)
 - [Iain Winter - Designing a physics engine](https://winter.dev/articles/physics-engine)
-- [Iain Winter - GJK Algorithm](https://winter.dev/articles/gjk-algorithm)
-- [Iain Winter - EPA algorithm](https://winter.dev/articles/epa-algorithm)
 - [Iain Winter - IwEngine](https://github.com/IainWinter/IwEngine/tree/master)
 - [Khronos - glTF 2.0 specification](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)
 - [Khronos - OpenGL reference pages](https://registry.khronos.org/OpenGL-Refpages/gl4/)
