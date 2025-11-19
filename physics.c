@@ -580,7 +580,7 @@ int physics_test_collision_hull_plane(
 	
 	vec3_inv(p_b->as_plane.normal, p_result->ab_normal);
 
-	gjk_find_extreme_on_hull(p_a, p_result->ab_normal, p_result->a);
+	gjk_find_extreme_on_hull(&p_a->as_hull, p_result->ab_normal, p_result->a);
 
 	float ba[3];
 	vec3_sub(p_result->b, p_result->a, ba);
@@ -785,7 +785,7 @@ int physics_test_gjk(
 
 int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]) {
 	int   simplex_d = 1;
-	float dir[3] = {0};
+	float dir[3] = {1, 0, 0};
 
 	// todo: calc initial direction, do we want some kind of heuristic or do we just pick a random direction?
 
@@ -802,7 +802,7 @@ int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, 
 			return 0;
 		}
 
-		if (gjk_do_simplex(simplex, simplex_d, dir)) {
+		if (gjk_do_simplex(simplex, &simplex_d, dir)) {
 			return 1;
 		}
 	}
@@ -835,7 +835,7 @@ void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_
 		float dot = vec3_dot(p_vert, p_dir);
 		if (dot > dot_max) {
 			dot_max = dot;
-			vec3_set(p_extreme, p_vert);
+			vec3_set(p_vert, p_extreme);
 		}
 	}
 }
@@ -919,7 +919,7 @@ void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir
 
 			vec3_set(p_c, simplex[0]);
 			vec3_set(p_a, simplex[1]);
-			p_simplex_d = 2;
+			*p_simplex_d = 2;
 
 			vec3_cross(ac, ao, p_dir);
 			vec3_cross(p_dir, ac, p_dir);
@@ -930,7 +930,7 @@ void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir
 
 				vec3_set(p_b, simplex[0]);
 				vec3_set(p_a, simplex[1]);
-				p_simplex_d = 2;
+				*p_simplex_d = 2;
 
 				vec3_cross(ab, ao, p_dir);
 				vec3_cross(p_dir, ab, p_dir);
@@ -939,7 +939,7 @@ void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir
 				// direction is AO
 
 				vec3_set(p_a, simplex[0]);
-				p_simplex_d = 1;
+				*p_simplex_d = 1;
 
 				vec3_set(p_dir, ao);
 			}
@@ -953,7 +953,7 @@ void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir
 
 				vec3_set(p_b, simplex[0]);
 				vec3_set(p_a, simplex[1]);
-				p_simplex_d = 2;
+				*p_simplex_d = 2;
 
 				vec3_cross(ab, ao, p_dir);
 				vec3_cross(p_dir, ab, p_dir);
@@ -962,21 +962,21 @@ void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir
 				// direction is AO
 
 				vec3_set(p_a, simplex[0]);
-				p_simplex_d = 1;
+				*p_simplex_d = 1;
 
-				vec3_set(p_dir, ao);
+				vec3_set(ao, p_dir);
 			}
 		} else {
 			if (GJK_SAME_SIDE(abc, ao)) {
 				// simpelx is TRIANGLE A->B->C
 				// direction is abc
 
-				vec3_set(p_dir, abc);
+				vec3_set(abc, p_dir);
 			} else {
 				// simplex is TRIANGLE A->C->B
-				// direction is -abc
+				// direction is -acb
 
-				vec3_set(tmp, p_c);
+				vec3_set(p_c, tmp);
 				vec3_set(p_b, simplex[0]);
 				vec3_set(tmp, simplex[1]);
 				
@@ -1005,25 +1005,25 @@ int gjk_do_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_d
 
 	vec3_cross(ab, ac, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
-		p_simplex_d = 3;
+		*p_simplex_d = 3;
 		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 
 	vec3_cross(ac, ad, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
-		vec3_set(simplex[1], p_c);
-		vec3_set(simplex[2], p_d);
-		p_simplex_d = 3;
+		vec3_set(p_c, simplex[1]);
+		vec3_set(p_d, simplex[2]);
+		*p_simplex_d = 3;
 		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 
 	vec3_cross(ad, ab, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
-		vec3_set(simplex[2], p_b);
-		vec3_set(simplex[1], p_d);
-		p_simplex_d = 3;
+		vec3_set(p_b, simplex[2]);
+		vec3_set(p_d, simplex[1]);
+		*p_simplex_d = 3;
 		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
