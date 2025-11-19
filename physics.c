@@ -31,9 +31,7 @@ static void physics_hull_undo_transform(struct physics_collider* p_collider);
 static void physics_plane_undo_transform(struct physics_collider* p_collider);
 
 static int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a, const float* p_center_b, float radius_b, struct physics_collision_result* p_result);
-static int physics_test_gjk(const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
-	struct physics_collision_result* p_result);
+static int physics_test_gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
 
 int  gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]);
 void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme);
@@ -358,7 +356,7 @@ void physics_world_detect_collisions_narrowphase(struct physics_world* p_world) 
 	for (int i = p_world->_collisions._length - 1; i >= 0; --i) {
 		struct physics_collision* p_collision = darr_get(&p_world->_collisions, i);
 
-		p_collision->b_has_collision = physics_test_collision(p_collision->p_a->_p_collider, p_collision->p_a->_p_transform, p_collision->p_b->_p_collider, p_collision->p_b->_p_transform, &p_collision->result);
+		p_collision->b_has_collision = physics_test_collision(p_collision->p_a->_p_collider, p_collision->p_b->_p_collider, &p_collision->result);
 		
 		if (!p_collision->b_has_collision) {
 			darr_remove(&p_world->_collisions, i);
@@ -376,13 +374,13 @@ void physics_world_resolve_collisions(struct physics_world* p_world, const struc
 // COLLISION TESTS
 
 typedef int(*physics_test_collision_func)(
-	const struct physics_collider*, const struct transform*,
-	const struct physics_collider*, const struct transform*,
+	const struct physics_collider*,
+	const struct physics_collider*,
 	struct physics_collision_result*);
 
 int physics_test_collision(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	static const physics_test_collision_func test_func_table[3][4] = {
 		{ (void*)physics_test_collision_sphere_sphere, (void*)physics_test_collision_sphere_capsule,  (void*)physics_test_collision_sphere_hull,  (void*)physics_test_collision_sphere_plane  },
@@ -403,13 +401,9 @@ int physics_test_collision(
 		p_temp = p_a;
 		p_a = p_b;
 		p_b = p_temp;
-
-		p_temp = p_ta;
-		p_ta = p_tb;
-		p_tb = p_temp;
 	}
 
-	const int b_has_collision = test_func_table[p_a->type][p_b->type](p_a, p_ta, p_b, p_tb, p_result);
+	const int b_has_collision = test_func_table[p_a->type][p_b->type](p_a, p_b, p_result);
 	if (b_has_collision && b_swap) {
 		float v_temp[3];
 		vec3_set(p_result->a, v_temp);
@@ -467,15 +461,15 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 }
 
 int physics_test_collision_sphere_sphere(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	return physics_test_sphere_sphere_internal(p_a->as_sphere.center, p_a->as_sphere.radius, p_b->as_sphere.center, p_b->as_sphere.radius, p_result);
 }
 
 int physics_test_collision_sphere_capsule(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	float v0[3];
 	float v1[3];
@@ -500,15 +494,15 @@ int physics_test_collision_sphere_capsule(
 }
 
 int physics_test_collision_sphere_hull(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_gjk(p_a, p_ta, p_b, p_tb, p_result);
+	return physics_test_gjk(p_a, p_b, p_result);
 }
 
 int physics_test_collision_sphere_plane(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	float v0[3];
 
@@ -545,8 +539,8 @@ int physics_test_collision_sphere_plane(
 }
 
 int physics_test_collision_capsule_capsule(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	*p_result = (struct physics_collision_result){0};
 	return 0;
@@ -555,15 +549,15 @@ int physics_test_collision_capsule_capsule(
 }
 
 int physics_test_collision_capsule_hull(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_gjk(p_a, p_ta, p_b, p_tb, p_result);
+	return physics_test_gjk(p_a, p_b, p_result);
 }
 
 int physics_test_collision_capsule_plane(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	*p_result = (struct physics_collision_result){0};
 	return 0;
@@ -572,18 +566,17 @@ int physics_test_collision_capsule_plane(
 }
 
 int physics_test_collision_hull_hull(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_gjk(p_a, p_ta, p_b, p_tb, p_result);
+	return physics_test_gjk(p_a, p_b, p_result);
 }
 
 int physics_test_collision_hull_plane(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	vec3_mul_s(p_b->as_plane.normal, p_b->as_plane.distance, p_result->b);
-	vec3_add(p_result->b, p_tb->world_position, p_result->b);
 	
 	vec3_inv(p_b->as_plane.normal, p_result->ab_normal);
 
@@ -774,8 +767,8 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 // GJK
 
 int physics_test_gjk(
-	const struct physics_collider* p_a, const struct transform* p_ta,
-	const struct physics_collider* p_b, const struct transform* p_tb,
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	float simplex[4][3] = {0};
 	int b_collision = gjk(p_a, p_b, simplex);

@@ -103,53 +103,53 @@ void                   physics_world_remove_solver(struct physics_world* p_world
 void                   physics_world_step(struct physics_world* p_world, float delta_time);
 
 int physics_test_collision(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_sphere(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_capsule(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_hull(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_plane(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_capsule_capsule(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_capsule_hull(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_capsule_plane(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_hull_hull(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
 
 int physics_test_collision_hull_plane(
-    const struct physics_collider* p_a, const struct transform* p_ta,
-    const struct physics_collider* p_b, const struct transform* p_tb,
+    const struct physics_collider* p_a,
+    const struct physics_collider* p_b,
     struct physics_collision_result* p_result);
     
 void physics_collision_solver_impulse(const struct physics_collision* p_collisions, size_t n, float delta_time);
