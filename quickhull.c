@@ -12,7 +12,7 @@
 
 #define CX_LOG_CAT_QH "quickhull"
 
-#define QH_DEBUG_LOG_EDGE(P_EDGE) log_msg(LOG_DEBUG, QH_LOG_CAT, "\t\tHalf-edge (%p) tail=[%f, %f, %f], head=[%f, %f, %f], p_face=%p, p_prev=%p, p_next=%p, p_twin=%p\n",\
+#define QH_DEBUG_LOG_EDGE(P_EDGE) CX_DBG_LOG_FMT(QH_LOG_CAT, "\t\tHalf-edge (%p) tail=[%f, %f, %f], head=[%f, %f, %f], p_face=%p, p_prev=%p, p_next=%p, p_twin=%p\n",\
 				P_EDGE, P_EDGE->p_tail->position[0], P_EDGE->p_tail->position[1], P_EDGE->p_tail->position[2],\
 				P_EDGE->p_next->p_tail->position[0], P_EDGE->p_next->p_tail->position[1], P_EDGE->p_next->p_tail->position[2],\
 				P_EDGE->p_face, P_EDGE->p_prev, P_EDGE->p_next, P_EDGE->p_twin);\
