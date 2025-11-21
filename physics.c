@@ -39,10 +39,10 @@ void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const flo
 void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const float* p_dir, float* p_extreme);
 void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_dir, float* p_extreme);
 void gjk_find_support(const struct physics_collider* p_a, const struct physics_collider* p_b, const float* p_dir, float* p_support);
-int  gjk_do_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
-void gjk_do_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir);
-void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir);
-int  gjk_do_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
+int  gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
+void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir);
+void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir);
+int  gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
 void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
 
 void physics_collider_init(struct physics_collider* p_collider, enum physics_collider_type collider_type) {
@@ -774,7 +774,6 @@ int physics_test_gjk(
 	int b_collision = gjk(p_a, p_b, simplex);
 
 	if (b_collision) {
-		log_msg(LOG_DEBUG, 0, "GJK COLLISION DETECTED\n");
 		epa(simplex, p_a, p_b, p_result);
 	} else {
 		*p_result = (struct physics_collision_result){0};
@@ -783,32 +782,48 @@ int physics_test_gjk(
 	return b_collision;
 }
 
+typedef void(*physics_collider_find_extreme_func)(const void*, const float*, float*);
+
+#define GJK_SAME_SIDE(A, B) (vec3_dot(A, B) > 0)
+
 int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]) {
 	int   simplex_d = 1;
+
+	// Arbitrary initial search direction
 	float dir[3] = {1, 0, 0};
 
-	// todo: calc initial direction, do we want some kind of heuristic or do we just pick a random direction?
-
+	// Find our first point
 	gjk_find_support(p_a, p_b, dir, simplex[0]);
 
+	// Now our search direction is opposite to our first point
 	vec3_inv(simplex[0], dir);
 
 	while(true) {
+		// Find the next point for our simplex
 		gjk_find_support(p_a, p_b, dir, simplex[simplex_d]);
 		++simplex_d;
 
-		// A dot dir < 0, then no collision
-		if (vec3_dot(simplex[simplex_d - 1], dir) < 0) {
+		if (simplex_d == 2) {
+			log_msg(LOG_DEBUG, "gjk", "new simplex=(\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], dir[0], dir[1], dir[2]);
+		} else if (simplex_d == 3) {
+			log_msg(LOG_DEBUG, "gjk", "new simplex=(\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], dir[0], dir[1], dir[2]);
+		} else {
+			log_msg(LOG_DEBUG, "gjk", "new simplex=(\n\tD[%f, %f, %f]\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], simplex[3][0], simplex[3][1], simplex[3][2], dir[0], dir[1], dir[2]);
+		}
+
+		// If the new point is not beyond the origin from the perspective of the search direction,
+		// then there's no collision!
+		if (!GJK_SAME_SIDE(simplex[simplex_d - 1], dir)) {
+			log_msg(LOG_DEBUG, "gjk", "NO COLLISION\n");
 			return 0;
 		}
 
-		if (gjk_do_simplex(simplex, &simplex_d, dir)) {
+		if (gjk_process_simplex(simplex, &simplex_d, dir)) {
+			log_msg(LOG_DEBUG, "gjk", "COLLISION DETECTED\n");
 			return 1;
 		}
 	}
 }
-
-typedef void(*physics_collider_find_extreme_func)(const void*, const float*, float*);
 
 void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme) {
 	static const physics_collider_find_extreme_func func_table[] = {
@@ -820,7 +835,8 @@ void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_
 }
 
 void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const float* p_dir, float* p_extreme) {
-	vec3_mul_s(p_dir, p_sphere->radius, p_extreme);
+	vec3_norm(p_dir, p_extreme);
+	vec3_mul_s(p_extreme, p_sphere->radius, p_extreme);
 	vec3_add(p_extreme, p_sphere->center, p_extreme);
 }
 
@@ -832,7 +848,7 @@ void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_
 	float dot_max = -FLT_MAX;
 	for (size_t i = 0; i < p_hull->verts._length; ++i) {
 		const float* p_vert = darr_get(&p_hull->verts, i);
-		float dot = vec3_dot(p_vert, p_dir);
+		const float dot = vec3_dot(p_vert, p_dir);
 		if (dot > dot_max) {
 			dot_max = dot;
 			vec3_set(p_vert, p_extreme);
@@ -848,26 +864,26 @@ void gjk_find_support(const struct physics_collider* p_a, const struct physics_c
 
 	gjk_find_extreme(p_a, p_dir, tmp);
 
-	vec3_sub(p_support, tmp, p_support);
+	log_msg(LOG_DEBUG, "gjk", "collider extremes: dir=[%f, %f, %f], a=[%f, %f, %f], b=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2], tmp[0], tmp[1], tmp[2], p_support[0], p_support[1], p_support[2]);
+
+	vec3_sub(tmp, p_support, p_support);
 }
 
- #define GJK_SAME_SIDE(A, B) (vec3_dot(A, B) > 0)
-
-int gjk_do_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+int gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 	if (*p_simplex_d == 2) {
-		gjk_do_simplex_line(simplex, p_simplex_d, p_dir);
+		gjk_process_simplex_line(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 
 	if (*p_simplex_d == 3) {
-		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
+		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 
-	return gjk_do_simplex_tetrahedron(simplex, p_simplex_d, p_dir);
+	return gjk_process_simplex_tetrahedron(simplex, p_simplex_d, p_dir);
 }
 
-void gjk_do_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 	const float* p_a = simplex[1];
 	const float* p_b = simplex[0];
 
@@ -883,6 +899,8 @@ void gjk_do_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 
 		vec3_cross(ab, ao, p_dir);
 		vec3_cross(p_dir, ab, p_dir);
+
+		log_msg(LOG_DEBUG, "gjk", "simplex=line, origin contained in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
 	} else {
 		// simplex is POINT A
 		// direction is AO
@@ -890,11 +908,13 @@ void gjk_do_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 		vec3_set(p_a, simplex[0]);
 		*p_simplex_d = 1;
 
-		vec3_set(p_dir, ao);
+		vec3_set(ao, p_dir);
+
+		log_msg(LOG_DEBUG, "gjk", "simplex=line, origin not in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
 	}
 }
 
-void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 	const float* p_a = simplex[2];
 	const float* p_b = simplex[1];
 	const float* p_c = simplex[0];
@@ -986,7 +1006,7 @@ void gjk_do_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir
 	}
 }
 
-int gjk_do_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 	const float* p_a = simplex[3];
 	const float* p_b = simplex[2];
 	const float* p_c = simplex[1];
@@ -1005,26 +1025,31 @@ int gjk_do_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_d
 
 	vec3_cross(ab, ac, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
+		// Simplex is TRANGLE A->B->C
+		vec3_set(p_c, simplex[0]);
+		vec3_set(p_b, simplex[1]);
+		vec3_set(p_a, simplex[2]);
 		*p_simplex_d = 3;
-		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
+		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 
 	vec3_cross(ac, ad, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
-		vec3_set(p_c, simplex[1]);
-		vec3_set(p_d, simplex[2]);
+		// Simplex is TRANGLE A->C->D
+		vec3_set(p_a, simplex[2]);
 		*p_simplex_d = 3;
-		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
+		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 
 	vec3_cross(ad, ab, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
-		vec3_set(p_b, simplex[2]);
-		vec3_set(p_d, simplex[1]);
+		// Simplex is TRANGLE A->B->D
+		vec3_set(p_b, simplex[1]);
+		vec3_set(p_a, simplex[2]);
 		*p_simplex_d = 3;
-		gjk_do_simplex_triangle(simplex, p_simplex_d, p_dir);
+		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
 	}
 

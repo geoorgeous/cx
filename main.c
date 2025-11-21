@@ -251,7 +251,7 @@ int main(int, const char*[]) {
         p_new_entity->transform.position[0] = 2;
 
         p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 0);
-        physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_sphere);
+        physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_capsule);
         
         // // Sphere 3
         
