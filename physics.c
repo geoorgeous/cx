@@ -841,7 +841,18 @@ void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const flo
 }
 
 void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const float* p_dir, float* p_extreme) {
-	// todo: find extreme of capsule
+	vec3_sub(p_capsule->p1, p_capsule->p0, p_extreme);
+	if (GJK_SAME_SIDE(p_extreme, p_dir)) {
+		vec3_set(p_capsule->p1, p_extreme);
+	} else {
+		vec3_set(p_capsule->p0, p_extreme);
+	}
+
+	float tmp[3];
+	vec3_norm(p_dir, tmp);
+	vec3_mul_s(tmp, p_capsule->radius, tmp);
+
+	vec3_add(p_extreme, tmp, p_extreme);
 }
 
 void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_dir, float* p_extreme) {
@@ -893,25 +904,9 @@ void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_di
 	vec3_inv(p_a, ao);
 	vec3_sub(p_b, p_a, ab);
 
-	if (GJK_SAME_SIDE(ab, ao)) {
-		// simplex is LINE A->B
-		// direction is AB cross AO cross AB
-
-		vec3_cross(ab, ao, p_dir);
-		vec3_cross(p_dir, ab, p_dir);
-
-		//CX_DBG_LOG_FMT("gjk", "simplex=line, origin contained in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
-	} else {
-		// simplex is POINT A
-		// direction is AO
-
-		vec3_set(p_a, simplex[0]);
-		*p_simplex_d = 1;
-
-		vec3_set(ao, p_dir);
-
-		//CX_DBG_LOG_FMT("gjk", "simplex=line, origin not in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
-	}
+	// new direction is AB cross AO cross AB
+	vec3_cross(ab, ao, p_dir);
+	vec3_cross(p_dir, ab, p_dir);
 }
 
 void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir) {
