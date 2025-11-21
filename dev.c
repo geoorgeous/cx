@@ -571,7 +571,7 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
 
             set_selected_entity(p_new_scene_entity);
 
-            log_msg(LOG_DEBUG, 0, "Scene entity copied\n");
+            CX_DBG_LOG(0, "Scene entity copied\n");
 
             break;
         }

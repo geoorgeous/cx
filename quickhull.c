@@ -10,7 +10,7 @@
 
 #define QH_EPSILON_SCALE 1000
 
-#define QH_LOG_CAT "quickhull"
+#define CX_LOG_CAT_QH "quickhull"
 
 #define QH_DEBUG_LOG_EDGE(P_EDGE) log_msg(LOG_DEBUG, QH_LOG_CAT, "\t\tHalf-edge (%p) tail=[%f, %f, %f], head=[%f, %f, %f], p_face=%p, p_prev=%p, p_next=%p, p_twin=%p\n",\
 				P_EDGE, P_EDGE->p_tail->position[0], P_EDGE->p_tail->position[1], P_EDGE->p_tail->position[2],\
@@ -18,7 +18,7 @@
 				P_EDGE->p_face, P_EDGE->p_prev, P_EDGE->p_next, P_EDGE->p_twin);\
 
 #define QH_DEBUG_LOG_FACE(P_FACE) {\
-		log_msg(LOG_DEBUG, QH_LOG_CAT, "\tFACE (%p) - Processed: %d, p_prev=%p, p_next=%p\n", P_FACE, P_FACE->b_qh_processed, P_FACE->p_prev, P_FACE->p_next);\
+		CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tFACE (%p) - Processed: %d, p_prev=%p, p_next=%p\n", P_FACE, P_FACE->b_qh_processed, P_FACE->p_prev, P_FACE->p_next);\
 		struct he_edge* p_edge_debug = P_FACE->p_edges;\
 		do {\
 			QH_DEBUG_LOG_EDGE(p_edge_debug);\
@@ -26,13 +26,13 @@
 		} while(p_edge_debug != P_FACE->p_edges);\
 		struct he_vertex* p_vertex_debug = P_FACE->p_qh_conflict_list;\
 		while (p_vertex_debug) {\
-			log_msg(LOG_DEBUG, QH_LOG_CAT, "\t\tConflict Vertex (%p) [%f, %f, %f], p_prev=%p, p_next=%p\n",\
+			CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\t\tConflict Vertex (%p) [%f, %f, %f], p_prev=%p, p_next=%p\n",\
 				p_vertex_debug, p_vertex_debug->position[0], p_vertex_debug->position[1], p_vertex_debug->position[2], p_vertex_debug->p_prev, p_vertex_debug->p_next);\
 			p_vertex_debug = p_vertex_debug->p_next;\
 		} }
 
 #define QH_DEBUG_LOG_HULL(P_HULL, NOTE) {\
-		log_msg(LOG_DEBUG, QH_LOG_CAT, "HULL FACES ("NOTE"):\n");\
+		CX_DBG_LOG(CX_LOG_CAT_QH, "HULL FACES ("NOTE"):\n");\
 		struct he_face* p_face_debug = P_HULL->p_faces;\
 		while (p_face_debug) {\
 			QH_DEBUG_LOG_FACE(p_face_debug);\
@@ -94,7 +94,7 @@ void qh_freelist_init(struct qh_freelist_node* p_head, size_t node_size, size_t 
 
 struct qh_freelist_node* qh_freelist_get(struct qh_freelist_node** pp_list) {
 	if (!*pp_list) {
-		log_msg(LOG_ERROR, QH_LOG_CAT, "Freelist empty!\n");
+		cx_log(CX_LOG_ERROR, CX_LOG_CAT_QH, "Freelist empty!\n");
 		return 0;
 	}
 
@@ -247,7 +247,7 @@ void qh_find_initial_hull_vertices(const float* p_point_cloud, size_t num_points
 		fmaxf(fabsf(p_point_cloud[extremes[2] * 3 + 1]), fabsf(p_point_cloud[extremes[3] * 3 + 1])) +
 		fmaxf(fabsf(p_point_cloud[extremes[4] * 3 + 2]), fabsf(p_point_cloud[extremes[1] * 5 + 2])));
 
-	// log_msg(LOG_DEBUG, QH_LOG_CAT, "Point cloud extremes:\n\tx_axis=([%f, %f, %f], [%f, %f, %f])\n\ty_axis=([%f, %f, %f], [%f, %f, %f])\n\tz_axis=([%f, %f, %f], [%f, %f, %f])\n"
+	// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Point cloud extremes:\n\tx_axis=([%f, %f, %f], [%f, %f, %f])\n\ty_axis=([%f, %f, %f], [%f, %f, %f])\n\tz_axis=([%f, %f, %f], [%f, %f, %f])\n"
 	// 	, p_point_cloud[extremes[0] * 3 + 0], p_point_cloud[extremes[0] * 3 + 1], p_point_cloud[extremes[0] * 3 + 2], p_point_cloud[extremes[1] * 3 + 0], p_point_cloud[extremes[1] * 3 + 1], p_point_cloud[extremes[1] * 3 + 2]
 	// 	, p_point_cloud[extremes[2] * 3 + 0], p_point_cloud[extremes[2] * 3 + 1], p_point_cloud[extremes[2] * 3 + 2], p_point_cloud[extremes[3] * 3 + 0], p_point_cloud[extremes[3] * 3 + 1], p_point_cloud[extremes[3] * 3 + 2]
 	// 	, p_point_cloud[extremes[4] * 3 + 0], p_point_cloud[extremes[4] * 3 + 1], p_point_cloud[extremes[4] * 3 + 2], p_point_cloud[extremes[5] * 3 + 0], p_point_cloud[extremes[5] * 3 + 1], p_point_cloud[extremes[5] * 3 + 2]);
@@ -283,7 +283,7 @@ void qh_find_initial_hull_vertices(const float* p_point_cloud, size_t num_points
 			max = d;
 			iv[2] = i;
 		}
-		// log_msg(LOG_DEBUG, QH_LOG_CAT, "Segment: [%f, %f, %f]->[%f, %f, %f], Point: [%f, %f, %f], distance: %f\n"
+		// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Segment: [%f, %f, %f]->[%f, %f, %f], Point: [%f, %f, %f], distance: %f\n"
 		// 	, p_point_cloud[iv[0] * 3], p_point_cloud[iv[0] * 3 + 1], p_point_cloud[iv[0] * 3 + 2]
 		// 	, p_point_cloud[iv[1] * 3], p_point_cloud[iv[1] * 3 + 1], p_point_cloud[iv[1] * 3 + 2]
 		// 	, p[0], p[1], p[2]
@@ -346,7 +346,7 @@ void qh_join_edges(struct he_edge* p_edge_head, struct he_edge* p_edge_tail) {
 }
 
 struct he_face* qh_construct_new_face(struct he_mesh* p_hull, struct he_vertex* p_fa, struct he_vertex* p_fb, struct he_vertex* p_fc) {
-	// log_msg(LOG_DEBUG, QH_LOG_CAT, "New face: [%f, %f, %f]->[%f, %f, %f]->[%f, %f, %f]\n"
+	// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "New face: [%f, %f, %f]->[%f, %f, %f]->[%f, %f, %f]\n"
 	// 	, p_fa->position[0], p_fa->position[1], p_fa->position[2]
 	// 	, p_fb->position[0], p_fb->position[1], p_fb->position[2]
 	// 	, p_fc->position[0], p_fc->position[1], p_fc->position[2]);
@@ -433,9 +433,9 @@ void qh_distribute_conflict_vertices(struct he_mesh* p_hull, struct he_face* p_f
 
 #if QH_DEBUG
 		if (p_closest_face) {
-			log_msg(LOG_DEBUG, QH_LOG_CAT, "\tConflict vertex (%p) moved to face (%p) conflict list\n", p_vertex, p_closest_face);
+			CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tConflict vertex (%p) moved to face (%p) conflict list\n", p_vertex, p_closest_face);
 		} else {
-			log_msg(LOG_DEBUG, QH_LOG_CAT, "\tConflict vertex (%p) freed\n", p_vertex);
+			CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tConflict vertex (%p) freed\n", p_vertex);
 		}
 #endif
 		
@@ -483,7 +483,7 @@ struct he_vertex* qh_next_conflict_vertex(struct he_mesh* p_hull, struct he_face
 	}
 
 #if QH_DEBUG
-	log_msg(LOG_DEBUG, QH_LOG_CAT, "NEXT CONFLICT VERTEX: (%p) face=(%p)\n", p_conflict_vertex, *pp_face);
+	CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "NEXT CONFLICT VERTEX: (%p) face=(%p)\n", p_conflict_vertex, *pp_face);
 #endif
 
 	return p_conflict_vertex;
@@ -516,7 +516,7 @@ int qh_is_point_above_abc_plane(const float* p_a, const float* p_b, const float*
 	float rel_point[3];
 	vec3_sub(p_point, p_a, rel_point);
 
-	// log_msg(LOG_DEBUG, QH_LOG_CAT, "qh_is_point_above_abc_plane:\n\tabc=([%f, %f, %f], [%f, %f, %f], [%f, %f, %f])\n\tpoint=[%f, %f, %f], normal=[%f, %f, %f]\n\trel_point=[%f, %f, %f], threshold=%f, rel_point.normal=%f\n"
+	// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "qh_is_point_above_abc_plane:\n\tabc=([%f, %f, %f], [%f, %f, %f], [%f, %f, %f])\n\tpoint=[%f, %f, %f], normal=[%f, %f, %f]\n\trel_point=[%f, %f, %f], threshold=%f, rel_point.normal=%f\n"
 	// 	, p_a[0], p_a[1], p_a[2]
 	// 	, p_b[0], p_b[1], p_b[2]
 	// 	, p_c[0], p_c[1], p_c[2]
@@ -582,7 +582,7 @@ void qh_merge_edge_faces(struct he_mesh* p_hull, struct he_edge* p_edge) {
 	struct he_face* p_face2 = p_edge2->p_face;
 
 #if QH_DEBUG
-	log_msg(LOG_DEBUG, QH_LOG_CAT, "Non-convex edge; merging (%p with %p, along edge %p / %p). Face pre-merge:\n", p_face, p_face2, p_edge, p_edge2);
+	CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Non-convex edge; merging (%p with %p, along edge %p / %p). Face pre-merge:\n", p_face, p_face2, p_edge, p_edge2);
 	QH_DEBUG_LOG_FACE(p_face);
 #endif
 
@@ -609,7 +609,7 @@ void qh_merge_edge_faces(struct he_mesh* p_hull, struct he_edge* p_edge) {
 	qh_rebuild_face_plane(p_face);
 
 #if QH_DEBUG
-	log_msg(LOG_DEBUG, QH_LOG_CAT, "\tFace post-merge:\n", p_face);
+	CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tFace post-merge:\n", p_face);
 	QH_DEBUG_LOG_FACE(p_face);
 #endif
 }
@@ -623,7 +623,7 @@ void qh_fix_topology_errors(struct he_mesh* p_hull, struct he_edge* p_edge_i, st
 
 	if (p_edge_o->p_twin->p_prev == p_edge_i->p_twin->p_next) {
 #if QH_DEBUG
-		log_msg(LOG_DEBUG, QH_LOG_CAT, "Topological error! Ingoing (%p) and outgoing (%p) merge edges pointing to same face (%p) (error 1)\n", p_edge_i, p_edge_o, p_edge_o->p_twin->p_face);
+		CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Topological error! Ingoing (%p) and outgoing (%p) merge edges pointing to same face (%p) (error 1)\n", p_edge_i, p_edge_o, p_edge_o->p_twin->p_face);
 #endif
 		struct he_edge* p_outer_edge = p_edge_o->p_twin->p_prev;
 
@@ -659,7 +659,7 @@ void qh_fix_topology_errors(struct he_mesh* p_hull, struct he_edge* p_edge_i, st
 		qh_fix_topology_errors(p_hull, p_outer_edge->p_prev, p_outer_edge);
 	} else {
 #if QH_DEBUG
-		log_msg(LOG_DEBUG, QH_LOG_CAT, "Topological error! Ingoing (%p) and outgoing (%p) merge edges pointing to same face (%p) (error 2)\n", p_edge_i, p_edge_o, p_edge_o->p_twin->p_face);
+		CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Topological error! Ingoing (%p) and outgoing (%p) merge edges pointing to same face (%p) (error 2)\n", p_edge_i, p_edge_o, p_edge_o->p_twin->p_face);
 #endif
 		struct he_edge* p_edge_r1 = p_edge_o;
 		struct he_edge* p_edge_s1 = p_edge_i;
@@ -719,18 +719,18 @@ void qh_rebuild_face_plane(struct he_face* p_face) {
 	float original_normal[3];
 	qh_compute_triangle_normal(p_face->p_edges->p_tail->position, p_face->p_edges->p_next->p_tail->position, p_face->p_edges->p_next->p_next->p_tail->position, original_normal);
 
-	// log_msg(LOG_DEBUG, QH_LOG_CAT, "Rebuilding face plane: original_normal=[%f, %f, %f], new_plane=([%f, %f, %f], %f)\n", original_normal[0], original_normal[1], original_normal[2], plane[0], plane[1], plane[2], plane[3]);
+	// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Rebuilding face plane: original_normal=[%f, %f, %f], new_plane=([%f, %f, %f], %f)\n", original_normal[0], original_normal[1], original_normal[2], plane[0], plane[1], plane[2], plane[3]);
 	
 	p_edge = p_face->p_edges;
 	do {		
 		float offset[3];
 		vec3_mul_s(plane, vec3_dot(plane, p_edge->p_tail->position) + plane[3], offset);
 
-		// log_msg(LOG_DEBUG, QH_LOG_CAT, "\tOld vertex position=[%f, %f, %f]\n", p_edge->p_tail->position[0], p_edge->p_tail->position[1], p_edge->p_tail->position[2]);
+		// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tOld vertex position=[%f, %f, %f]\n", p_edge->p_tail->position[0], p_edge->p_tail->position[1], p_edge->p_tail->position[2]);
 
 		vec3_sub(p_edge->p_tail->position, offset, p_edge->p_tail->position);
 
-		// log_msg(LOG_DEBUG, QH_LOG_CAT, "\tNew vertex position=[%f, %f, %f]\n", p_edge->p_tail->position[0], p_edge->p_tail->position[1], p_edge->p_tail->position[2]);
+		// CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tNew vertex position=[%f, %f, %f]\n", p_edge->p_tail->position[0], p_edge->p_tail->position[1], p_edge->p_tail->position[2]);
 
 		p_edge = p_edge->p_next;
 	} while(p_edge != p_face->p_edges);
@@ -738,10 +738,10 @@ void qh_rebuild_face_plane(struct he_face* p_face) {
 
 void qh_construct_horizon_faces(struct he_mesh* p_hull, struct he_edge* p_horizon_start, struct he_vertex* p_eye, float threshold) {
 #if QH_DEBUG
-	log_msg(LOG_DEBUG, QH_LOG_CAT, "HORIZON EDGES:\n");
+	CX_DBG_LOG(CX_LOG_CAT_QH, "HORIZON EDGES:\n");
 	struct he_edge* p_temp_horizon_edge = p_horizon_start;
 	while(p_temp_horizon_edge) {
-		log_msg(LOG_DEBUG, QH_LOG_CAT, "\tEdge (%p)\n", p_temp_horizon_edge);
+		CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\tEdge (%p)\n", p_temp_horizon_edge);
 		p_temp_horizon_edge = p_temp_horizon_edge->p_qh_horizon_next;
 	}
 #endif
@@ -775,10 +775,10 @@ void qh_construct_horizon_faces(struct he_mesh* p_hull, struct he_edge* p_horizo
 
 		if (p_face->b_qh_processed) {
 #if QH_DEBUG
-			log_msg(LOG_DEBUG, QH_LOG_CAT, "Deleting redundant face (%p) and redistributing conflict vertices:\n", p_face);
+			CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Deleting redundant face (%p) and redistributing conflict vertices:\n", p_face);
 			struct he_vertex* p_vertex_debug = p_face->p_qh_conflict_list;
 			while (p_vertex_debug) {
-				log_msg(LOG_DEBUG, QH_LOG_CAT, "\t\tConflict Vertex (%p) [%f, %f, %f], p_prev=%p, p_next=%p\n",
+				CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "\t\tConflict Vertex (%p) [%f, %f, %f], p_prev=%p, p_next=%p\n",
 				p_vertex_debug, p_vertex_debug->position[0], p_vertex_debug->position[1], p_vertex_debug->position[2], p_vertex_debug->p_prev, p_vertex_debug->p_next);
 				p_vertex_debug = p_vertex_debug->p_next;
 			}
@@ -817,14 +817,14 @@ void qh_merge_coplanars(struct he_mesh* p_hull, float threshold) {
 		do {
 			
 			if (qh_edge_is_convex(p_edge, threshold)) {
-				// log_msg(LOG_DEBUG, QH_LOG_CAT, "EDGE IS CONVEX\n");
+				// CX_DBG_LOG(CX_LOG_CAT_QH, "EDGE IS CONVEX\n");
 				// QH_DEBUG_LOG_FACE(p_edge->p_face);
 				// QH_DEBUG_LOG_FACE(p_edge->p_twin->p_face);
 				p_edge = p_edge->p_next;
 				continue;
 			}
 			
-			// log_msg(LOG_DEBUG, QH_LOG_CAT, "EDGE IS NON-CONVEX\n");
+			// CX_DBG_LOG(CX_LOG_CAT_QH, "EDGE IS NON-CONVEX\n");
 			// QH_DEBUG_LOG_FACE(p_edge->p_face);
 			// QH_DEBUG_LOG_FACE(p_edge->p_twin->p_face);
 			
@@ -892,7 +892,7 @@ void qh_purge_duplicate_input_points(float* p_point_cloud, size_t* p_num_points)
         }
     }
 
-	log_msg(LOG_DEBUG, QH_LOG_CAT, "Purged %d point duplicates\n", *p_num_points - m);
+	CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Purged %d point duplicates\n", *p_num_points - m);
 
     *p_num_points = m;
 }
@@ -906,7 +906,7 @@ void quickhull(float* p_point_cloud, size_t num_points, struct he_mesh* p_hull) 
 	const size_t size_chunk1 = sizeof(struct he_edge) * max_edges;
 	const size_t size_chunk2 = sizeof(struct he_face) * max_faces;
 	
-	log_msg(LOG_TRACE, QH_LOG_CAT, "Generating convex hull for point cloud: num_points=%d, max_edges=%d, max_faces=%d\n", num_points, max_edges, max_faces);
+	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_QH, "Generating convex hull for point cloud: num_points=%d, max_edges=%d, max_faces=%d\n", num_points, max_edges, max_faces);
 
 	*p_hull = (struct he_mesh){0};
 
@@ -976,7 +976,7 @@ void quickhull(float* p_point_cloud, size_t num_points, struct he_mesh* p_hull) 
 		// QH_DEBUG_LOG_HULL(p_hull, "Post-next-conflict-vertex");
 	}
 	
-	log_msg(LOG_TRACE, QH_LOG_CAT, "Completed in %d steps. Epsilon=%f\n", i, threshold);
+	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_QH, "Completed in %d steps. Epsilon=%f\n", i, threshold);
 }
 
 void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_mesh* p_result) {

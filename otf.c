@@ -68,7 +68,7 @@ static void otf_cff_load_index(void** buf_pp, struct otf_cff_index_st* index_p) 
 
 	serialization_read_uint16(buf_pp, &index_p->count);
 	
-	log_msg(LOG_DEBUG, OTF_LOG_CAT, "INDEX.count: %hu\n", index_p->count);
+	CX_DBG_LOG_FMT(OTF_LOG_CAT, "INDEX.count: %hu\n", index_p->count);
 
 	if (index_p->count == 0)
 		return;
@@ -76,7 +76,7 @@ static void otf_cff_load_index(void** buf_pp, struct otf_cff_index_st* index_p) 
 	uint8_t offset_elem_size;
 	serialization_read_uint8(buf_pp, &offset_elem_size);
 	
-	log_msg(LOG_DEBUG, OTF_LOG_CAT, "INDEX.offSize: %hhu\n", offset_elem_size);
+	CX_DBG_LOG_FMT(OTF_LOG_CAT, "INDEX.offSize: %hhu\n", offset_elem_size);
 
 	index_p->offset_arr = malloc(sizeof(*index_p->offset_arr) * (index_p->count + 1));
 	
@@ -206,18 +206,18 @@ static void otf_cff_decode_dict(void* dict_p, size_t dict_size, void(*operator_h
 			num_decoded_operands = 0;
 			
 			// if (b0 == 12)
-			// 	log_msg(LOG_DEBUG, OTF_LOG_CAT, "DICT operator: %hhu %hhu\n", b0_p[0], b0_p[1]);
+			// 	CX_DBG_LOG_FMT(OTF_LOG_CAT, "DICT operator: %hhu %hhu\n", b0_p[0], b0_p[1]);
 			// else
-			// 	log_msg(LOG_DEBUG, OTF_LOG_CAT, "DICT operator: %hhu\n", b0_p[0]);
+			// 	CX_DBG_LOG_FMT(OTF_LOG_CAT, "DICT operator: %hhu\n", b0_p[0]);
 		} else {
 			struct cff_dict_number_st* operand_p = &decoded_operands[num_decoded_operands];
 			otf_cff_dict_decode_number(&dict_pos_p, operand_p);
 			num_decoded_operands++;
 
 			// if (operand_p->b_is_real)
-			// 	log_msg(LOG_DEBUG, OTF_LOG_CAT, "DICT operand: %f (float)\n", operand_p->value.as_float);	
+			// 	CX_DBG_LOG_FMT(OTF_LOG_CAT, "DICT operand: %f (float)\n", operand_p->value.as_float);	
 			// else
-			// 	log_msg(LOG_DEBUG, OTF_LOG_CAT, "DICT operand: %d (int32)\n", operand_p->value.as_int32);	
+			// 	CX_DBG_LOG_FMT(OTF_LOG_CAT, "DICT operand: %d (int32)\n", operand_p->value.as_int32);	
 		}
 	}
 }
@@ -250,11 +250,11 @@ static void otf_cff_handle_private_dict_operator(const struct cff_dict_number_st
 void otf_load(const char* filepath_str, struct otf_st* otf_p) {
 	FILE* file_p = fopen(filepath_str, "rb");
 	if (!file_p) {
-		log_msg(LOG_DEBUG, OTF_LOG_CAT, "Failed to open file '%s'\n", filepath_str);
+		CX_DBG_LOG_FMT(OTF_LOG_CAT, "Failed to open file '%s'\n", filepath_str);
 		return;
 	}
 
-	log_msg(LOG_DEBUG, OTF_LOG_CAT, "Processing file '%s'\n", filepath_str);
+	CX_DBG_LOG_FMT(OTF_LOG_CAT, "Processing file '%s'\n", filepath_str);
 
 	serialization_set_byte_order(SERIALIZATION_BYTE_ORDER_big_endian);
 
@@ -286,7 +286,7 @@ void otf_load(const char* filepath_str, struct otf_st* otf_p) {
 		serialization_read_uint32(&buf_p, &record_p->offset);
 		serialization_read_uint32(&buf_p, &record_p->length);
 
-		// log_msg(LOG_DEBUG, OTF_LOG_CAT, "Table record [%hu]:\n\ttag: '%s'\n\tchecksum: %u\n\toffset: %u\n\tlength: %u\n", i, record_p->tag, record_p->checksum, record_p->offset, record_p->length);
+		// CX_DBG_LOG_FMT(OTF_LOG_CAT, "Table record [%hu]:\n\ttag: '%s'\n\tchecksum: %u\n\toffset: %u\n\tlength: %u\n", i, record_p->tag, record_p->checksum, record_p->offset, record_p->length);
 	}
 
 	const struct otf_table_rec_st* record_p;
@@ -618,7 +618,7 @@ void otf_load(const char* filepath_str, struct otf_st* otf_p) {
 							case 12: { // two-byte operators
 								switch (buf_p[1]) {
 									default: {
-										log_msg(LOG_DEBUG, OTF_LOG_CAT, "12 %hhu\n", buf_p[1]);
+										CX_DBG_LOG_FMT(OTF_LOG_CAT, "12 %hhu\n", buf_p[1]);
 										break;
 									}
 								}
@@ -633,7 +633,7 @@ void otf_load(const char* filepath_str, struct otf_st* otf_p) {
 							}
 
 							default: {
-								log_msg(LOG_DEBUG, OTF_LOG_CAT, "%hhu\n", buf_p[0]);
+								CX_DBG_LOG_FMT(OTF_LOG_CAT, "%hhu\n", buf_p[0]);
 								buf_p++;
 								break;
 							}
@@ -660,7 +660,7 @@ void otf_load(const char* filepath_str, struct otf_st* otf_p) {
 
 	for (uint16_t i = 0; i < otf_p->cmap.encoding_record_arr_n; ++i) {
 		struct otf_encoding_rec_st* encoding_record_p = otf_p->cmap.encoding_record_arr + i;
-		log_msg(LOG_DEBUG, OTF_LOG_CAT, "Encoding record[%hu]: PlatformID=%hu, EncodingID=%hu\n", i, encoding_record_p->platform_id, encoding_record_p->encoding_id);
+		CX_DBG_LOG_FMT(OTF_LOG_CAT, "Encoding record[%hu]: PlatformID=%hu, EncodingID=%hu\n", i, encoding_record_p->platform_id, encoding_record_p->encoding_id);
 	}
 }
 

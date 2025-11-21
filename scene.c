@@ -9,7 +9,7 @@ void scene_init(struct scene* p_scene) {
     object_pool_init(&p_scene->_entity_pool, sizeof(struct scene_entity), 1024);
     darr_init(&p_scene->_entities, sizeof(struct scene_entity*));
 
-    log_msg(LOG_TRACE, "scene", "Scene initialised\n");
+    cx_log(CX_LOG_TRACE, "scene", "Scene initialised\n");
 }
 
 void scene_destroy(struct scene* p_scene) {
@@ -41,7 +41,7 @@ struct scene_entity* scene_new_entity(struct scene* p_scene) {
     
     ++p_scene->_next_entity_id;
     
-    log_msg(LOG_TRACE, "scene", "Entity created (id=%u)\n", p_new_entity->_id);
+    cx_log_fmt(CX_LOG_TRACE, "scene", "Entity created (id=%u)\n", p_new_entity->_id);
 
     return p_new_entity;
 }
@@ -53,7 +53,7 @@ void scene_destroy_entity(struct scene* p_scene, struct scene_entity* p_entity) 
     };
     event_broadcast(&p_scene->on_new_entity, &e);
 
-    log_msg(LOG_TRACE, "scene", "Entity destroyed (id=%u)\n", p_entity->_id);
+    cx_log_fmt(CX_LOG_TRACE, "scene", "Entity destroyed (id=%u)\n", p_entity->_id);
 
     object_pool_return(&p_scene->_entity_pool, p_entity);
 

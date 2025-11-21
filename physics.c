@@ -90,7 +90,7 @@ void physics_world_init(struct physics_world* p_world) {
 	object_pool_init(&p_world->_physics_object_pools[0], sizeof(struct physics_object), PHYSICS_MAX_STATIC_OBJECTS);
 	object_pool_init(&p_world->_physics_object_pools[1], sizeof(struct physics_rigidbody), PHYSICS_MAX_RIGIDBODIES);
 
-	log_msg(LOG_TRACE, "physics", "Physics world initialised\n");
+	cx_log(CX_LOG_TRACE, "physics", "Physics world initialised\n");
 }
 
 void physics_world_destroy(struct physics_world* p_world) {
@@ -124,7 +124,7 @@ struct physics_object* physics_world_new_object(struct physics_world* p_world, s
 	struct physics_object** pp_object = darr_push(&p_world->_objects);
 	*pp_object = p_object;
 
-	log_msg(LOG_TRACE, "physics", "%s created\n", b_is_rigidbody ? "Rigidbody" : "Static body");
+	cx_log_fmt(CX_LOG_TRACE, "physics", "%s created\n", b_is_rigidbody ? "Rigidbody" : "Static body");
 
 	return p_object;
 }
@@ -138,7 +138,7 @@ void physics_world_destroy_object(struct physics_world* p_world, struct physics_
 		}
 	}
 
-	log_msg(LOG_TRACE, "physics", "%s destroyed\n", p_object->_b_is_rigidbody ? "Rigidbody" : "Static object");
+	cx_log_fmt(CX_LOG_TRACE, "physics", "%s destroyed\n", p_object->_b_is_rigidbody ? "Rigidbody" : "Static object");
 
 	if (p_object->_p_collider) {
 		object_pool_return(&p_world->_collider_pool, p_object->_p_collider);
@@ -156,7 +156,7 @@ void physics_world_new_object_collider(struct physics_world* p_world, struct phy
 	p_object->_p_collider = object_pool_get(&p_world->_collider_pool);
 	physics_collider_init(p_object->_p_collider, type);
 
-	log_msg(LOG_TRACE, "physics", "Collider added to %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", type);
+	cx_log_fmt(CX_LOG_TRACE, "physics", "Collider added to %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", type);
 }
 
 void physics_world_destroy_object_collider(struct physics_world* p_world, struct physics_object* p_object) {
@@ -164,7 +164,7 @@ void physics_world_destroy_object_collider(struct physics_world* p_world, struct
 		return;
 	}
 
-	log_msg(LOG_TRACE, "physics", "Collider removed from %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", p_object->_p_collider->type);
+	cx_log_fmt(CX_LOG_TRACE, "physics", "Collider removed from %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", p_object->_p_collider->type);
 
 	if (p_object->_p_collider->type == PHYSICS_COLLIDER_TYPE_hull) {
 		darr_free(&p_object->_p_collider->as_hull.verts);
@@ -190,7 +190,7 @@ void physics_world_remove_solver(struct physics_world* p_world, physics_collisio
 }
 
 void physics_world_step(struct physics_world* p_world, float delta_time) {
-	//log_msg(LOG_DEBUG, "physics", "Step (delta_time=%f)\n", delta_time);
+	//CX_DBG_LOG_FMT("physics", "Step (delta_time=%f)\n", delta_time);
 
 	if (FLT_CMP(delta_time, 0)) {
 		return;
@@ -425,7 +425,7 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 
 	if (d > radius_ab * radius_ab) {
 		*p_result = (struct physics_collision_result){0};
-		// log_msg(LOG_DEBUG, "physics", "Sphere-sphere no collision: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(radius_ab*radius_ab)=%u\n"
+		// CX_DBG_LOG_FMT("physics", "Sphere-sphere no collision: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(radius_ab*radius_ab)=%u\n"
 		//     , p_center_a[0], p_center_a[1], p_center_a[2], radius_a
 		//     , p_center_b[0], p_center_b[1], p_center_b[2], radius_b
 		//     , d
@@ -446,7 +446,7 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 	vec3_mul_s(p_result->ab_normal, radius_b, p_result->b);
 	vec3_sub(p_result->b, p_center_b, p_result->b);
 	
-	// log_msg(LOG_DEBUG, "physics", "Sphere-sphere collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(a.radius+b.radius)=%u, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
+	// CX_DBG_LOG_FMT("physics", "Sphere-sphere collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(a.radius+b.radius)=%u, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
 	//     , p_center_a[0], p_center_a[1], p_center_a[2], radius_a
 	//     , p_center_b[0], p_center_b[1], p_center_b[2], radius_b
 	//     , d
@@ -526,7 +526,7 @@ int physics_test_collision_sphere_plane(
 	
 	p_result->depth = p_a->as_sphere.radius - d;
 
-	// log_msg(LOG_DEBUG, "physics", "Sphere-plane collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
+	// CX_DBG_LOG_FMT("physics", "Sphere-plane collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
 	//     , center_a[0], center_a[1], center_a[2], radius_a
 	//     , normal_b[0], normal_b[1], normal_b[2], p_b->distance
 	//     , distance
@@ -626,7 +626,7 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 		const float invmass_b = p_rb_b && !FLT_CMP(p_rb_b->mass, 0) ? 1.0f / p_rb_b->mass : 1;
 
 		if (FLT_CMP(invmass_a, 0) && FLT_CMP(invmass_b, 0)) {
-			log_msg(LOG_WARNING, "physics", "Zero-mass collision detected.\n");
+			cx_log(CX_LOG_WARNING, "physics", "Zero-mass collision detected.\n");
 			continue;
 		}
 
@@ -719,7 +719,7 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 		const float invmass_b = p_rb_b && !FLT_CMP(p_rb_b->mass, 0) ? 1.0f / p_rb_b->mass : 0;
 
 		if (FLT_CMP(invmass_a, 0) && FLT_CMP(invmass_b, 0)) {
-			log_msg(LOG_WARNING, "physics", "Zero-mass collision detected.\n");
+			cx_log(CX_LOG_WARNING, "physics", "Zero-mass collision detected.\n");
 			continue;
 		}
 
@@ -744,7 +744,7 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 		
 		const float* p_deltas = darr_get(&deltas, i);
 
-		//log_msg(LOG_DEBUG, 0, "Smooth positions solver: delta_a=[%f, %f, %f], delta_b=[%f, %f, %f]\n", p_deltas[0], p_deltas[1], p_deltas[2], p_deltas[3], p_deltas[4], p_deltas[5]);
+		//CX_DBG_LOG_FMT(0, "Smooth positions solver: delta_a=[%f, %f, %f], delta_b=[%f, %f, %f]\n", p_deltas[0], p_deltas[1], p_deltas[2], p_deltas[3], p_deltas[4], p_deltas[5]);
 
 		if (p_rb_a) {
 			float new_position[3];
@@ -804,22 +804,22 @@ int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, 
 		++simplex_d;
 
 		// if (simplex_d == 2) {
-		// 	log_msg(LOG_DEBUG, "gjk", "new simplex=(\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], dir[0], dir[1], dir[2]);
+		// 	CX_DBG_LOG_FMT("gjk", "new simplex=(\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], dir[0], dir[1], dir[2]);
 		// } else if (simplex_d == 3) {
-		// 	log_msg(LOG_DEBUG, "gjk", "new simplex=(\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], dir[0], dir[1], dir[2]);
+		// 	CX_DBG_LOG_FMT("gjk", "new simplex=(\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], dir[0], dir[1], dir[2]);
 		// } else {
-		// 	log_msg(LOG_DEBUG, "gjk", "new simplex=(\n\tD[%f, %f, %f]\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], simplex[3][0], simplex[3][1], simplex[3][2], dir[0], dir[1], dir[2]);
+		// 	CX_DBG_LOG_FMT("gjk", "new simplex=(\n\tD[%f, %f, %f]\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], simplex[3][0], simplex[3][1], simplex[3][2], dir[0], dir[1], dir[2]);
 		// }
 
 		// If the new point is not beyond the origin from the perspective of the search direction,
 		// then there's no collision!
 		if (!GJK_SAME_SIDE(simplex[simplex_d - 1], dir)) {
-			//log_msg(LOG_DEBUG, "gjk", "NO COLLISION\n");
+			//CX_DBG_LOG("gjk", "NO COLLISION\n");
 			return 0;
 		}
 
 		if (gjk_process_simplex(simplex, &simplex_d, dir)) {
-			//log_msg(LOG_DEBUG, "gjk", "\tCOLLISION DETECTED\n");
+			//CX_DBG_LOG("gjk", "\tCOLLISION DETECTED\n");
 			return 1;
 		}
 	}
@@ -864,7 +864,7 @@ void gjk_find_support(const struct physics_collider* p_a, const struct physics_c
 
 	gjk_find_extreme(p_a, p_dir, tmp);
 
-	//log_msg(LOG_DEBUG, "gjk", "collider extremes: dir=[%f, %f, %f], a=[%f, %f, %f], b=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2], tmp[0], tmp[1], tmp[2], p_support[0], p_support[1], p_support[2]);
+	//CX_DBG_LOG_FMT("gjk", "collider extremes: dir=[%f, %f, %f], a=[%f, %f, %f], b=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2], tmp[0], tmp[1], tmp[2], p_support[0], p_support[1], p_support[2]);
 
 	vec3_sub(tmp, p_support, p_support);
 }
@@ -900,7 +900,7 @@ void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_di
 		vec3_cross(ab, ao, p_dir);
 		vec3_cross(p_dir, ab, p_dir);
 
-		//log_msg(LOG_DEBUG, "gjk", "simplex=line, origin contained in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
+		//CX_DBG_LOG_FMT("gjk", "simplex=line, origin contained in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
 	} else {
 		// simplex is POINT A
 		// direction is AO
@@ -910,7 +910,7 @@ void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_di
 
 		vec3_set(ao, p_dir);
 
-		//log_msg(LOG_DEBUG, "gjk", "simplex=line, origin not in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
+		//CX_DBG_LOG_FMT("gjk", "simplex=line, origin not in bounds, dir=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2]);
 	}
 }
 

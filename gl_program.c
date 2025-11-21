@@ -35,7 +35,7 @@ enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source
     char* s_log = malloc(log_len);
 	glGetShaderInfoLog(p_gl_shader->gl_handle, log_len, &log_len, s_log);
 
-    log_msg(LOG_ERROR, 0, "Shader compilation failed: %s\n", s_log);
+    cx_log_fmt(CX_LOG_ERROR, 0, "Shader compilation failed: %s\n", s_log);
 
     free(s_log);
 

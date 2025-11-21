@@ -7,7 +7,7 @@
 #include "logging.h"
 #include "serialization.h"
 
-#define LOG_CAT_ASSET "asset"
+#define CX_LOG_CAT_ASSET "asset"
 
 static struct asset_type_table {
     char                   s_display_name[ASSET_NAME_MAX_LEN];
@@ -28,11 +28,11 @@ static uint32_t rand_idn(void);
 
 void register_asset_type(uint8_t asset_type_id, const char* s_display_name, size_t size, asset_serialize_proc f_serialize, asset_deserialize_proc f_deserialize, asset_free_proc f_free) {
     if (asset_type_tables[asset_type_id].f_serialize) {
-        log_msg(LOG_ERROR, LOG_CAT_ASSET, "Asset type %d already registered by type with display name '%s'.\n", asset_type_id, asset_type_tables[asset_type_id].s_display_name);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Asset type %d already registered by type with display name '%s'.\n", asset_type_id, asset_type_tables[asset_type_id].s_display_name);
         return;
     }
 
-    log_msg(LOG_INFO, LOG_CAT_ASSET, "New asset type registered: { id=%d, name='%s' }\n", asset_type_id, s_display_name);
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_ASSET, "New asset type registered: { id=%d, name='%s' }\n", asset_type_id, s_display_name);
 
     strcpy(asset_type_tables[asset_type_id].s_display_name, s_display_name);
     asset_type_tables[asset_type_id].size = size;
@@ -45,7 +45,7 @@ int asset_load(struct asset_package_record* p_record) {
     FILE* p_file = fopen(p_record->_p_package->_s_filename, "rb");
 
     if (!p_file) {
-        log_msg(LOG_ERROR, LOG_CAT_ASSET, "Couldn't load asset. Failed to open file '%s'\n", p_record->_p_package->_s_filename);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Couldn't load asset. Failed to open file '%s'\n", p_record->_p_package->_s_filename);
         return 0;
     }
 
@@ -103,7 +103,7 @@ int asset_package_load_records(struct asset_package* p_result, const char* s_fil
     FILE* p_file = fopen(s_filename, "rb");
 
     if (!p_file) {
-        log_msg(LOG_ERROR, LOG_CAT_ASSET, "Couldn't load asset package: failed to open file '%s\n", s_filename);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Couldn't load asset package: failed to open file '%s\n", s_filename);
         return 0;
     }
 
@@ -112,10 +112,10 @@ int asset_package_load_records(struct asset_package* p_result, const char* s_fil
     uint32_t num_records = 0;
     deserialize_uint32(p_file, &num_records);
     
-    log_msg(LOG_INFO, LOG_CAT_ASSET, "Loading %d assets from package file '%s'...\n", num_records, p_result->_s_filename);
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_ASSET, "Loading %d assets from package file '%s'...\n", num_records, p_result->_s_filename);
 
     if (num_records == 0) {
-        log_msg(LOG_ERROR, LOG_CAT_ASSET, "Couldn't load asset package from file '%s': file contains no assets.\n", s_filename);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Couldn't load asset package from file '%s': file contains no assets.\n", s_filename);
         return 0;
     }
 
@@ -141,7 +141,7 @@ int asset_package_load_records(struct asset_package* p_result, const char* s_fil
         deserialize_str(p_file, 0, &name_len);
         deserialize_str(p_file, p_new_record->_asset.s_name, &name_len);
 
-        log_msg(LOG_TRACE, LOG_CAT_ASSET, "  Asset record loaded: '%s' (%s:%x)...\n", p_new_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_new_record->_asset._id)].s_display_name, p_new_record->_asset._id);
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_ASSET, "  Asset record loaded: '%s' (%s:%x)...\n", p_new_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_new_record->_asset._id)].s_display_name, p_new_record->_asset._id);
 
         fseek(p_file, offset, SEEK_SET);
     }
@@ -156,7 +156,7 @@ int asset_package_load_records(struct asset_package* p_result, const char* s_fil
     //     deserialize_str(p_file, 0, &name_len);
     //     deserialize_str(p_file, p_record->_asset.s_name, &name_len);
 
-    //     log_msg(LOG_LEVEL_TRACE, LOG_CAT_ASSET, "  Asset record loaded: '%s' (%s:%x)...\n", p_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)].s_display_name, p_record->_asset._id);
+    //     cx_log_fmt(LOG_LEVEL_TRACE, CX_LOG_CAT_ASSET, "  Asset record loaded: '%s' (%s:%x)...\n", p_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)].s_display_name, p_record->_asset._id);
 
     // }
 
@@ -167,13 +167,13 @@ void asset_package_save(struct asset_package* p_package) {
     FILE* p_file = fopen(p_package->_s_filename, "wb");
     
     if (!p_file) {
-        log_msg(LOG_ERROR, LOG_CAT_ASSET, "Couldn't save asset package: failed to open file '%s' for writing\n", p_package->_s_filename);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Couldn't save asset package: failed to open file '%s' for writing\n", p_package->_s_filename);
         return;
     }
 
     serialize_uint32(p_file, p_package->_asset_type_record_tables._n_elements);
 
-    log_msg(LOG_TRACE, LOG_CAT_ASSET, "Saving assets to package file '%s'...\n", p_package->_s_filename);
+    cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_ASSET, "Saving assets to package file '%s'...\n", p_package->_s_filename);
 
     struct hashtable_itr itr;
     struct hashtable_itr records_itr;
@@ -217,11 +217,11 @@ void asset_package_save(struct asset_package* p_package) {
             // DATA
             const struct asset_type_table* p_type_table = &asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)];
             const int b_result = p_type_table->f_serialize(p_file, p_record->_asset._p_data);
-            log_msg(LOG_TRACE, LOG_CAT_ASSET, "  Asset saved: '%s' (%s:%x)...\n", p_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)].s_display_name, p_record->_asset._id);
+            cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_ASSET, "  Asset saved: '%s' (%s:%x)...\n", p_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)].s_display_name, p_record->_asset._id);
             
             if (!b_result) {
                 // todo: handle serialization error
-                log_msg(LOG_ERROR, LOG_CAT_ASSET, "Asset serialization error: asset_id=%x\n", p_record->_asset._id);
+                cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Asset serialization error: asset_id=%x\n", p_record->_asset._id);
             }
 
             // Cache the next record's data location
@@ -264,11 +264,11 @@ void asset_package_save(struct asset_package* p_package) {
     //     // DATA
     //     const struct asset_type_table* p_type_table = &asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)];
     //     const int b_result = p_type_table->f_serialize(p_file, p_record->_asset._p_data);
-    //     log_msg(LOG_LEVEL_TRACE, LOG_CAT_ASSET, "  Asset saved: '%s' (%s:%x)...\n", p_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)].s_display_name, p_record->_asset._id);
+    //     cx_log_fmt(LOG_LEVEL_TRACE, CX_LOG_CAT_ASSET, "  Asset saved: '%s' (%s:%x)...\n", p_record->_asset.s_name, asset_type_tables[GET_ASSET_TYPE(p_record->_asset._id)].s_display_name, p_record->_asset._id);
         
     //     if (!b_result) {
     //         // todo: handle serialization error
-    //         log_msg(LOG_LEVEL_ERROR, LOG_CAT_ASSET, "Asset serialization error: asset_id=%x\n", p_record->_asset._id);
+    //         cx_log_fmt(LOG_LEVEL_ERROR, CX_LOG_CAT_ASSET, "Asset serialization error: asset_id=%x\n", p_record->_asset._id);
     //     }
 
     //     // Cache the next record's data location
@@ -317,7 +317,7 @@ asset_handle asset_package_new_record(struct asset_package* p_package, uint8_t t
     strcpy(p_asset_record->_asset.s_name, "New ");
     strcpy(&p_asset_record->_asset.s_name[4], asset_type_tables[type].s_display_name);
     
-    log_msg(LOG_INFO, LOG_CAT_ASSET, "New asset created (%s:%x)\n", asset_type_tables[type].s_display_name, p_asset_record->_asset._id);
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_ASSET, "New asset created (%s:%x)\n", asset_type_tables[type].s_display_name, p_asset_record->_asset._id);
 
     return p_asset_record;
 }
@@ -372,7 +372,7 @@ void deserialize_asset_handle(FILE* p_file, asset_handle* p_result) {
     *p_result = asset_directory_find(id);
 
     if (!*p_result) {
-        log_msg(LOG_ERROR, LOG_CAT_ASSET, "Failed to deserialize asset handle: asset not found (id=%x)\n", id);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_ASSET, "Failed to deserialize asset handle: asset not found (id=%x)\n", id);
     }
 }
 
