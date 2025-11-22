@@ -31,19 +31,20 @@ static void physics_hull_undo_transform(struct physics_collider* p_collider);
 static void physics_plane_undo_transform(struct physics_collider* p_collider);
 
 static int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a, const float* p_center_b, float radius_b, struct physics_collision_result* p_result);
-static int physics_test_gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
+static int physics_test_convex_hulls(const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
 
-int  gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]);
-void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme);
-void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const float* p_dir, float* p_extreme);
-void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const float* p_dir, float* p_extreme);
-void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_dir, float* p_extreme);
-void gjk_find_support(const struct physics_collider* p_a, const struct physics_collider* p_b, const float* p_dir, float* p_support);
-int  gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
-void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir);
-void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir);
-int  gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
-void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
+static int  gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]);
+static void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme);
+static void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const float* p_dir, float* p_extreme);
+static void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const float* p_dir, float* p_extreme);
+static void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_dir, float* p_extreme);
+static void gjk_find_support(const struct physics_collider* p_a, const struct physics_collider* p_b, const float* p_dir, float* p_support);
+static int  gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static void gjk_process_simplex_triangle_test_ab(const float* p_ab, const float* p_ao, const float* p_a, const float* p_b, float simplex[4][3], int* p_simplex_d, float* p_dir);
+static int  gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
 
 void physics_collider_init(struct physics_collider* p_collider, enum physics_collider_type collider_type) {
 	p_collider->type = collider_type;
@@ -250,6 +251,9 @@ void physics_sphere_apply_transform(struct physics_collider* p_collider, const s
 void physics_capsule_apply_transform(struct physics_collider* p_collider, const struct transform* p_t) {
 	p_collider->_cached.as_capsule = p_collider->as_capsule;
 	// todo:
+	// rotate p0 and p1
+	// translate p0 and p1
+	// scale radius and p0, p1?
 }
 
 void physics_hull_apply_transform(struct physics_collider* p_collider, const struct transform* p_t) {
@@ -460,6 +464,23 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 	return 1;
 }
 
+int physics_test_convex_hulls(
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result) {
+	float simplex[4][3] = {0};
+	
+	int b_collision = gjk(p_a, p_b, simplex);
+
+	if (b_collision) {
+		epa(simplex, p_a, p_b, p_result);
+	} else {
+		*p_result = (struct physics_collision_result){0};
+	}
+
+	return b_collision;
+}
+
 int physics_test_collision_sphere_sphere(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
@@ -497,7 +518,7 @@ int physics_test_collision_sphere_hull(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_gjk(p_a, p_b, p_result);
+	return physics_test_convex_hulls(p_a, p_b, p_result);
 }
 
 int physics_test_collision_sphere_plane(
@@ -552,7 +573,7 @@ int physics_test_collision_capsule_hull(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_gjk(p_a, p_b, p_result);
+	return physics_test_convex_hulls(p_a, p_b, p_result);
 }
 
 int physics_test_collision_capsule_plane(
@@ -569,7 +590,7 @@ int physics_test_collision_hull_hull(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_gjk(p_a, p_b, p_result);
+	return physics_test_convex_hulls(p_a, p_b, p_result);
 }
 
 int physics_test_collision_hull_plane(
@@ -764,23 +785,8 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 	darr_set_length(&deltas, 0);
 }
 
-// GJK
-
-int physics_test_gjk(
-	const struct physics_collider* p_a,
-	const struct physics_collider* p_b,
-	struct physics_collision_result* p_result) {
-	float simplex[4][3] = {0};
-	int b_collision = gjk(p_a, p_b, simplex);
-
-	if (b_collision) {
-		epa(simplex, p_a, p_b, p_result);
-	} else {
-		*p_result = (struct physics_collision_result){0};
-	}
-
-	return b_collision;
-}
+// Geometrically optimized Gilbert-Johnson-Keerthi (GJK) algorithm. 3D convex-hull collision detection.
+// See: https://caseymuratori.com/blog_0003
 
 typedef void(*physics_collider_find_extreme_func)(const void*, const float*, float*);
 
@@ -939,48 +945,12 @@ void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* 
 			vec3_cross(ac, ao, p_dir);
 			vec3_cross(p_dir, ac, p_dir);
 		} else {
-			if (GJK_SAME_SIDE(ab, ao)) {
-				// simplex is LINE A->B
-				// direction is AB cross AO cross AB
-
-				vec3_set(p_b, simplex[0]);
-				vec3_set(p_a, simplex[1]);
-				*p_simplex_d = 2;
-
-				vec3_cross(ab, ao, p_dir);
-				vec3_cross(p_dir, ab, p_dir);
-			} else {
-				// simplex is POINT A
-				// direction is AO
-
-				vec3_set(p_a, simplex[0]);
-				*p_simplex_d = 1;
-
-				vec3_set(p_dir, ao);
-			}
+			gjk_process_simplex_triangle_test_ab(ab, ao, p_a, p_b, simplex, p_simplex_d, p_dir);
 		}
 	} else {
 		vec3_cross(ab, abc, tmp);
 		if (GJK_SAME_SIDE(tmp, ao)) {
-			if (GJK_SAME_SIDE(ab, ao)) {
-				// simplex is LINE A->B
-				// direction is AB cross AO cross AB
-
-				vec3_set(p_b, simplex[0]);
-				vec3_set(p_a, simplex[1]);
-				*p_simplex_d = 2;
-
-				vec3_cross(ab, ao, p_dir);
-				vec3_cross(p_dir, ab, p_dir);
-			} else {
-				// simplex is POINT A
-				// direction is AO
-
-				vec3_set(p_a, simplex[0]);
-				*p_simplex_d = 1;
-
-				vec3_set(ao, p_dir);
-			}
+			gjk_process_simplex_triangle_test_ab(ab, ao, p_a, p_b, simplex, p_simplex_d, p_dir);
 		} else {
 			if (GJK_SAME_SIDE(abc, ao)) {
 				// simpelx is TRIANGLE A->B->C
@@ -998,6 +968,28 @@ void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* 
 				vec3_inv(abc, p_dir);
 			}
 		}
+	}
+}
+
+void gjk_process_simplex_triangle_test_ab(const float* p_ab, const float* p_ao, const float* p_a, const float* p_b, float simplex[4][3], int* p_simplex_d, float* p_dir) {
+	if (GJK_SAME_SIDE(p_ab, p_ao)) {
+		// simplex is LINE A->B
+		// direction is AB cross AO cross AB
+
+		vec3_set(p_b, simplex[0]);
+		vec3_set(p_a, simplex[1]);
+		*p_simplex_d = 2;
+
+		vec3_cross(p_ab, p_ao, p_dir);
+		vec3_cross(p_dir, p_ab, p_dir);
+	} else {
+		// simplex is POINT A
+		// direction is AO
+
+		vec3_set(p_a, simplex[0]);
+		*p_simplex_d = 1;
+
+		vec3_set(p_ao, p_dir);
 	}
 }
 
@@ -1052,6 +1044,8 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 }
 
 #undef GJK_SAME_SIDE
+
+// Expanding Polytope Algorithm (EPA)
 
 void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result) {
 	// todo: use epa algorith to determine collision points, depth, normal
