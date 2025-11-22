@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 #define CX_U32_R8G8B8A8_R(U32) ((U32 >> 24) & 0xff)
-#define CX_U32_R8G8B8A8_B(U32) ((U32 >> 16) & 0xff)
-#define CX_U32_R8G8B8A8_G(U32) ((U32 >>  8) & 0xff)
+#define CX_U32_R8G8B8A8_G(U32) ((U32 >> 16) & 0xff)
+#define CX_U32_R8G8B8A8_B(U32) ((U32 >>  8) & 0xff)
 #define CX_U32_R8G8B8A8_A(U32) ( U32        & 0xff)
 #define CX_U32_R8G8B8A8(R8, G8, B8, A8) ((u32_r8g8b8a8)(((R8) << 24) | ((G8) << 16) | ((B8) << 8) | (A8)))
 
