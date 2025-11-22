@@ -1,3 +1,7 @@
+/* Quickhull algorithm implementation for generation of convex hulls from a point-cloud.
+ * see: https://dpd.cs.princeton.edu/Papers/BarberDobkinHuhdanpaa.pdf
+ * see also: https://media.steampowered.com/apps/valve/2014/DirkGregorius_ImplementingQuickHull.pdf */
+
 #include <float.h>
 #include <malloc.h>
 
