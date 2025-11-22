@@ -469,7 +469,7 @@ int physics_test_convex_hulls(
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	float simplex[4][3] = {0};
-	
+
 	int b_collision = gjk(p_a, p_b, simplex);
 
 	if (b_collision) {
@@ -1045,9 +1045,14 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 
 #undef GJK_SAME_SIDE
 
-// Expanding Polytope Algorithm (EPA)
+// Expanding Polytope/Polyhedra Algorithm (EPA)
 
 void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result) {
 	// todo: use epa algorith to determine collision points, depth, normal
+
+	// Find closest feature on Minkowski Difference to origin
+	// Normal = Normalize(Feature - Origin)
+	// Penetration depth = Length(Feature - Origin)
+
 	*p_result = (struct physics_collision_result){0};
 }
