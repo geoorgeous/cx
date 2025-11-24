@@ -4,104 +4,209 @@
 #include "gl_program.h"
 #include "logging.h"
 
-enum error gl_shader_create(struct gl_shader* p_gl_shader, GLenum gl_shader_type) {
-    p_gl_shader->gl_handle = glCreateShader(gl_shader_type);
-    
-    if (p_gl_shader->gl_handle) {
-        return ERROR_OK;
-    }
+static void set_uniform_int(GLint gl_location, size_t count, const int* p_data);
+static void set_uniform_uint(GLint gl_location, size_t count, const unsigned int* p_data);
+static void set_uniform_float(GLint gl_location, size_t count, const float* p_data);
+static void set_uniform_vec2(GLint gl_location, size_t count, const float* p_data);
+static void set_uniform_vec3(GLint gl_location, size_t count, const float* p_data);
+static void set_uniform_vec4(GLint gl_location, size_t count, const float* p_data);
+static void set_uniform_mat2(GLint gl_location, size_t count, const float* p_data);
+static void set_uniform_mat3(GLint gl_location, size_t count, const float* p_data);
+static void set_uniform_mat4(GLint gl_location, size_t count, const float* p_data);
 
-    return ERROR_OPENGL;
+enum error gl_shader_create(struct gl_shader* p_gl_shader, GLenum gl_shader_type) {
+	p_gl_shader->gl_handle = glCreateShader(gl_shader_type);
+	
+	if (p_gl_shader->gl_handle) {
+		return ERROR_OK;
+	}
+
+	return ERROR_OPENGL;
 }
 
 enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source) {
-    if (!glIsShader(p_gl_shader->gl_handle)) {
-        return ERROR_INVALID_VALUE;
-    }
+	if (!glIsShader(p_gl_shader->gl_handle)) {
+		return ERROR_INVALID_VALUE;
+	}
 
-    glShaderSource(p_gl_shader->gl_handle, 1, &s_source, NULL);
+	glShaderSource(p_gl_shader->gl_handle, 1, &s_source, NULL);
 
-    glCompileShader(p_gl_shader->gl_handle);
+	glCompileShader(p_gl_shader->gl_handle);
 
-    GLint b_is_compiled;
-    glGetShaderiv(p_gl_shader->gl_handle, GL_COMPILE_STATUS, &b_is_compiled);
+	GLint b_is_compiled;
+	glGetShaderiv(p_gl_shader->gl_handle, GL_COMPILE_STATUS, &b_is_compiled);
 
-    if (b_is_compiled) {
-        return ERROR_OK;
-    }
+	if (b_is_compiled) {
+		return ERROR_OK;
+	}
 
 	GLint log_len = 0;
 	glGetShaderiv(p_gl_shader->gl_handle, GL_INFO_LOG_LENGTH, &log_len);
 
-    char* s_log = malloc(log_len);
+	char* s_log = malloc(log_len);
 	glGetShaderInfoLog(p_gl_shader->gl_handle, log_len, &log_len, s_log);
 
-    cx_log_fmt(CX_LOG_ERROR, 0, "Shader compilation failed: %s\n", s_log);
+	cx_log_fmt(CX_LOG_ERROR, 0, "Shader compilation failed: %s\n", s_log);
 
-    free(s_log);
+	free(s_log);
 
-    return ERROR_SHADER_COMPILATION;
+	return ERROR_SHADER_COMPILATION;
 }
 
 void gl_shader_destroy(struct gl_shader* p_gl_shader) {
-    glDeleteShader(p_gl_shader->gl_handle);
+	glDeleteShader(p_gl_shader->gl_handle);
 }
 
 enum error gl_program_create(struct gl_program* p_gl_program) {
-    p_gl_program->gl_handle = glCreateProgram();
+	p_gl_program->gl_handle = glCreateProgram();
 
-    if (p_gl_program->gl_handle) {
-        return ERROR_OK;
-    }
+	if (p_gl_program->gl_handle) {
+		return ERROR_OK;
+	}
 
-    return ERROR_OPENGL;
+	return ERROR_OPENGL;
 }
 
 enum error gl_program_attach_shader(struct gl_program* p_gl_program, const struct gl_shader* p_gl_shader) {
-    if (!glIsProgram(p_gl_program->gl_handle)) {
-        return ERROR_INVALID_VALUE;
-    }
+	if (!glIsProgram(p_gl_program->gl_handle)) {
+		return ERROR_INVALID_VALUE;
+	}
 
-    if (!glIsShader(p_gl_shader->gl_handle)) {
-        return ERROR_INVALID_VALUE;
-    }
+	if (!glIsShader(p_gl_shader->gl_handle)) {
+		return ERROR_INVALID_VALUE;
+	}
 
-    glAttachShader(p_gl_program->gl_handle, p_gl_shader->gl_handle);
+	glAttachShader(p_gl_program->gl_handle, p_gl_shader->gl_handle);
 
-    return ERROR_OK;
+	return ERROR_OK;
 }
 
 enum error gl_program_link(struct gl_program* p_gl_program) {
-    if (!glIsProgram(p_gl_program->gl_handle)) {
-        return ERROR_INVALID_VALUE;
-    }
+	if (!glIsProgram(p_gl_program->gl_handle)) {
+		return ERROR_INVALID_VALUE;
+	}
 
-    glLinkProgram(p_gl_program->gl_handle);
+	glLinkProgram(p_gl_program->gl_handle);
 
-    GLint b_is_linked;
-    glGetProgramiv(p_gl_program->gl_handle, GL_LINK_STATUS, &b_is_linked);
-    
-    if (b_is_linked) {
-        return ERROR_OK;
-    }
+	GLint b_is_linked;
+	glGetProgramiv(p_gl_program->gl_handle, GL_LINK_STATUS, &b_is_linked);
+	
+	if (b_is_linked) {
+		return ERROR_OK;
+	}
 
-    return ERROR_SHADER_PROGRAM_LINKAGE;
+	return ERROR_SHADER_PROGRAM_LINKAGE;
 }
 
 void gl_program_destroy(struct gl_program* p_gl_program) {
-    glDeleteProgram(p_gl_program->gl_handle);
+	glDeleteProgram(p_gl_program->gl_handle);
 }
 
 void gl_program_print_info(const struct gl_program* p_gl_program) {
-    GLint result;
+	GLint result;
 
-    glGetProgramiv(p_gl_program->gl_handle, GL_ACTIVE_UNIFORMS, &result);
+	glGetProgramiv(p_gl_program->gl_handle, GL_ACTIVE_UNIFORMS, &result);
 
-    for (GLint i = 0; i < result; ++i) {
-        GLsizei uniform_name_len;
-        GLint uniform_size;  
-        GLenum uniform_type;
-        GLchar uniform_name[64];
-        glGetActiveUniform(p_gl_program->gl_handle, i, sizeof(uniform_name), &uniform_name_len, &uniform_size, &uniform_type, uniform_name);
-    }
+	for (GLint i = 0; i < result; ++i) {
+		GLsizei uniform_name_len;
+		GLint uniform_size;  
+		GLenum uniform_type;
+		GLchar uniform_name[64];
+		glGetActiveUniform(p_gl_program->gl_handle, i, sizeof(uniform_name), &uniform_name_len, &uniform_size, &uniform_type, uniform_name);
+	}
+}
+
+void gl_program_get_uniform(const struct gl_program* p_gl_program, const char* s_uniform_name, struct gl_program_uniform* p_uniform) {
+	p_uniform->_gl_location = glGetUniformLocation(p_gl_program->gl_handle, s_uniform_name);
+
+	if (p_uniform->_gl_location == -1) {
+		cx_log_fmt(CX_LOG_WARNING, 0, "Program uniform \"%s\" not found\n", s_uniform_name);
+		*p_uniform = (struct gl_program_uniform){0};
+		return;
+	}
+
+	GLint num_active_uniforms;
+	glGetProgramiv(p_gl_program->gl_handle, GL_ACTIVE_UNIFORMS, &num_active_uniforms);
+
+	for (GLint i = 0; i < num_active_uniforms; ++i) {
+		GLsizei uniform_name_len;
+		GLint uniform_size;  
+		GLenum uniform_type;
+		GLchar uniform_name[64];
+		glGetActiveUniform(p_gl_program->gl_handle, i, sizeof(uniform_name), &uniform_name_len, &uniform_size, &uniform_type, uniform_name);
+
+		if (strncmp(s_uniform_name, uniform_name, uniform_name_len)) {
+			continue;
+		}
+
+		switch(uniform_type) {
+			default:              p_uniform->_type = GL_SHADER_UNIFORM_TYPE_none; break;
+			case GL_INT:          p_uniform->_type = GL_SHADER_UNIFORM_TYPE_int; break;
+			case GL_UNSIGNED_INT: p_uniform->_type = GL_SHADER_UNIFORM_TYPE_uint; break;
+			case GL_FLOAT:        p_uniform->_type = GL_SHADER_UNIFORM_TYPE_float; break;
+			case GL_FLOAT_VEC2:   p_uniform->_type = GL_SHADER_UNIFORM_TYPE_vec2; break;
+			case GL_FLOAT_VEC3:   p_uniform->_type = GL_SHADER_UNIFORM_TYPE_vec3; break;
+			case GL_FLOAT_VEC4:   p_uniform->_type = GL_SHADER_UNIFORM_TYPE_vec4; break;
+			case GL_FLOAT_MAT2:   p_uniform->_type = GL_SHADER_UNIFORM_TYPE_mat2; break;
+			case GL_FLOAT_MAT3:   p_uniform->_type = GL_SHADER_UNIFORM_TYPE_mat3; break;
+			case GL_FLOAT_MAT4:   p_uniform->_type = GL_SHADER_UNIFORM_TYPE_mat4; break;
+		}
+
+		break;
+	}
+}
+
+typedef void(*set_uniform_func)(GLuint, size_t, const void*);
+
+void gl_program_uniform_set(const struct gl_program_uniform* p_uniform, size_t count, const void* p_data) {
+	static const set_uniform_func func_table[] = {
+		0,
+		(void*)set_uniform_int,
+		(void*)set_uniform_uint,
+		(void*)set_uniform_float,
+		(void*)set_uniform_vec2,
+		(void*)set_uniform_vec3,
+		(void*)set_uniform_vec4,
+		(void*)set_uniform_mat2,
+		(void*)set_uniform_mat3,
+		(void*)set_uniform_mat4
+	};
+
+	func_table[p_uniform->_type](p_uniform->_gl_location, count, p_data);
+}
+
+void set_uniform_int(GLint gl_location, size_t count, const int* p_data) {
+	glUniform1iv(gl_location, (GLsizei)count, (const GLint*)p_data);
+}
+
+void set_uniform_uint(GLint gl_location, size_t count, const unsigned int* p_data) {
+	glUniform1uiv(gl_location, (GLsizei)count, (const GLuint*)p_data);
+}
+
+void set_uniform_float(GLint gl_location, size_t count, const float* p_data) {
+	glUniform1fv(gl_location, (GLsizei)count, (const GLfloat*)p_data);
+}
+
+void set_uniform_vec2(GLint gl_location, size_t count, const float* p_data) {
+	glUniform2fv(gl_location, (GLsizei)count, (const GLfloat*)p_data);
+}
+
+void set_uniform_vec3(GLint gl_location, size_t count, const float* p_data) {
+	glUniform3fv(gl_location, (GLsizei)count, (const GLfloat*)p_data);
+}
+
+void set_uniform_vec4(GLint gl_location, size_t count, const float* p_data) {
+	glUniform4fv(gl_location, (GLsizei)count, (const GLfloat*)p_data);
+}
+
+void set_uniform_mat2(GLint gl_location, size_t count, const float* p_data) {
+	glUniformMatrix2fv(gl_location, (GLsizei)count, GL_FALSE, (const GLfloat*)p_data);
+}
+
+void set_uniform_mat3(GLint gl_location, size_t count, const float* p_data) {
+	glUniformMatrix3fv(gl_location, (GLsizei)count, GL_FALSE, (const GLfloat*)p_data);
+}
+
+void set_uniform_mat4(GLint gl_location, size_t count, const float* p_data) {
+	glUniformMatrix4fv(gl_location, (GLsizei)count, GL_FALSE, (const GLfloat*)p_data);
 }

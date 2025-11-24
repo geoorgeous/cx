@@ -149,6 +149,16 @@ int main(int, const char*[]) {
     gl_shader_destroy(&gl_vertex_shader);
     gl_shader_destroy(&gl_fragment_shader);
 
+    struct gl_program_uniform gl_program_uniform_proj_mat;
+    struct gl_program_uniform gl_program_uniform_view_mat;
+    struct gl_program_uniform gl_program_uniform_modl_mat;
+    struct gl_program_uniform gl_program_uniform_color;
+
+    gl_program_get_uniform(&gl_program, "u_projection_matrix", &gl_program_uniform_proj_mat);
+    gl_program_get_uniform(&gl_program, "u_view_matrix", &gl_program_uniform_view_mat);
+    gl_program_get_uniform(&gl_program, "u_model_matrix", &gl_program_uniform_modl_mat);
+    gl_program_get_uniform(&gl_program, "u_color", &gl_program_uniform_color);
+
     // create screen shader program
 
     struct gl_shader gl_screen_vertex_shader;
@@ -272,6 +282,7 @@ int main(int, const char*[]) {
     }
     
     dev_init(&platform_window, p_scene, &physics_world);
+    dev_mode_enable();
 
     clock_t old_frame_start = clock();
 
@@ -381,19 +392,11 @@ int main(int, const char*[]) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(gl_program.gl_handle);
-
-            GLuint gl_uniform_location;
             
-            gl_uniform_location = glGetUniformLocation(gl_program.gl_handle, "u_projection_matrix");
-            glUniformMatrix4fv(gl_uniform_location, 1, GL_FALSE, projection_matrix);
-            
-            gl_uniform_location = glGetUniformLocation(gl_program.gl_handle, "u_view_matrix");
-            glUniformMatrix4fv(gl_uniform_location, 1, GL_FALSE, view_matrix);
+            gl_program_uniform_set(&gl_program_uniform_proj_mat, 1, projection_matrix);
+            gl_program_uniform_set(&gl_program_uniform_view_mat, 1, view_matrix);
 
             glActiveTexture(GL_TEXTURE0);
-
-            const GLuint gl_model_matrix_uniform_location = glGetUniformLocation(gl_program.gl_handle, "u_model_matrix");
-            const GLuint gl_color_uniform_location = glGetUniformLocation(gl_program.gl_handle, "u_color");
             
             for (size_t i = 0; i < p_scene->_entities._length; ++i) {
                 struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&p_scene->_entities, i);
@@ -404,7 +407,10 @@ int main(int, const char*[]) {
                     continue;
                 }
 
-                glUniformMatrix4fv(gl_model_matrix_uniform_location, 1, GL_FALSE, p_entity->transform.world_trs_matrix);
+                gl_program_uniform_set(&gl_program_uniform_modl_mat, 1, p_entity->transform.world_trs_matrix);
+                
+                float model_color[] = { 1, 1, 1 };
+                gl_program_uniform_set(&gl_program_uniform_color, 1, model_color);
 
                 struct static_mesh* p_mesh = p_entity->p_mesh->_asset._p_data;
 
@@ -413,9 +419,6 @@ int main(int, const char*[]) {
                 }
 
                 for (size_t j = 0; j < p_mesh->num_primitives; ++j) {
-                    float model_color[] = { 1, 1, 1 };
-                    glUniform3fv(gl_color_uniform_location, 1, model_color);
-
                     GLuint gl_texture_handle = gl_white_texture.gl_handle;
 
                     if (p_mesh->p_materials[j]) {
