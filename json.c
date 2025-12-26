@@ -397,7 +397,7 @@ int parse_value(struct json_parser* p_parser, struct json_value* p_value) {
         parse_number_value(p_parser, p_value)) {
         return 1;
     }
-    fprintf(stderr, "JSON parsing error: Unexpected token '%c'. %llu\n", *p_parser->p_last_char, p_parser->p_last_char - p_parser->s_json_source);
+    fprintf(stderr, "JSON parsing error: Unexpected token '%c'. %lu\n", *p_parser->p_last_char, p_parser->p_last_char - p_parser->s_json_source);
     return 0;
 }
 
@@ -504,7 +504,7 @@ int parse_array_value(struct json_parser* p_parser, struct json_value* p_array_v
         }
 
         if (!parse_value(p_parser, p_new_array_item_value)) {
-            printf("Failed to parse array item: %llu\n", p_array_value->value.as_array.length - 1);
+            printf("Failed to parse array item: %lu\n", p_array_value->value.as_array.length - 1);
             break;
         }
     }
