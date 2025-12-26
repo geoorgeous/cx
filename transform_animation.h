@@ -1,7 +1,7 @@
 #ifndef _H__TRANSFORM_ANIMATION
 #define _H__TRANSFORM_ANIMATION
 
-#include <stdint.h>
+#include <stddef.h>
 
 enum transform_animation_interpolation_mode {
     TRANSFORM_ANIMATION_INTERPOLATION_MODE_step,

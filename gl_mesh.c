@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "gl_mesh.h"
 #include "mesh.h"
 

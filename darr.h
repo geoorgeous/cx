@@ -1,7 +1,7 @@
 #ifndef _H__DARR
 #define _H__DARR
 
-#include <stdint.h>
+#include <stddef.h>
 
 struct darr {
     void*  _p_buffer;

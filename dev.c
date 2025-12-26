@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "asset.h"
 #include "dev.h"

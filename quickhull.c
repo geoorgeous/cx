@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <malloc.h>
+#include <stdlib.h>
 
 #include "logging.h"
 #include "math_utils.h"

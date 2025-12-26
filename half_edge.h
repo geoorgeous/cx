@@ -1,7 +1,7 @@
 #ifndef _H__HALF_EDGE
 #define _H__HALF_EDGE
 
-#include <stdint.h>
+#include <stddef.h>
 
 struct he_vertex {
 	struct he_vertex* p_prev;

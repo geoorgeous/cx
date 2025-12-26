@@ -2,7 +2,7 @@
 #define _H__VECTOR
 
 #include <math.h>
-#include <stdint.h>
+#include <stddef.h>
 
 #include "math_utils.h"
 

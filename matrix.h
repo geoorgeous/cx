@@ -1,7 +1,7 @@
 #ifndef _H__MATRIX
 #define _H__MATRIX
 
-#include <stdint.h>
+#include <stddef.h>
 
 void matrix_copy(const float* p_m, float* p_result);
 void matrix_make_identity(float* p_result);

@@ -1,7 +1,7 @@
 #ifndef _H__MESH
 #define _H__MESH
 
-#include <stdint.h>
+#include <stddef.h>
 
 enum vertex_attribute_type {
     VERTEX_ATTRIBUTE_TYPE_f32,
