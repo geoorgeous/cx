@@ -8,6 +8,7 @@ A game engine development project with a few core ideas at heart:
 Since this project should have few dependencies, the list of systems involved in completing this project is long and ambitious. Here's an overview:
  - Platform window creation and management
  - Platform input handling
+ - Windows (Win32) and Linux (X11) support
  - Graphics API context creation and management
  - 3D rendering
  - 3D physics simulation
