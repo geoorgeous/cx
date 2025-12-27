@@ -33,10 +33,10 @@ static void platform_window_on_key(struct platform_window*, void*, enum key, int
 static void platform_window_on_mouse_button(struct platform_window*, void*, enum mouse_button, int);
 static void platform_window_on_mouse_move(struct platform_window*, void*, int, int);
 
-void platform_window_on_created(struct platform_window* p_platform_window, void*) {
-    platform_window_set_on_key_callback(p_platform_window, platform_window_on_key, 0);
-    platform_window_set_on_mouse_button_callback(p_platform_window, platform_window_on_mouse_button, 0);
-    platform_window_set_on_mouse_move_callback(p_platform_window, platform_window_on_mouse_move, 0);
+void platform_window_on_created(struct platform_window* p_window, void*) {
+    platform_window_set_on_key_callback(p_window, platform_window_on_key, 0);
+    platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, 0);
+    platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, 0);
 }
 
 void platform_window_on_key(struct platform_window*, void*, enum key key, int b_is_down) {
@@ -47,12 +47,12 @@ void platform_window_on_key(struct platform_window*, void*, enum key key, int b_
     input_event_broadcast(INPUT_EVENT_key, &event_data);
 }
 
-void platform_window_on_mouse_button(struct platform_window* p_platform_window, void*, enum mouse_button button, int b_is_down) {
+void platform_window_on_mouse_button(struct platform_window* p_window, void*, enum mouse_button button, int b_is_down) {
     struct input_event_data_mouse_button event_data = {
         .button = button,
         .b_is_down = b_is_down
     };
-    platform_window_get_mouse_client_coords(p_platform_window, &event_data.client_pos[0], &event_data.client_pos[1]);
+    platform_window_get_mouse_client_coords(p_window, &event_data.client_pos[0], &event_data.client_pos[1]);
     input_event_broadcast(INPUT_EVENT_mouse_button, &event_data);
 }
 
@@ -70,10 +70,10 @@ int main(int, const char*[]) {
     unsigned int window_size[] = { 1200, 900 };
 
     struct platform_window platform_window;
-    platform_window_create(window_size[0], window_size[1], 0, &platform_window, platform_window_on_created, 0);
+    platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
 
     struct gl_context gl_context;
-    gl_context_create(&platform_window, 3, 3, &gl_context);
+    gl_context_create(3, 3, &platform_window, &gl_context);
 
     // create framebuffer
 
@@ -281,7 +281,7 @@ int main(int, const char*[]) {
         old_frame_start = frame_start;
 
         input_frame_reset();
-        platform_window_poll(&platform_window);
+        platform_window_poll_events(&platform_window);
 
         // STATE UPDATE LOGIC
         {
@@ -460,10 +460,6 @@ int main(int, const char*[]) {
 
         gl_context_swap_buffers(&gl_context);
     }
-
-    gl_context_destroy(&gl_context);
-
-    platform_window_destroy(&platform_window);
 
     return 0;
 }

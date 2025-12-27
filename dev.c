@@ -57,7 +57,7 @@ struct gizmo_control {
 };
 
 static struct dev_state {
-    const struct platform_window* p_platform_window;
+    const struct platform_window* p_window;
     struct scene*                 p_scene;
     struct scene_entity*          p_selected_entity;
     struct mesh_id_capturer       mesh_id_capturer;
@@ -143,8 +143,8 @@ static void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_co
 
 static void draw_hull_DEBUGDEBUGDEBUG(void);
 
-void dev_init(const struct platform_window* p_platform_window, struct scene* p_scene, struct physics_world* p_physics_world) {
-    g_dev.p_platform_window = p_platform_window;
+void dev_init(const struct platform_window* p_window, struct scene* p_scene, struct physics_world* p_physics_world) {
+    g_dev.p_window = p_window;
 
     g_dev.p_scene = p_scene;
 
@@ -629,10 +629,10 @@ void on_mouse_move(const void* p_event_data, void*) {
     }
 
     int mouse_client_coords[2];
-    platform_window_get_mouse_client_coords(g_dev.p_platform_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+    platform_window_get_mouse_client_coords(g_dev.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
 
     float cursor_ray[3];
-    platform_window_client_to_world_ray(g_dev.p_platform_window, g_dev.perspective_view_matrix, mouse_client_coords[0], mouse_client_coords[1], cursor_ray);
+    platform_window_client_to_world_ray(g_dev.p_window, g_dev.perspective_view_matrix, mouse_client_coords[0], mouse_client_coords[1], cursor_ray);
  
     switch (g_dev.pressed_mesh_id) {
         case DEV_MESH_ID_CAPTURER_ID_GIZMO_T_X: {
@@ -1119,10 +1119,10 @@ void mesh_selector_render_pass(size_t framebuffer_width, size_t framebuffer_heig
     }
     
     int mouse_client_coords[2];
-    platform_window_get_mouse_client_coords(g_dev.p_platform_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+    platform_window_get_mouse_client_coords(g_dev.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
 
     float mouse_position_normalized[2];
-    platform_window_normalize_client_coords(g_dev.p_platform_window, mouse_client_coords[0], mouse_client_coords[1], &mouse_position_normalized[0], &mouse_position_normalized[1]);
+    platform_window_normalize_client_coords(g_dev.p_window, mouse_client_coords[0], mouse_client_coords[1], &mouse_position_normalized[0], &mouse_position_normalized[1]);
 
     g_dev.target_mesh_id = mesh_id_capturer_query(&g_dev.mesh_id_capturer, mouse_position_normalized[0], mouse_position_normalized[1]);
 }
