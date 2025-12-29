@@ -39,10 +39,10 @@ LIBS := $(foreach x,$(LIBS),$(addprefix -l,$(x)))
 
 # non-phony targets
 $(TARGET): $(OBJ)
-	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS)
+	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS) -DNDEBUG
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
-	@$(CC) $(COBJFLAGS) -o $@ $<
+	@$(CC) $(COBJFLAGS) -DNDEBUG -o $@ $<
 
 $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
 	@$(CC) $(COBJFLAGS) $(DBGFLAGS) -o $@ $<
