@@ -1,6 +1,7 @@
 *
 !*.*
 !*/
+!makefile
 
 # Prerequisites
 *.d
@@ -51,3 +52,5 @@
 
 .vscode/
 res/
+.cache/
+compile_commands.json
