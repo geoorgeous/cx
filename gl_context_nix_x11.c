@@ -1,7 +1,6 @@
-
+#include "gl_context.h"
 #include "gl.h"
 #include <GL/glx.h>
-
 #include "logging.h"
 #include "platform_window_nix_x11.h"
 #include "platform_window.h"

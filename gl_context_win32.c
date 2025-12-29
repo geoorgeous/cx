@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 
+#include "gl_context.h"
 #include "gl.h"
 #include "logging.h"
 #include "platform_window_win32.h"
