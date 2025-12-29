@@ -1,13 +1,13 @@
-# tool macros
 CC ?= gcc
 CSTD = -std-c99
 CFLAGS_WARN := -Wformat=2 -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Waggregate-return -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
 CFLAGS_NOWARN := -Wno-unused-parameter
-CFLAGS_DBG := -g -O0
-LIBS := m GL X11
+CFLAGS_DBG := -ggdb -O0
+
+LIBS := m
+
 TARGET_NAME := cx
 
-# path macros
 BIN_PATH := bin
 OBJ_PATH := obj
 SRC_PATH := src
@@ -15,56 +15,70 @@ DBG_PATH := dbg
 
 SRC_IGNORE := src/gl_context_nix_x11.c src/gl_context_win32.c src/platform_window_nix_x11.c src/platform_window_win32.c
 
-# compile macros
+CFLAGS := $(CCSTD) $(CFLAGS_WARN) $(CFLAGS_NOWARN)
+
 ifeq ($(OS),Windows_NT)
+	MKDIRCMD := mkdir
+	RMDIRCMD := rmdir /q /s
+	LIBS += opengl32 gdi32
 	TARGET_NAME := $(addsuffix .exe,$(TARGET_NAME))
+	CFLAGS += -DPLATFORM_WIN32
+else
+	MKDIRCMD := mkdir -p
+	RMDIRCMD := rm -rf
+	LIBS += GL X11
 endif
+
+COBJFLAGS := $(CFLAGS) -c
+
 TARGET := $(BIN_PATH)/$(TARGET_NAME)
 TARGET_DEBUG := $(DBG_PATH)/$(TARGET_NAME)
 
-# default rule
-default: debug
-
-# src files & obj files
 SRC := $(filter-out $(SRC_IGNORE), $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.c*))))
 OBJ := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 
-CFLAGS := $(CCSTD)\
-          $(CFLAGS_WARN)\
-          $(CFLAGS_NOWARN)
-COBJFLAGS := $(CFLAGS) -c
-
 LIBS := $(foreach x,$(LIBS),$(addprefix -l,$(x)))
 
-# non-phony targets
-$(TARGET): $(OBJ)
-	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS) -DNDEBUG
+default: debug
 
-$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
+# release
+
+$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c* | $(OBJ_PATH)
 	@$(CC) $(COBJFLAGS) -DNDEBUG -o $@ $<
 
-$(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
-	@$(CC) $(COBJFLAGS) $(DBGFLAGS) -o $@ $<
+$(OBJ_PATH):
+	@$(MKDIRCMD) $(OBJ_PATH)
+	
+$(TARGET): $(OBJ) | $(BIN_PATH)
+	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS) -DNDEBUG
+	
+$(BIN_PATH):
+	@$(MKDIRCMD) $(BIN_PATH)
 
-$(TARGET_DEBUG): $(OBJ_DEBUG)
-	@$(CC) $(LIBS) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DEBUG) -o $@
+#debug
 
-# phony rules
-.PHONY: makedir
-makedir:
-	@mkdir -p $(BIN_PATH) $(OBJ_PATH) $(DBG_PATH)
+$(DBG_PATH)/%.o: $(SRC_PATH)/%.c* | $(DBG_PATH)
+	@$(CC) $(COBJFLAGS) $(CFLAGS_DBG) -o $@ $<
+
+$(DBG_PATH):
+	@$(MKDIRCMD) $(DBG_PATH)
+
+$(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
+	$(CC) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DEBUG) $(LIBS) -o $@
+
+#phony rules
 
 .PHONY: release
-release: makedir $(TARGET)
+release: $(TARGET)
 
 .PHONY: debug
-debug: makedir $(TARGET_DEBUG)
+debug: $(TARGET_DEBUG)
 
 .PHONY: clean
 clean:
-	@rm -rf $(OBJ_PATH) $(BIN_PATH) $(DBG_PATH)
+	@$(RMDIRCMD) $(OBJ_PATH) $(BIN_PATH) $(DBG_PATH)
 
 .PHONY: compile_commands
 compile_commands:
-	@bear -- make clean makedir debug
+	@bear -- make clean debug
