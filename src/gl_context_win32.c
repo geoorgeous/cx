@@ -73,6 +73,8 @@ glDebugMessageControlARB_fn* glDebugMessageControlARB;
 #define GL_DEBUG_OUTPUT                           0x92E0
 #define GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB           0x8242
 
+#endif
+
 static enum error win32_load_gl_functions(void);
 
 #ifndef NDEBUG
@@ -85,8 +87,8 @@ struct gl_context_win32_internals {
 };
 
 enum error gl_context_create(int gl_version_major, int gl_version_minor, const struct platform_window* p_window, struct gl_context* p_out_context) {
-    struct gl_context_win32_internals* p_context_win32_internals = p_out_context->_bytes;
-    struct platform_window_win32_internals* p_window_win32_internals = p_window->_bytes;
+    struct gl_context_win32_internals* p_context_win32_internals = (void*)p_out_context->_bytes;
+    const struct platform_window_win32_internals* p_window_win32_internals = (const void*)p_window->_bytes;
 
     enum error err = win32_load_gl_functions();
 	if (err != ERROR_OK) {
@@ -170,14 +172,14 @@ enum error gl_context_create(int gl_version_major, int gl_version_minor, const s
 	return ERROR_OK;
 }
 
-void gl_context_win32_destroy(struct gl_context* p_context) {
-    struct gl_context_win32_internals* p_internals = p_context->_bytes;
+void gl_context_destroy(struct gl_context* p_context) {
+    struct gl_context_win32_internals* p_internals = (void*)p_context->_bytes;
 
 	wglDeleteContext(p_internals->hrc);
 }
 
-enum error gl_context_win32_make_current(const struct gl_context_win32* p_context) {
-    struct gl_context_win32_internals* p_internals = p_context->_bytes;
+enum error gl_context_make_current(const struct gl_context* p_context) {
+    const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglMakeCurrent(p_internals->hdc, p_internals->hrc)) {
 		return ERROR_OK;
@@ -185,8 +187,8 @@ enum error gl_context_win32_make_current(const struct gl_context_win32* p_contex
 	return ERROR_WGL_MAKE_CURRENT;
 }
 
-enum error gl_context_win32_swap_buffers(const struct gl_context_win32* p_context) {
-    struct gl_context_win32_internals* p_internals = p_context->_bytes;
+enum error gl_context_swap_buffers(const struct gl_context* p_context) {
+    const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglSwapLayerBuffers(p_internals->hdc, WGL_SWAP_MAIN_PLANE)) {
 		return ERROR_OK;

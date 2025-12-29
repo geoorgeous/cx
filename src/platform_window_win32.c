@@ -4,10 +4,10 @@
 LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 enum key         vk_to_key(WORD vk);
 
-void platform_window_create(int width, int height, const char* s_title, struct platform_window* p_out_window) {
+enum error platform_window_create(int width, int height, const char* s_title, void(*p_callback_on_created)(struct platform_window*, void*), void* p_callback_on_created_user_ptr, struct platform_window* p_out_window) {
     *p_out_window = (struct platform_window){0};
     
-    struct platform_window_win32_internals* p_internals = p_out_window->_bytes;
+    struct platform_window_win32_internals* p_internals = (void*)p_out_window->_bytes;
 
     HINSTANCE hinstance = GetModuleHandle(NULL);
 
@@ -38,7 +38,7 @@ void platform_window_create(int width, int height, const char* s_title, struct p
 	};
 	AdjustWindowRectEx(&rect, style, FALSE, styleex);
 
-    *p_window = (struct platform_window) {
+    *p_out_window = (struct platform_window) {
         ._p_callback_on_created = p_callback_on_created,
         ._p_callback_on_created_user_ptr = p_callback_on_created_user_ptr
     };
@@ -55,14 +55,14 @@ void platform_window_create(int width, int height, const char* s_title, struct p
 		0,
 		0,
 		hinstance,
-		(LPVOID)p_window
+		(LPVOID)p_out_window
     );
 
 	if (!hwnd) {
         return ERROR_WIN32_CREATE_WINDOW;
     }
 
-    p_internals->_hwnd = hwnd;
+    p_internals->hwnd = hwnd;
 
 	return ERROR_OK;
 }
@@ -72,18 +72,18 @@ void platform_window_destroy(struct platform_window* p_window) {
         p_window->_p_callback_on_close(p_window, p_window->_p_callback_on_close_user_ptr);
     }
 
-    struct platform_window_win32_internals* p_internals = p_window->_bytes;
-    ReleaseDC(p_internals->_hwnd, p_internals->_hdc);
-    DestroyWindow(p_internals->_hwnd);
+    struct platform_window_win32_internals* p_internals = (void*)p_window->_bytes;
+    ReleaseDC(p_internals->hwnd, p_internals->hdc);
+    DestroyWindow(p_internals->hwnd);
 
     *p_window = (struct platform_window){0};
 }
 
-void platform_window_poll_events(const struct platform_window* p_window) {
-    struct platform_window_win32_internals* p_internals = p_window->_bytes;
+void platform_window_poll_events(struct platform_window* p_window) {
+    struct platform_window_win32_internals* p_internals = (void*)p_window->_bytes;
 
     MSG msg;
-	while (PeekMessage(&msg, p_internals->_hwnd, 0, 0, PM_REMOVE)) {
+	while (PeekMessage(&msg, p_internals->hwnd, 0, 0, PM_REMOVE)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -93,15 +93,15 @@ void platform_window_poll_events(const struct platform_window* p_window) {
 }
 
 int platform_window_is_open(const struct platform_window* p_window) {
-    struct platform_window_win32_internals* p_internals = p_window->_bytes;
-    return IsWindow(p_internals->_hwnd) == TRUE;
+    const struct platform_window_win32_internals* p_internals = (const void*)p_window->_bytes;
+    return IsWindow(p_internals->hwnd) == TRUE;
 }
 
 void platform_window_size(const struct platform_window* p_window, unsigned int* p_width, unsigned int* p_height) {
-    struct platform_window_win32_internals* p_internals = p_window->_bytes;
+    const struct platform_window_win32_internals* p_internals = (const void*)p_window->_bytes;
 
     RECT client_rect;
-    GetClientRect(p_internals->_hwnd, &client_rect);
+    GetClientRect(p_internals->hwnd, &client_rect);
     *p_width = client_rect.right;
     *p_height = client_rect.bottom;
 }
@@ -110,12 +110,13 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     LRESULT result = 0;
 
 	struct platform_window* p_window = (LPVOID)GetWindowLongPtr(hwnd, 0);
-	struct platform_window_win32_internals* p_internals = (LPVOID)GetWindowLongPtr(hwnd, 0);
+	struct platform_window_win32_internals* p_internals = (void*)p_window->_bytes;
 
     switch (msg) {
         case WM_CREATE: {
 			const CREATESTRUCT* p_createstruct = (const CREATESTRUCT*)lparam;
 			p_window = p_createstruct->lpCreateParams;
+            p_internals = (void*)p_window->_bytes;
 
             HDC hdc = GetDC(hwnd);
             
@@ -123,8 +124,8 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
             SetRectEmpty(&rect);
             AdjustWindowRectEx(&rect, p_createstruct->style, FALSE, p_createstruct->dwExStyle);
 
-            p_internals->_hwnd = hwnd;
-            p_internals->_hdc = hdc;
+            p_internals->hwnd = hwnd;
+            p_internals->hdc = hdc;
 
 			SetWindowLongPtr(hwnd, 0, (LONG_PTR)p_window);
 

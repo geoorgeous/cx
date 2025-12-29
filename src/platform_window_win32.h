@@ -6,8 +6,8 @@
 #include <shellapi.h>
 
 struct platform_window_win32_internals {
-    HWND _hwnd;
-    HDC  _HDC;
+    HWND hwnd;
+    HDC  hdc;
 };
 
 #endif
