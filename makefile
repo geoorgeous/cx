@@ -23,6 +23,9 @@ endif
 TARGET := $(BIN_PATH)/$(TARGET_NAME)
 TARGET_DEBUG := $(DBG_PATH)/$(TARGET_NAME)
 
+# default rule
+default: debug
+
 # src files & obj files
 SRC := $(filter-out $(SRC_IGNORE), $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.c*))))
 OBJ := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
@@ -46,9 +49,6 @@ $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
 
 $(TARGET_DEBUG): $(OBJ_DEBUG)
 	$(CC) $(LIBS) $(CFLAGS) $(DBGFLAGS) $(OBJ_DEBUG) -o $@
-
-# default rule
-default: debug
 
 # phony rules
 .PHONY: makedir
