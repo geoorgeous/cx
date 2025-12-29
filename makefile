@@ -14,7 +14,7 @@ OBJ_PATH := obj
 SRC_PATH := .
 DBG_PATH := dbg
 
-SRC_IGNORE := ./gl_context_nix_x11.c ./gl_context_win32.c ./otf.c ./platform_window_nix_x11.c ./platform_window_win32.c
+SRC_IGNORE := ./font.c ./gl_context_nix_x11.c ./gl_context_win32.c ./otf.c ./platform_window_nix_x11.c ./platform_window_win32.c
 
 # compile macros
 ifeq ($(OS),Windows_NT)
@@ -28,16 +28,15 @@ SRC := $(filter-out $(SRC_IGNORE), $(foreach x, $(SRC_PATH), $(wildcard $(addpre
 OBJ := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 
-# default rule
-default: makedir all
-
 CFLAGS := $(CCSTD)\
           $(CFLAGS_WARN)\
           $(CFLAGS_NOWARN)
 
+LIBS := $(foreach x, $(LIBS), $(addprefix -l, $(x)))
+
 # non-phony targets
 $(TARGET): $(OBJ)
-	$(CC) -o $@ $(OBJ) $(foreach x, $(LIBS), $(addprefix -l, $(x))) $(CFLAGS)
+	$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS)
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
 	$(CC) $(COBJFLAGS) -o $@ $<
@@ -46,23 +45,26 @@ $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
 	$(CC) $(COBJFLAGS) $(DBGFLAGS) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG)
-	$(CC) $(CFLAGS) $(DBGFLAGS) $(OBJ_DEBUG) -o $@
+	$(CC) $(LIBS) $(CFLAGS) $(DBGFLAGS) $(OBJ_DEBUG) -o $@
+
+# default rule
+default: debug
 
 # phony rules
 .PHONY: makedir
 makedir:
 	@mkdir -p $(BIN_PATH) $(OBJ_PATH) $(DBG_PATH)
 
-.PHONY: all
-all: $(TARGET)
+.PHONY: release
+release: makedir $(TARGET)
 
 .PHONY: debug
-debug: $(TARGET_DEBUG)
+debug: makedir $(TARGET_DEBUG)
 
 .PHONY: clean
 clean:
 	@rm -rf $(OBJ_PATH) $(BIN_PATH) $(DBG_PATH)
 
-.PHONY: distclean
-distclean:
-	@rm -rf $(OBJ_PATH)
+.PHONY: compilation_commands
+compilation_commands:
+	bear -- make clean makedir debug
