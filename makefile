@@ -3,8 +3,7 @@ CC ?= gcc
 CSTD = -std-c99
 CFLAGS_WARN := -Wformat=2 -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Waggregate-return -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
 CFLAGS_NOWARN := -Wno-unused-parameter
-DBGFLAGS := -g -O0
-COBJFLAGS := $(CFLAGS) -c
+CFLAGS_DBG := -g -O0
 LIBS := m GL X11
 TARGET_NAME := cx
 
@@ -34,21 +33,22 @@ OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC
 CFLAGS := $(CCSTD)\
           $(CFLAGS_WARN)\
           $(CFLAGS_NOWARN)
+COBJFLAGS := $(CFLAGS) -c
 
-LIBS := $(foreach x, $(LIBS), $(addprefix -l, $(x)))
+LIBS := $(foreach x,$(LIBS),$(addprefix -l,$(x)))
 
 # non-phony targets
 $(TARGET): $(OBJ)
-	$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS)
+	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS)
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
-	$(CC) $(COBJFLAGS) -o $@ $<
+	@$(CC) $(COBJFLAGS) -o $@ $<
 
 $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
-	$(CC) $(COBJFLAGS) $(DBGFLAGS) -o $@ $<
+	@$(CC) $(COBJFLAGS) $(DBGFLAGS) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG)
-	$(CC) $(LIBS) $(CFLAGS) $(DBGFLAGS) $(OBJ_DEBUG) -o $@
+	@$(CC) $(LIBS) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DEBUG) -o $@
 
 # phony rules
 .PHONY: makedir
@@ -66,5 +66,5 @@ clean:
 	@rm -rf $(OBJ_PATH) $(BIN_PATH) $(DBG_PATH)
 
 .PHONY: compile_commands
-compilation_commands:
-	bear -- make clean makedir debug
+compile_commands:
+	@bear -- make clean makedir debug
