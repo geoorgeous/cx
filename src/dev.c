@@ -239,7 +239,7 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     struct gltf gltf;
     struct import_gltf_result import_result;
 
-    gltf_load_from_file("res/gizmo_translate.glb", &gltf);
+    gltf_load_from_file("res/builtin/gizmo_translate.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
     gl_mesh_create(&g_dev.gizmos.control_t_x.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
@@ -253,7 +253,7 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_free(&gltf);
     import_gltf_free(&import_result);
 
-    gltf_load_from_file("res/gizmo_rotate.glb", &gltf);
+    gltf_load_from_file("res/builtin/gizmo_rotate.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
     gl_mesh_create(&g_dev.gizmos.control_r_x.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
@@ -264,7 +264,7 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_free(&gltf);
     import_gltf_free(&import_result);
 
-    gltf_load_from_file("res/gizmo_scale.glb", &gltf);
+    gltf_load_from_file("res/builtin/gizmo_scale.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
     gl_mesh_create(&g_dev.gizmos.control_s_x.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);

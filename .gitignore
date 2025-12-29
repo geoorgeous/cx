@@ -51,6 +51,7 @@
 *.dwo
 
 .vscode/
-res/
 .cache/
+res/
+!res/builtin/*
 compile_commands.json
