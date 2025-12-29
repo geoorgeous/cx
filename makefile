@@ -65,6 +65,6 @@ debug: makedir $(TARGET_DEBUG)
 clean:
 	@rm -rf $(OBJ_PATH) $(BIN_PATH) $(DBG_PATH)
 
-.PHONY: compilation_commands
+.PHONY: compile_commands
 compilation_commands:
 	bear -- make clean makedir debug
