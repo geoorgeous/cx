@@ -10,10 +10,10 @@ TARGET_NAME := cx
 # path macros
 BIN_PATH := bin
 OBJ_PATH := obj
-SRC_PATH := .
+SRC_PATH := src
 DBG_PATH := dbg
 
-SRC_IGNORE := ./font.c ./gl_context_nix_x11.c ./gl_context_win32.c ./otf.c ./platform_window_nix_x11.c ./platform_window_win32.c
+SRC_IGNORE := src/font.c src/gl_context_nix_x11.c src/gl_context_win32.c src/otf.c src/platform_window_nix_x11.c src/platform_window_win32.c
 
 # compile macros
 ifeq ($(OS),Windows_NT)
