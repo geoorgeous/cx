@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "gl_program.h"
 #include "logging.h"
@@ -171,6 +172,11 @@ void gl_program_uniform_set(const struct gl_program_uniform* p_uniform, size_t c
 		(void*)set_uniform_mat3,
 		(void*)set_uniform_mat4
 	};
+
+	if (p_uniform->_type == GL_SHADER_UNIFORM_TYPE_none) {
+		cx_log(CX_LOG_ERROR, 0, "Cannot set uniforms of no type.\n");
+		return;
+	}
 
 	func_table[p_uniform->_type](p_uniform->_gl_location, count, p_data);
 }
