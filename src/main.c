@@ -282,6 +282,7 @@ int main(int, const char*[]) {
     }
     
     dev_init(&platform_window, p_scene, &physics_world);
+    dev_mode_enable();
 
     clock_t old_frame_start = clock();
 

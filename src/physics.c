@@ -1,5 +1,6 @@
 #include <math.h>
 
+#include "dev_draw.h"
 #include "logging.h"
 #include "math_utils.h"
 #include "matrix.h"
@@ -45,6 +46,12 @@ static void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, 
 static void gjk_process_simplex_triangle_test_ab(const float* p_ab, const float* p_ao, const float* p_a, const float* p_b, float simplex[4][3], int* p_simplex_d, float* p_dir);
 static int  gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
 static void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
+
+#ifndef NDEBUG
+static void dbg_draw_collider(const struct physics_collider* p_collider);
+#else
+#define dbg_draw_collider(A) ((void)0)
+#endif
 
 void physics_collider_init(struct physics_collider* p_collider, enum physics_collider_type collider_type) {
 	p_collider->type = collider_type;
@@ -313,6 +320,8 @@ void physics_world_detect_collisions(struct physics_world* p_world) {
 		}
 
 		physics_collider_apply_transform(p_object->_p_collider, p_object->_p_transform);
+
+		dbg_draw_collider(p_object->_p_collider);
 	}
 
 	physics_world_detect_collisions_broadphase(p_world);
@@ -1056,3 +1065,28 @@ void epa(float simplex[4][3], const struct physics_collider* p_a, const struct p
 
 	*p_result = (struct physics_collision_result){0};
 }
+
+#ifndef NDEBUG
+void dbg_draw_collider(const struct physics_collider* p_collider) {
+	switch (p_collider->type) {
+		case PHYSICS_COLLIDER_TYPE_sphere: {
+			dev_draw_sphere(p_collider->as_sphere.center, p_collider->as_sphere.radius, CX_COLOR_MAGENTA, CX_COLOR_NONE, 0);
+			break;
+		}
+		
+		case PHYSICS_COLLIDER_TYPE_capsule: {
+			dev_draw_capsule(p_collider->as_capsule.p0, p_collider->as_capsule.p1, p_collider->as_capsule.radius, CX_COLOR_MAGENTA, CX_COLOR_NONE, 0);
+			break;
+		}
+		
+		case PHYSICS_COLLIDER_TYPE_hull: {
+			break;
+		}
+		
+		case PHYSICS_COLLIDER_TYPE_plane: {
+			dev_draw_plane(p_collider->as_plane.normal, p_collider->as_plane.distance, CX_COLOR_MAGENTA, CX_COLOR_NONE, 0);
+			break;
+		}
+	}
+}
+#endif
