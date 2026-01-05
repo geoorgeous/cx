@@ -65,7 +65,7 @@ $(DBG_PATH):
 	@$(MKDIRCMD) $(DBG_PATH)
 
 $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
-	$(CC) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DEBUG) $(LIBS) -o $@
+	@$(CC) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DEBUG) $(LIBS) -o $@
 
 #phony rules
 
