@@ -1,4 +1,4 @@
-CC ?= gcc
+CC := clang
 CSTD = -std-c99
 CFLAGS_WARN := -Wformat=2 -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Waggregate-return -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
 CFLAGS_NOWARN := -Wno-unused-parameter
