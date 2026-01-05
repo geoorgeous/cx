@@ -658,7 +658,7 @@ typedef int32_t  stbi__int32;
 // should produce compiler error if size is wrong
 typedef unsigned char validate_uint32[sizeof(stbi__uint32)==4 ? 1 : -1];
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__clang__)
 #define STBI_NOTUSED(v)  (void)(v)
 #else
 #define STBI_NOTUSED(v)  (void)sizeof(v)
@@ -1214,7 +1214,7 @@ static stbi__uint16 *stbi__convert_8_to_16(stbi_uc *orig, int w, int h, int chan
    stbi__uint16 *enlarged;
 
    enlarged = (stbi__uint16 *) stbi__malloc(img_len*2);
-   if (enlarged == NULL) return (stbi__uint16 *) stbi__errpuc("outofmem", "Out of memory");
+   if (enlarged == NULL) return (stbi__uint16 *) (void *) stbi__errpuc("outofmem", "Out of memory");
 
    for (i = 0; i < img_len; ++i)
       enlarged[i] = (stbi__uint16)((orig[i] << 8) + orig[i]); // replicate to high and low byte, maps 0->0, 255->0xffff
@@ -1407,7 +1407,7 @@ STBIDEF stbi_us *stbi_load_16(char const *filename, int *x, int *y, int *comp, i
 {
    FILE *f = stbi__fopen(filename, "rb");
    stbi__uint16 *result;
-   if (!f) return (stbi_us *) stbi__errpuc("can't fopen", "Unable to open file");
+   if (!f) return (stbi_us *) (void*) stbi__errpuc("can't fopen", "Unable to open file");
    result = stbi_load_from_file_16(f,x,y,comp,req_comp);
    fclose(f);
    return result;
@@ -1824,7 +1824,7 @@ static stbi__uint16 *stbi__convert_format16(stbi__uint16 *data, int img_n, int r
    good = (stbi__uint16 *) stbi__malloc(req_comp * x * y * 2);
    if (good == NULL) {
       STBI_FREE(data);
-      return (stbi__uint16 *) stbi__errpuc("outofmem", "Out of memory");
+      return (stbi__uint16 *) (void *) stbi__errpuc("outofmem", "Out of memory");
    }
 
    for (j=0; j < (int) y; ++j) {
@@ -1848,7 +1848,7 @@ static stbi__uint16 *stbi__convert_format16(stbi__uint16 *data, int img_n, int r
          STBI__CASE(4,1) { dest[0]=stbi__compute_y_16(src[0],src[1],src[2]);                   } break;
          STBI__CASE(4,2) { dest[0]=stbi__compute_y_16(src[0],src[1],src[2]); dest[1] = src[3]; } break;
          STBI__CASE(4,3) { dest[0]=src[0];dest[1]=src[1];dest[2]=src[2];                       } break;
-         default: STBI_ASSERT(0); STBI_FREE(data); STBI_FREE(good); return (stbi__uint16*) stbi__errpuc("unsupported", "Unsupported format conversion");
+         default: STBI_ASSERT(0); STBI_FREE(data); STBI_FREE(good); return (stbi__uint16*) (void *) stbi__errpuc("unsupported", "Unsupported format conversion");
       }
       #undef STBI__CASE
    }
@@ -2630,14 +2630,14 @@ static void stbi__idct_simd(stbi_uc *out, int out_stride, short data[64])
    __m128i bias_1 = _mm_set1_epi32(65536 + (128<<17));
 
    // load
-   row0 = _mm_load_si128((const __m128i *) (data + 0*8));
-   row1 = _mm_load_si128((const __m128i *) (data + 1*8));
-   row2 = _mm_load_si128((const __m128i *) (data + 2*8));
-   row3 = _mm_load_si128((const __m128i *) (data + 3*8));
-   row4 = _mm_load_si128((const __m128i *) (data + 4*8));
-   row5 = _mm_load_si128((const __m128i *) (data + 5*8));
-   row6 = _mm_load_si128((const __m128i *) (data + 6*8));
-   row7 = _mm_load_si128((const __m128i *) (data + 7*8));
+   row0 = _mm_load_si128((const __m128i *) (void *) (data + 0*8));
+   row1 = _mm_load_si128((const __m128i *) (void *) (data + 1*8));
+   row2 = _mm_load_si128((const __m128i *) (void *) (data + 2*8));
+   row3 = _mm_load_si128((const __m128i *) (void *) (data + 3*8));
+   row4 = _mm_load_si128((const __m128i *) (void *) (data + 4*8));
+   row5 = _mm_load_si128((const __m128i *) (void *) (data + 5*8));
+   row6 = _mm_load_si128((const __m128i *) (void *) (data + 6*8));
+   row7 = _mm_load_si128((const __m128i *) (void *) (data + 7*8));
 
    // column pass
    dct_pass(bias_0, 10);
@@ -2685,14 +2685,14 @@ static void stbi__idct_simd(stbi_uc *out, int out_stride, short data[64])
       dct_interleave8(p1, p3); // a4b4c4d4...
 
       // store
-      _mm_storel_epi64((__m128i *) out, p0); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, _mm_shuffle_epi32(p0, 0x4e)); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, p2); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, _mm_shuffle_epi32(p2, 0x4e)); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, p1); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, _mm_shuffle_epi32(p1, 0x4e)); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, p3); out += out_stride;
-      _mm_storel_epi64((__m128i *) out, _mm_shuffle_epi32(p3, 0x4e));
+      _mm_storel_epi64((__m128i *) (void *) out, p0); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, _mm_shuffle_epi32(p0, 0x4e)); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, p2); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, _mm_shuffle_epi32(p2, 0x4e)); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, p1); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, _mm_shuffle_epi32(p1, 0x4e)); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, p3); out += out_stride;
+      _mm_storel_epi64((__m128i *) (void *) out, _mm_shuffle_epi32(p3, 0x4e));
    }
 
 #undef dct_const
@@ -3550,8 +3550,8 @@ static stbi_uc *stbi__resample_row_hv_2_simd(stbi_uc *out, stbi_uc *in_near, stb
       // load and perform the vertical filtering pass
       // this uses 3*x + y = 4*x + (y - x)
       __m128i zero  = _mm_setzero_si128();
-      __m128i farb  = _mm_loadl_epi64((__m128i *) (in_far + i));
-      __m128i nearb = _mm_loadl_epi64((__m128i *) (in_near + i));
+      __m128i farb  = _mm_loadl_epi64((__m128i *) (void *) (in_far + i));
+      __m128i nearb = _mm_loadl_epi64((__m128i *) (void *) (in_near + i));
       __m128i farw  = _mm_unpacklo_epi8(farb, zero);
       __m128i nearw = _mm_unpacklo_epi8(nearb, zero);
       __m128i diff  = _mm_sub_epi16(farw, nearw);
@@ -3588,7 +3588,7 @@ static stbi_uc *stbi__resample_row_hv_2_simd(stbi_uc *out, stbi_uc *in_near, stb
 
       // pack and write output
       __m128i outv = _mm_packus_epi16(de0, de1);
-      _mm_storeu_si128((__m128i *) (out + i*2), outv);
+      _mm_storeu_si128((__m128i *) (void *) (out + i*2), outv);
 #elif defined(STBI_NEON)
       // load and perform the vertical filtering pass
       // this uses 3*x + y = 4*x + (y - x)
@@ -3707,9 +3707,9 @@ static void stbi__YCbCr_to_RGB_simd(stbi_uc *out, stbi_uc const *y, stbi_uc cons
 
       for (; i+7 < count; i += 8) {
          // load
-         __m128i y_bytes = _mm_loadl_epi64((__m128i *) (y+i));
-         __m128i cr_bytes = _mm_loadl_epi64((__m128i *) (pcr+i));
-         __m128i cb_bytes = _mm_loadl_epi64((__m128i *) (pcb+i));
+         __m128i y_bytes = _mm_loadl_epi64((__m128i *) (void *) (y+i));
+         __m128i cr_bytes = _mm_loadl_epi64((__m128i *) (void *) (pcr+i));
+         __m128i cb_bytes = _mm_loadl_epi64((__m128i *) (void *) (pcb+i));
          __m128i cr_biased = _mm_xor_si128(cr_bytes, signflip); // -128
          __m128i cb_biased = _mm_xor_si128(cb_bytes, signflip); // -128
 
@@ -3745,8 +3745,8 @@ static void stbi__YCbCr_to_RGB_simd(stbi_uc *out, stbi_uc const *y, stbi_uc cons
          __m128i o1 = _mm_unpackhi_epi16(t0, t1);
 
          // store
-         _mm_storeu_si128((__m128i *) (out + 0), o0);
-         _mm_storeu_si128((__m128i *) (out + 16), o1);
+         _mm_storeu_si128((__m128i *) (void *) (out + 0), o0);
+         _mm_storeu_si128((__m128i *) (void *) (out + 16), o1);
          out += 32;
       }
    }
@@ -4830,7 +4830,7 @@ static int stbi__create_png_image_raw(stbi__png *a, stbi_uc *raw, stbi__uint32 r
             stbi__create_png_alpha_expand8(dest, cur, x, img_n);
       } else if (depth == 16) {
          // convert the image data from big-endian to platform-native
-         stbi__uint16 *dest16 = (stbi__uint16*)dest;
+         stbi__uint16 *dest16 = (stbi__uint16 *) (void *) dest;
          stbi__uint32 nsmp = x*img_n;
 
          if (img_n == out_n) {
@@ -4936,7 +4936,7 @@ static int stbi__compute_transparency16(stbi__png *z, stbi__uint16 tc[3], int ou
 {
    stbi__context *s = z->s;
    stbi__uint32 i, pixel_count = s->img_x * s->img_y;
-   stbi__uint16 *p = (stbi__uint16*) z->out;
+   stbi__uint16 *p = (void *) z->out;
 
    // compute color-based transparency, assuming we've
    // already got 65535 as the alpha value in the output
@@ -6254,7 +6254,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
          if (channel >= channelCount) {
             // Fill this channel with default data.
             if (bitdepth == 16 && bpc == 16) {
-               stbi__uint16 *q = ((stbi__uint16 *) out) + channel;
+               stbi__uint16 *q = ((stbi__uint16 *) (void *) out) + channel;
                stbi__uint16 val = channel == 3 ? 65535 : 0;
                for (i = 0; i < pixelCount; i++, q += 4)
                   *q = val;
@@ -6266,7 +6266,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
             }
          } else {
             if (ri->bits_per_channel == 16) {    // output bpc
-               stbi__uint16 *q = ((stbi__uint16 *) out) + channel;
+               stbi__uint16 *q = ((stbi__uint16 *) (void *) out) + channel;
                for (i = 0; i < pixelCount; i++, q += 4)
                   *q = (stbi__uint16) stbi__get16be(s);
             } else {
@@ -6287,7 +6287,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
    if (channelCount >= 4) {
       if (ri->bits_per_channel == 16) {
          for (i=0; i < w*h; ++i) {
-            stbi__uint16 *pixel = (stbi__uint16 *) out + 4*i;
+            stbi__uint16 *pixel = (stbi__uint16 *) (void *) out + 4*i;
             if (pixel[3] != 0 && pixel[3] != 65535) {
                float a = pixel[3] / 65535.0f;
                float ra = 1.0f / a;
@@ -6315,7 +6315,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
    // convert to desired output format
    if (req_comp && req_comp != 4) {
       if (ri->bits_per_channel == 16)
-         out = (stbi_uc *) stbi__convert_format16((stbi__uint16 *) out, 4, req_comp, w, h);
+         out = (stbi_uc *) stbi__convert_format16((stbi__uint16 *) (void *) out, 4, req_comp, w, h);
       else
          out = stbi__convert_format(out, 4, req_comp, w, h);
       if (out == NULL) return out; // stbi__convert_format frees input on failure
@@ -7535,7 +7535,7 @@ static void *stbi__pnm_load(stbi__context *s, int *x, int *y, int *comp, int req
 
    if (req_comp && req_comp != s->img_n) {
       if (ri->bits_per_channel == 16) {
-         out = (stbi_uc *) stbi__convert_format16((stbi__uint16 *) out, s->img_n, req_comp, s->img_x, s->img_y);
+         out = (stbi_uc *) stbi__convert_format16((stbi__uint16 *) (void *) out, s->img_n, req_comp, s->img_x, s->img_y);
       } else {
          out = stbi__convert_format(out, s->img_n, req_comp, s->img_x, s->img_y);
       }
