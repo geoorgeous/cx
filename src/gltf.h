@@ -1,7 +1,7 @@
 #ifndef _H__GLTF
 #define _H__GLTF
 
-#include <stdint.h>
+#include <stddef.h>
 
 #define GLTF_SUCCESS 0
 #define GLTF_ERROR_UNKNOWN -1
