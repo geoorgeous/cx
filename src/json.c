@@ -230,7 +230,7 @@ struct json_value* json_object_add(struct json_value* p_json_object, const char*
     return &p_new_elem->value;
 }
 
-void json_object_remove(struct json_value* p_json_object, const char*) {
+void json_object_remove(struct json_value* p_json_object, const char* s_key) {
     if (!json_is_object(p_json_object)) {
         return;
     }

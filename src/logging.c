@@ -36,7 +36,21 @@ void cx_log_fmt(int level, const char* s_category, const char* s_fmt, ...) {
     FILE* const p_file = level == CX_LOG_ERROR ? stderr : stdout;
     
     print_prefix(p_file, level, s_category);
+
+	// Suppress warning about passing non-literal string to printf func.	
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
     (void)vfprintf(p_file, s_fmt, args);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNU__)
+#pragma GCC diagnostic pop
+#endif
 
     va_end(args);
 }

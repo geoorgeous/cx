@@ -59,23 +59,23 @@ void mesh_generate_normals(struct mesh_primitive* p_mesh_primitive, size_t posit
 
             switch (p_mesh_primitive->index_buffer.type) {
                 case VERTEX_INDEX_TYPE_u8: {
-                    a_index = *((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * face_index * 3);
-                    b_index = *((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 1));
-                    c_index = *((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 2));
+                    a_index = *((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + 1 * face_index * 3);
+                    b_index = *((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + 1 * (face_index * 3 + 1));
+                    c_index = *((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + 1 * (face_index * 3 + 2));
                     break;
                 }
 
                 case VERTEX_INDEX_TYPE_u16: {
-                    a_index = *(unsigned short*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * face_index * 3);
-                    b_index = *(unsigned short*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 1));
-                    c_index = *(unsigned short*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 2));
+                    a_index = *(unsigned short*)((void*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * face_index * 3));
+                    b_index = *(unsigned short*)((void*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 1)));
+                    c_index = *(unsigned short*)((void*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 2)));
                     break;
                 }
 
                 case VERTEX_INDEX_TYPE_u32: {
-                    a_index = *(unsigned int*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * face_index * 3);
-                    b_index = *(unsigned int*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 1));
-                    c_index = *(unsigned int*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 2));
+                    a_index = *(unsigned int*)((void*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * face_index * 3));
+                    b_index = *(unsigned int*)((void*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 1)));
+                    c_index = *(unsigned int*)((void*)((unsigned char*)p_mesh_primitive->index_buffer.p_bytes + index_size * (face_index * 3 + 2)));
                     break;
                 }
             }

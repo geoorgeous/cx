@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "asset.h"
+#include "dev_draw.h"
 #include "dev.h"
 #include "gl_mesh.h"
 #include "gl_program.h"
@@ -57,6 +58,8 @@ struct gizmo_control {
 };
 
 static struct dev_state {
+    int                           b_dev_mode_enabled;
+
     const struct platform_window* p_window;
     struct scene*                 p_scene;
     struct scene_entity*          p_selected_entity;
@@ -142,6 +145,18 @@ static void mesh_selector_render_pass(size_t framebuffer_width, size_t framebuff
 static void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_control* p_control);
 
 static void draw_hull_DEBUGDEBUGDEBUG(void);
+
+void dev_mode_enable(void) {
+    g_dev.b_dev_mode_enabled = 1;
+}
+
+void dev_mode_disable(void) {
+    g_dev.b_dev_mode_enabled = 0;
+}
+
+int dev_mode_is_enabled(void) {
+    return g_dev.b_dev_mode_enabled;
+}
 
 void dev_init(const struct platform_window* p_window, struct scene* p_scene, struct physics_world* p_physics_world) {
     g_dev.p_window = p_window;
@@ -587,7 +602,9 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
     }
 }
 
-void on_mouse_button(const void* p_event_data, void*) {
+void on_mouse_button(const void* p_event_data, void* p_user_ptr) {
+	(void)p_user_ptr;
+
     const struct input_event_data_mouse_button* p_e = p_event_data;
 
     if (p_e->button == MOUSE_BUTTON_middle) {
@@ -623,7 +640,9 @@ void on_mouse_button(const void* p_event_data, void*) {
     }
 }
 
-void on_mouse_move(const void* p_event_data, void*) {
+void on_mouse_move(const void* p_event_data, void* p_user_ptr) {
+	(void)p_user_ptr;
+
     if (g_dev.pressed_mesh_id == 0 || g_dev.pressed_mesh_id > DEV_MESH_ID_CAPTURER_RESERVED_IDS) {
         return;
     }

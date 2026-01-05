@@ -89,7 +89,7 @@ void qh_freelist_init(struct qh_freelist_node* p_head, size_t node_size, size_t 
 	p_node->p_prev = 0;
 
 	for (size_t i = 0; i < n - 1; ++i) {
-		p_node->p_next = (struct qh_freelist_node*)((char*)p_node + node_size);
+		p_node->p_next = (struct qh_freelist_node*)((void*)((char*)p_node + node_size));
 		p_node->p_next->p_prev = p_node;
 		p_node = p_node->p_next;
 	}
@@ -1014,7 +1014,7 @@ void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_me
 		const struct vertex_buffer* p_position_buffer = &p_primitive->p_vertex_buffers[p_position_attribute->vertex_buffer_index];
 
 		for (size_t v = 0; v < p_primitive->vertex_count; ++v) {
-			const float* p_v = (float*)((char*)p_position_buffer->p_bytes + p_position_attribute->layout.offset + (p_position_attribute->layout.stride * v));
+			const float* p_v = (float*)(void*)((char*)p_position_buffer->p_bytes + p_position_attribute->layout.offset + (p_position_attribute->layout.stride * v));
 			vec3_set(p_v, &point_cloud_points[v * 3]);
 		}
 	}
