@@ -362,6 +362,11 @@ struct asset_package_record* asset_directory_find(asset_id id) {
     return 0;
 }
 
+const struct asset_package** asset_directory_get_packages(size_t* p_num_packages) {
+    *p_num_packages = g_directory.n_packages;
+    return g_directory.pp_packages;
+}
+
 void serialize_asset_handle(FILE* p_file, const asset_handle p_asset_handle) {
     serialize_uint32(p_file, p_asset_handle ? p_asset_handle->_asset._id : 0);
 }

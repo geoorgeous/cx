@@ -63,8 +63,9 @@ asset_handle asset_package_find_record(const struct asset_package* p_package, as
 asset_handle asset_package_new_record(struct asset_package* p_package, uint8_t type);
 void asset_package_delete_record(struct asset_package* p_package, asset_id id);
 
-void                   asset_directory_register_package(const struct asset_package* p_package);
-asset_handle           asset_directory_find(asset_id id);
+void                         asset_directory_register_package(const struct asset_package* p_package);
+asset_handle                 asset_directory_find(asset_id id);
+const struct asset_package** asset_directory_get_packages(size_t* p_num_packages);
 
 void serialize_asset_handle(FILE* p_file, const asset_handle p_asset_handle);
 void deserialize_asset_handle(FILE* p_file, asset_handle* p_result);
