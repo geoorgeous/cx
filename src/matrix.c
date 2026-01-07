@@ -83,19 +83,41 @@ void matrix_make_rotation_from_quaternion(const float* p_quaternion, float* p_re
     const float ww = p_quaternion[3] * p_quaternion[3];
 
     p_result[ 0] = 2 * (ww + p_quaternion[0]*p_quaternion[0]) - 1;
-    p_result[ 4] = 2 * (ij - kw);
-    p_result[ 8] = 2 * (ik + jw);
-
-    p_result[ 1] = 2 * (ij + kw);
     p_result[ 5] = 2 * (ww + p_quaternion[1]*p_quaternion[1]) - 1;
-    p_result[ 9] = 2 * (jk - iw);
-
-    p_result[ 2] = 2 * (ik - jw);
-    p_result[ 6] = 2 * (jk + iw);
     p_result[10] = 2 * (ww + p_quaternion[2]*p_quaternion[2]) - 1;
+
+    p_result[ 4] = 2 * (ij - kw);
+    p_result[ 1] = 2 * (ij + kw);
+    p_result[ 2] = 2 * (ik - jw);
+
+    p_result[ 8] = 2 * (ik + jw);
+    p_result[ 9] = 2 * (jk - iw);
+    p_result[ 6] = 2 * (jk + iw);
 
     p_result[ 3] = p_result[7] = p_result[11] = p_result[12] = p_result[13] = p_result[14] = 0.f;
     p_result[15] = 1.f;
+}
+
+void matrix_make_trs(const float* p_t_xyz, const float* p_r_xyzw, const float* p_s_xyz, float* p_result) {
+	// todo: optimize. should be able to do this in fewer ops
+
+	float tmp[3];
+
+	vec3_set_ijk(p_s_xyz[0], 0, 0, tmp);
+	quaternion_rotate_vec3(p_r_xyzw, tmp, &p_result[0]);
+
+	vec3_set_ijk(0, p_s_xyz[1], 0, tmp);
+	quaternion_rotate_vec3(p_r_xyzw, tmp, &p_result[4]);
+
+	vec3_set_ijk(0, 0, p_s_xyz[2], tmp);
+	quaternion_rotate_vec3(p_r_xyzw, tmp, &p_result[8]);
+
+	vec3_set(p_t_xyz, &p_result[12]);
+
+	p_result[ 3] =
+	p_result[ 7] =
+	p_result[11] = 0;
+	p_result[15] = 1;
 }
 
 void matrix_make_orthographic_projection(float left, float right, float top, float bottom, float n, float f, float* p_result) {
@@ -387,6 +409,8 @@ void quaternion_multiply(const float* p_q1, const float* p_q2, float* p_result) 
 }
 
 void quaternion_rotate_vec3(const float* p_q, const float* p_v, float* p_result) {
+	// todo: optimize. should be able to do this in fewer ops
+
     float temp[3];
     
     vec3_mul_s(p_v, p_q[3] * p_q[3] - vec3_dot(p_q, p_q), temp);
