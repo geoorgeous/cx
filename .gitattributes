@@ -1,0 +1,10 @@
+*        text=auto
+
+*.h      text
+*.c      text
+*.md     text
+*.json   text
+*.gltf   text
+makefile text
+
+*.glb    binary
