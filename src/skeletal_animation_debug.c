@@ -45,7 +45,7 @@ void debug_draw_skeleton(const struct skeleton* p_skeleton, const float* p_proje
 
 static void init_rendering(void) {
     struct mesh_primitive joint_mesh;
-    mesh_factory_make_uv_sphere_primitive(0.0175f, 8, &joint_mesh);
+    mesh_factory_make_sphere(0.0175f, 8, &joint_mesh);
     gl_mesh_create(&g_rendering.gl_joint_mesh, &joint_mesh);
 
     const float hw = 0.1f;

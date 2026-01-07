@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "asset.h"
-#include "dev_draw.h"
 #include "dev.h"
 #include "gl_mesh.h"
 #include "gl_program.h"
@@ -212,17 +211,17 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     struct mesh_primitive mesh_primitive;
     
     // Sphere
-    mesh_factory_make_uv_sphere_primitive(0.5, 12, &mesh_primitive);
+    mesh_factory_make_sphere(0.5, 12, &mesh_primitive);
     gl_mesh_create(&g_dev.gl_physics_collider_meshes[PHYSICS_COLLIDER_TYPE_sphere], &mesh_primitive);
     mesh_factory_free_primitive(&mesh_primitive);
     
     // Capsule: todo
-    mesh_factory_make_uv_sphere_primitive(0.5, 12, &mesh_primitive);
+    mesh_factory_make_sphere(0.5, 12, &mesh_primitive);
     gl_mesh_create(&g_dev.gl_physics_collider_meshes[PHYSICS_COLLIDER_TYPE_capsule], &mesh_primitive);
     mesh_factory_free_primitive(&mesh_primitive);
 
     // Hull
-    mesh_factory_make_box(1, 1, 1, &mesh_primitive);
+    mesh_factory_make_box((float[]){ 0.5f, 0.5f, 0.5f }, &mesh_primitive);
     gl_mesh_create(&g_dev.gl_physics_collider_meshes[PHYSICS_COLLIDER_TYPE_hull], &mesh_primitive);
 
     struct static_mesh static_mesh = {
@@ -243,7 +242,7 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     mesh_factory_free_primitive(&mesh_primitive);
     
     // Plane
-    mesh_factory_make_plane(10, 10, &mesh_primitive);
+    mesh_factory_make_quad((float[]){ 5, 5 }, &mesh_primitive);
     gl_mesh_create(&g_dev.gl_physics_collider_meshes[PHYSICS_COLLIDER_TYPE_plane], &mesh_primitive);
     mesh_factory_free_primitive(&mesh_primitive);
 

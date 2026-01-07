@@ -7,17 +7,15 @@
 #include "mesh_factory.h"
 #include "mesh.h"
 
-void mesh_factory_make_plane(float x, float y, struct mesh_primitive* p_mesh_primitive) {
-    const float hx = x * 0.5f;
-    const float hy = y * 0.5f;
+void mesh_factory_make_quad(const float* p_half_size_xz, struct mesh_primitive* p_mesh_primitive) {
     const float vertices[] = {
-        -hx, 0, -hy, 0, 1, 0,
-         hx, 0,  hy, 0, 1, 0,
-         hx, 0, -hy, 0, 1, 0,
+        -p_half_size_xz[0], 0, -p_half_size_xz[1], 0, 1, 0,
+         p_half_size_xz[0], 0,  p_half_size_xz[1], 0, 1, 0,
+         p_half_size_xz[0], 0, -p_half_size_xz[1], 0, 1, 0,
 
-         hx, 0,  hy, 0, 1, 0,
-        -hx, 0, -hy, 0, 1, 0,
-        -hx, 0,  hy, 0, 1, 0
+         p_half_size_xz[0], 0,  p_half_size_xz[1], 0, 1, 0,
+        -p_half_size_xz[0], 0, -p_half_size_xz[1], 0, 1, 0,
+        -p_half_size_xz[0], 0,  p_half_size_xz[1], 0, 1, 0
     };
     
     const size_t num_vertices = 6;
@@ -34,8 +32,8 @@ void mesh_factory_make_plane(float x, float y, struct mesh_primitive* p_mesh_pri
         .num_attributes = 2,
         .vertex_count = num_vertices,
         .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
-        .bounds_min = { -hx, 0, -hy },
-        .bounds_max = {  hx,  0, hy }
+        .bounds_min = { -p_half_size_xz[0], 0, -p_half_size_xz[1] },
+        .bounds_max = {  p_half_size_xz[0],  0, p_half_size_xz[1] }
     };
 
     *p_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
@@ -65,59 +63,55 @@ void mesh_factory_make_plane(float x, float y, struct mesh_primitive* p_mesh_pri
     };
 }
 
-void mesh_factory_make_box(float x, float y, float z, struct mesh_primitive* p_mesh_primitive) {
-    const float hx = x * 0.5f;
-    const float hy = y * 0.5f;
-    const float hz = z * 0.5f;
-
+void mesh_factory_make_box(const float* p_half_size_xyz, struct mesh_primitive* p_mesh_primitive) {
     const float vertices[] = {
-        -hx, -hy, -hz, -1,  0,  0,
-        -hx,  hy,  hz, -1,  0,  0,
-        -hx,  hy, -hz, -1,  0,  0,
+        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2], -1,  0,  0,
+        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2], -1,  0,  0,
+        -p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2], -1,  0,  0,
 
-        -hx,  hy,  hz, -1,  0,  0,
-        -hx, -hy, -hz, -1,  0,  0,
-        -hx, -hy,  hz, -1,  0,  0,
+        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2], -1,  0,  0,
+        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2], -1,  0,  0,
+        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2], -1,  0,  0,
 
-         hx, -hy,  hz,  1,  0,  0,
-         hx,  hy, -hz,  1,  0,  0,
-         hx,  hy,  hz,  1,  0,  0,
+         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  1,  0,  0,
+         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  1,  0,  0,
+         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  1,  0,  0,
 
-         hx,  hy, -hz,  1,  0,  0,
-         hx, -hy,  hz,  1,  0,  0,
-         hx, -hy, -hz,  1,  0,  0,
+         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  1,  0,  0,
+         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  1,  0,  0,
+         p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  1,  0,  0,
 
-        -hx, -hy, -hz,  0, -1,  0,
-         hx, -hy,  hz,  0, -1,  0,
-        -hx, -hy,  hz,  0, -1,  0,
+        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0, -1,  0,
+         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0, -1,  0,
+        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0, -1,  0,
 
-         hx, -hy,  hz,  0, -1,  0,
-        -hx, -hy, -hz,  0, -1,  0,
-         hx, -hy, -hz,  0, -1,  0,
+         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0, -1,  0,
+        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0, -1,  0,
+         p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0, -1,  0,
 
-         hx,  hy, -hz,  0,  1,  0,
-        -hx,  hy,  hz,  0,  1,  0,
-         hx,  hy,  hz,  0,  1,  0,
+         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  1,  0,
+        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  1,  0,
+         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  1,  0,
 
-        -hx,  hy,  hz,  0,  1,  0,
-         hx,  hy, -hz,  0,  1,  0,
-        -hx,  hy, -hz,  0,  1,  0,
+        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  1,  0,
+         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  1,  0,
+        -p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  1,  0,
 
-        -hx, -hy, -hz,  0,  0, -1,
-         hx,  hy, -hz,  0,  0, -1,
-         hx, -hy, -hz,  0,  0, -1,
+        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
+         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
+         p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
 
-         hx,  hy, -hz,  0,  0, -1,
-        -hx, -hy, -hz,  0,  0, -1,
-        -hx,  hy, -hz,  0,  0, -1,
+         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
+        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
+        -p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
 
-        -hx, -hy,  hz,  0,  0,  1,
-         hx,  hy,  hz,  0,  0,  1,
-        -hx,  hy,  hz,  0,  0,  1,
+        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
+         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
+        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
 
-         hx,  hy,  hz,  0,  0,  1,
-        -hx, -hy,  hz,  0,  0,  1,
-         hx, -hy,  hz,  0,  0,  1,
+         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
+        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
+         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
     };
     
     const size_t num_vertices = 36;
@@ -134,8 +128,8 @@ void mesh_factory_make_box(float x, float y, float z, struct mesh_primitive* p_m
         .num_attributes = 2,
         .vertex_count = num_vertices,
         .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
-        .bounds_min = { -hx, -hy, -hz },
-        .bounds_max = {  hx,  hy,  hz }
+        .bounds_min = { -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2] },
+        .bounds_max = {  p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2] }
     };
 
     *p_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
@@ -165,7 +159,7 @@ void mesh_factory_make_box(float x, float y, float z, struct mesh_primitive* p_m
     };
 }
 
-void mesh_factory_make_uv_sphere_primitive(float r, size_t n, struct mesh_primitive* p_mesh_primitive) {
+void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_primitive) {
     const size_t num_vertices = (n - 1) * n + 2;
     const size_t vertex_size = sizeof(float) * 6;
     const size_t vertices_size = num_vertices * vertex_size;
@@ -289,6 +283,14 @@ void mesh_factory_make_uv_sphere_primitive(float r, size_t n, struct mesh_primit
             .component_type = VERTEX_ATTRIBUTE_TYPE_f32
         }
     };
+}
+
+void mesh_factory_make_hemisphere(float r, size_t n, struct mesh_primitive* p_mesh_primitive) {
+	mesh_factory_make_sphere(r, n, p_mesh_primitive);
+}
+
+void mesh_factory_make_cylinder(float r0, float r1, float y, size_t n, int b_cap0, int b_cap1, struct mesh_primitive* p_mesh_primitive) {
+	mesh_factory_make_sphere(r0, n, p_mesh_primitive);
 }
 
 void mesh_factory_make_from_halfedge_mesh(const struct he_mesh* p_he_mesh, struct mesh_primitive* p_mesh_primitive, int b_lines) {
