@@ -13,16 +13,12 @@
 #include "keys.h"
 #include "image.h"
 #include "import_gltf.h"
-#include "logging.h"
 #include "material.h"
 #include "matrix.h"
-#include "mesh_factory.h"
-#include "mesh.h"
 #include "mouse_buttons.h"
 #include "physics.h"
 #include "platform_window.h"
 #include "scene.h"
-#include "skeletal_animation_debug.h"
 #include "static_mesh.h"
 #include "texture.h"
 #include "transform.h"
@@ -33,13 +29,18 @@ static void platform_window_on_key(struct platform_window*, void*, enum key, int
 static void platform_window_on_mouse_button(struct platform_window*, void*, enum mouse_button, int);
 static void platform_window_on_mouse_move(struct platform_window*, void*, int, int);
 
-void platform_window_on_created(struct platform_window* p_window, void*) {
+void platform_window_on_created(struct platform_window* p_window, void* p_user_ptr) {
+	(void)p_user_ptr;
+
     platform_window_set_on_key_callback(p_window, platform_window_on_key, 0);
     platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, 0);
     platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, 0);
 }
 
-void platform_window_on_key(struct platform_window*, void*, enum key key, int b_is_down) {
+void platform_window_on_key(struct platform_window* p_window, void* p_user_ptr, enum key key, int b_is_down) {
+	(void)p_window;
+	(void)p_user_ptr;
+
     struct input_event_data_key event_data = {
         .key = key,
         .b_is_down = b_is_down
@@ -47,7 +48,9 @@ void platform_window_on_key(struct platform_window*, void*, enum key key, int b_
     input_event_broadcast(INPUT_EVENT_key, &event_data);
 }
 
-void platform_window_on_mouse_button(struct platform_window* p_window, void*, enum mouse_button button, int b_is_down) {
+void platform_window_on_mouse_button(struct platform_window* p_window, void* p_user_ptr, enum mouse_button button, int b_is_down) {
+	(void)p_user_ptr;
+
     struct input_event_data_mouse_button event_data = {
         .button = button,
         .b_is_down = b_is_down
@@ -56,7 +59,10 @@ void platform_window_on_mouse_button(struct platform_window* p_window, void*, en
     input_event_broadcast(INPUT_EVENT_mouse_button, &event_data);
 }
 
-void platform_window_on_mouse_move(struct platform_window*, void*, int delta_x, int delta_y) {
+void platform_window_on_mouse_move(struct platform_window* p_window, void* p_user_ptr, int delta_x, int delta_y) {
+	(void)p_window;
+	(void)p_user_ptr;
+
     struct input_event_data_mouse_move event_data = {
         .delta_x = delta_x,
         .delta_y = delta_y
@@ -64,7 +70,10 @@ void platform_window_on_mouse_move(struct platform_window*, void*, int delta_x, 
     input_event_broadcast(INPUT_EVENT_mouse_move, &event_data);
 }
 
-int main(int, const char*[]) {
+int main(int argc, const char* argv[]) {
+	(void)argc;
+	(void)argv;
+
     printf("It's the 9th of September 2025 and I'm writing yet another game engine project.\n");
 
     unsigned int window_size[] = { 1200, 900 };
