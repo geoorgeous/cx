@@ -1,7 +1,7 @@
 #ifndef _H__SKELETON
 #define _H__SKELETON
 
-#include <stdint.h>
+#include <stddef.h>
 
 #define ASSET_TYPE_SKELETON 6
 
