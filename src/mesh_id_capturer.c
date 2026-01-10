@@ -1,6 +1,11 @@
+#include "cx_gfx_framebuffer.h"
+#include "cx_gfx_program.h"
+#include "cx_gfx_texture.h"
+#include "cx_pixel_format.h"
 #include "gl_mesh.h"
-#include "gl_program.h"
-#include "input.h"
+#include "logging.h"
+#include "matrix.h"
+#include <stdint.h>
 #include "mesh_id_capturer.h"
 
 struct mesh_id_capturer_item {
@@ -9,118 +14,138 @@ struct mesh_id_capturer_item {
     unsigned int          id;
 };
 
-static struct gl_program g_gl_program;
+static struct cx_gfx_program program;
+static struct cx_gfx_program_param_block program_pblk_camera;
+static struct cx_gfx_program_param_block program_pblk_object;
+static struct cx_gfx_program_param_buffer program_pbuf_camera;
+static struct cx_gfx_program_param_buffer program_pbuf_object;
 
-void mesh_id_capturer_init(struct mesh_id_capturer* p_mesh_id_capturer) {
-    *p_mesh_id_capturer = (struct mesh_id_capturer){0};
+void mesh_id_capturer_free_resources(struct mesh_id_capturer* p_mesh_id_capturer) {
+	cx_gfx_framebuffer_destroy(&p_mesh_id_capturer->framebuffer);
+	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_color);
+	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_depth_stencil);
+	*p_mesh_id_capturer = (struct mesh_id_capturer){0};
 }
- 
-void mesh_id_capturer_destroy(struct mesh_id_capturer* p_mesh_id_capturer) {
-    glDeleteFramebuffers(1, &p_mesh_id_capturer->_gl_fb);
-    glDeleteTextures(1, &p_mesh_id_capturer->_gl_fba_color);
-    glDeleteTextures(1, &p_mesh_id_capturer->_gl_fba_depth_stencil);
-}
 
-void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, size_t framebuffer_width, size_t framebuffer_height, const float* p_projection_matrix, const float* p_view_matrix) {
-    if (g_gl_program.gl_handle == 0) {
-        struct gl_shader gl_vertex_shader;
-        struct gl_shader gl_fragment_shader;
+void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix) {
+    if (!cx_gfx_program_is_built(&program)) {
+		struct cx_gfx_program_source program_source = {
+			.s_vertex_stage_source = "#version 330 core\n"
+				"layout(std140) uniform blk_camera {"
+					"mat4 u_projection_matrix;"
+					"mat4 u_view_matrix;"
+				"};"
+				"layout(std140) uniform blk_object {"
+					"mat4 u_vertex_matrix;"
+					"uint u_object_id;"
+				"};"
+				"layout(location=0) in vec3 a_pos;"
+				"out uint v_object_id;"
+				"void main() {"
+					"v_object_id = u_object_id;"
+					"gl_Position = u_projection_matrix * u_view_matrix * u_vertex_matrix * vec4(a_pos, 1.0);"
+				"}",
+			.s_fragment_stage_source = "#version 330 core\n"
+				"layout(std140) uniform blk_object {"
+					"mat4 u_vertex_matrix;"
+					"uint u_object_id;"
+				"};"
+				"out uint f_color;"
+				"void main() {"
+					"f_color = u_object_id;"
+				"}"
+		};
 
-        gl_shader_create(&gl_vertex_shader, GL_VERTEX_SHADER);
-        gl_shader_compile(&gl_vertex_shader,
-            "#version 330 core\n"
-            "uniform mat4 u_projection_matrix;"
-            "uniform mat4 u_view_matrix;"
-            "uniform mat4 u_model_matrix;"
-            "layout (location=0) in vec3 a_pos;"
-            "void main() {"
-                "gl_Position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(a_pos, 1.0);"
-            "}");
+		cx_gfx_program_create(&program);
+		cx_gfx_program_build(&program, &program_source);
+		
+		cx_gfx_program_refl_param_block(&program, "blk_camera", &program_pblk_camera);
+		cx_gfx_program_refl_param_block(&program, "blk_object", &program_pblk_object);
 
-        gl_shader_create(&gl_fragment_shader, GL_FRAGMENT_SHADER);
-        gl_shader_compile(&gl_fragment_shader,
-            "#version 330 core\n"
-            "uniform uint u_id;"
-            "out uint f_color;"
-            "void main() {"
-                "f_color = u_id;"
-            "}");
-
-        gl_program_create(&g_gl_program);
-        gl_program_attach_shader(&g_gl_program, &gl_vertex_shader);
-        gl_program_attach_shader(&g_gl_program, &gl_fragment_shader);
-        gl_program_link(&g_gl_program);
-
-        gl_shader_destroy(&gl_vertex_shader);
-        gl_shader_destroy(&gl_fragment_shader);
+		cx_gfx_program_param_buffer_create(&program_pbuf_camera, program_pblk_camera._size);
+		cx_gfx_program_param_buffer_create(&program_pbuf_object, program_pblk_object._size);
     }
 
-    if (p_mesh_id_capturer->_fb_size[0] != framebuffer_width || p_mesh_id_capturer->_fb_size[1] != framebuffer_height) {
-        glDeleteFramebuffers(1, &p_mesh_id_capturer->_gl_fb);
-        glDeleteTextures(1, &p_mesh_id_capturer->_gl_fba_color);
-        glDeleteTextures(1, &p_mesh_id_capturer->_gl_fba_depth_stencil);
+	if (!cx_gfx_program_is_built(&program)) {
+		return;
+	}
+
+    if (p_mesh_id_capturer->framebuffer_size[0] != p_framebuffer_size[0] ||
+		p_mesh_id_capturer->framebuffer_size[1] != p_framebuffer_size[1]) {
+
+		mesh_id_capturer_free_resources(p_mesh_id_capturer);	
         
-        glGenTextures(1, &p_mesh_id_capturer->_gl_fba_color);
-        glBindTexture(GL_TEXTURE_2D, p_mesh_id_capturer->_gl_fba_color);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, framebuffer_width, framebuffer_height, 0,  GL_RED_INTEGER, GL_UNSIGNED_INT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		cx_gfx_texture_create(&p_mesh_id_capturer->framebuffer_color, p_framebuffer_size, CX_PIXEL_FORMAT_red_u32); // GL_RED_INTEGER, GL_UNSIGNED_INT
 
-        glGenTextures(1, &p_mesh_id_capturer->_gl_fba_depth_stencil);
-        glBindTexture(GL_TEXTURE_2D, p_mesh_id_capturer->_gl_fba_depth_stencil);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, framebuffer_width, framebuffer_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		cx_gfx_texture_create(&p_mesh_id_capturer->framebuffer_depth_stencil, p_framebuffer_size, CX_PIXEL_FORMAT_depth_stencil);
 
-        glGenFramebuffers(1, &p_mesh_id_capturer->_gl_fb);
-        glBindFramebuffer(GL_FRAMEBUFFER, p_mesh_id_capturer->_gl_fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, p_mesh_id_capturer->_gl_fba_color, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, p_mesh_id_capturer->_gl_fba_depth_stencil, 0);
+		cx_gfx_framebuffer_create(&p_mesh_id_capturer->framebuffer);
+		cx_gfx_framebuffer_set_attachment(&p_mesh_id_capturer->framebuffer, CX_GFX_FRAMEBUFFER_ATTACHMENT_color0, &p_mesh_id_capturer->framebuffer_color);
+		cx_gfx_framebuffer_set_attachment(&p_mesh_id_capturer->framebuffer, CX_GFX_FRAMEBUFFER_ATTACHMENT_depth_stencil, &p_mesh_id_capturer->framebuffer_depth_stencil);
 
-        p_mesh_id_capturer->_fb_size[0] = framebuffer_width;
-        p_mesh_id_capturer->_fb_size[1] = framebuffer_height;
-    } else {
-        glBindFramebuffer(GL_FRAMEBUFFER, p_mesh_id_capturer->_gl_fb);
+        p_mesh_id_capturer->framebuffer_size[0] = p_framebuffer_size[0];
+        p_mesh_id_capturer->framebuffer_size[1] = p_framebuffer_size[1];
     }
+
+	cx_gfx_framebuffer_bind(&p_mesh_id_capturer->framebuffer);
     
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glEnable(GL_DEPTH_TEST); 
-    glViewport(0, 0, framebuffer_width, framebuffer_height);
+    glViewport(0, 0, (GLsizei)p_framebuffer_size[0], (GLsizei)p_framebuffer_size[1]);
 
-    glUseProgram(g_gl_program.gl_handle);
+	cx_gfx_program_bind(&program);
 
-    GLuint gl_uniform_location;
-    
-    gl_uniform_location = glGetUniformLocation(g_gl_program.gl_handle, "u_projection_matrix");
-    glUniformMatrix4fv(gl_uniform_location, 1, GL_FALSE, p_projection_matrix);
-    
-    gl_uniform_location = glGetUniformLocation(g_gl_program.gl_handle, "u_view_matrix");
-    glUniformMatrix4fv(gl_uniform_location, 1, GL_FALSE, p_view_matrix);
+	cx_gfx_program_param_block_bind_buffer(&program_pblk_camera, &program_pbuf_camera, 0, 0);
+	cx_gfx_program_param_block_bind_buffer(&program_pblk_object, &program_pbuf_object, 0, 0);
+
+	struct {
+		float projection_matrix[16];
+		float view_matrix[16];
+	} camera;
+
+	matrix_copy(p_projection_matrix, camera.projection_matrix);
+	matrix_copy(p_view_matrix, camera.view_matrix);
+
+	cx_gfx_program_param_buffer_set(&program_pbuf_camera, 0, 0, &camera);
 }
 
 void mesh_id_capturer_submit(struct mesh_id_capturer* p_mesh_id_capturer, const struct gl_mesh* p_gl_mesh, const float* p_transform, unsigned int id) {
-    GLuint gl_uniform_location;
+	struct {
+		float        vertex_matrix[16];
+		unsigned int id;
+	} object;
 
-    gl_uniform_location = glGetUniformLocation(g_gl_program.gl_handle, "u_model_matrix");
-    glUniformMatrix4fv(gl_uniform_location, 1, GL_FALSE, p_transform);
+	matrix_copy(p_transform, object.vertex_matrix);
+	object.id = id;
 
-    gl_uniform_location = glGetUniformLocation(g_gl_program.gl_handle, "u_id");
-    glUniform1ui(gl_uniform_location, (GLuint)id);
+	cx_gfx_program_param_buffer_set(&program_pbuf_object, 0, 0, &object);
 
     gl_mesh_draw(p_gl_mesh);
 }
 
-unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, float x, float y) {
-    if (x < 0 || y < 0 || x > 1 || y > 1) {
-        return 0;
+unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, const float* p_normalized_coordinates) {
+    if (p_normalized_coordinates[0] < 0 ||
+		p_normalized_coordinates[1] < 0 ||
+		p_normalized_coordinates[0] > 1 ||
+		p_normalized_coordinates[1] > 1) {
+        
+		return 0;
     }
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, p_mesh_id_capturer->_gl_fb);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
+	uint32_t pixel_location[] = { 
+		(float)p_mesh_id_capturer->framebuffer_size[0] * p_normalized_coordinates[0],
+		(float)p_mesh_id_capturer->framebuffer_size[1] * (1.0f - p_normalized_coordinates[1])
+	};
+	unsigned int pixel_value;
 
-    GLint pixel_x = (float)p_mesh_id_capturer->_fb_size[0] * x;
-    GLint pixel_y = (float)p_mesh_id_capturer->_fb_size[1] * (1.0f - y);
-    GLuint data;
-    glReadPixels(pixel_x, pixel_y, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &data);
-    return data;
+	cx_gfx_framebuffer_read(
+		&p_mesh_id_capturer->framebuffer,
+		CX_GFX_FRAMEBUFFER_ATTACHMENT_color0,
+		pixel_location,
+		(uint32_t[]){ 1, 1 },
+		&pixel_value);
+
+	return pixel_value;
 }

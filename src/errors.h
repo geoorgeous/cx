@@ -26,7 +26,14 @@ enum error {
     ERROR_INVALID_VALUE,
 
     ERROR_SHADER_COMPILATION,
-    ERROR_SHADER_PROGRAM_LINKAGE
+    ERROR_SHADER_PROGRAM_LINKAGE,
+
+	ERROR_gl_invalid_operation,
+	ERROR_gl_generate_buffer,
+	ERROR_gl_create_resource,
+	ERROR_gl_compile_shader,
+	ERROR_gl_link_program,
+	ERROR_gl_validate_program
 };
 
 #endif

@@ -3,11 +3,14 @@
 
 #define ASSET_TYPE_IMAGE 1
 
+#include <stdint.h>
+
+#include "cx_pixel_format.h"
+
 struct image {
-    unsigned int width;
-    unsigned int height;
-    unsigned int num_channels;
-    void*        p_pixel_data;
+	uint32_t                      size[2];
+	struct cx_pixel_buffer_format pixel_data_format;
+    void*                         p_pixel_data;
 };
 
 #endif

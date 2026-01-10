@@ -3,6 +3,8 @@
 
 #include "asset.h"
 #include "asset.h"
+#include "cx_pixel_format.h"
+#include "cx_texture_sampler_settings.h"
 #include "gltf.h"
 #include "image.h"
 #include "import_gltf.h"
@@ -43,11 +45,11 @@ static size_t gltf_accessor_element_size(const struct gltf_accessor* p_gltf_acce
 static void   copy_gltf_accessor(const struct gltf* p_gltf, const struct gltf_accessor* p_gltf_accessor, void* p_dst, size_t dst_stride);
 static void   copy_gltf_accessor_to_vertex_buffer(const struct gltf* p_gltf, const struct gltf_accessor* p_gltf_accessor, const struct vertex_buffer* p_dst, const struct vertex_attribute_layout* p_dst_layout);
 
-static enum texture_filter_min       gltf_enum_to_texture_filter_min(enum gltf_sampler_min_filter en);
-static enum texture_filter_mag       gltf_enum_to_texture_filter_mag(enum gltf_sampler_mag_filter en);
-static enum texture_address_mode     gltf_enum_to_texture_address_mode(enum gltf_sampler_wrap en);
-static enum vertex_index_type        gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type type);
-static enum mesh_primitive_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode mode);
+static enum cx_texture_min_filter_mode gltf_enum_to_texture_filter_min(enum gltf_sampler_min_filter en);
+static enum cx_texture_mag_filter_mode gltf_enum_to_texture_filter_mag(enum gltf_sampler_mag_filter en);
+static enum cx_texture_address_mode    gltf_enum_to_texture_address_mode(enum gltf_sampler_wrap en);
+static enum vertex_index_type          gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type type);
+static enum mesh_primitive_draw_mode   gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode mode);
 
 void import_gltf(const struct gltf* p_gltf, struct asset_package* p_asset_package, struct import_gltf_result* p_result) {
     struct gltf_importer importer = {
@@ -131,9 +133,16 @@ void import_gltf_image(struct gltf_importer* p_importer, size_t gltf_image_index
         return;
     }
 
-    p_image->width = x;
-    p_image->height = y;
-    p_image->num_channels = comp;
+    p_image->size[0] = x;
+    p_image->size[1] = y;
+	p_image->pixel_data_format.pixel_type = CX_PIXEL_TYPE_u8;
+
+	switch(comp) {
+		case 1: p_image->pixel_data_format.pixel_format = CX_PIXEL_FORMAT_red; break;
+		case 2: p_image->pixel_data_format.pixel_format = CX_PIXEL_FORMAT_rg; break;
+		case 3: p_image->pixel_data_format.pixel_format = CX_PIXEL_FORMAT_rgb; break;
+		case 4: p_image->pixel_data_format.pixel_format = CX_PIXEL_FORMAT_rgba; break;
+	}
     
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_IMAGE);
     handle->_asset._p_data = p_image;
@@ -147,16 +156,19 @@ void import_gltf_texture(struct gltf_importer* p_importer, size_t gltf_texture_i
 
     struct texture* p_texture = malloc(sizeof(struct texture));
 
+	asset_handle p_source_image = p_importer->p_result->p_images[p_gltf_texture->source_image_index];
+
     *p_texture = (struct texture){
-        .p_source_image = p_importer->p_result->p_images[p_gltf_texture->source_image_index],
-        .sampler = {
-            .filter_min = gltf_enum_to_texture_filter_min(p_gltf_texture->sampler_min_filter),
-            .filter_mag = gltf_enum_to_texture_filter_mag(p_gltf_texture->sampler_mag_filter),
+        .p_source_image = p_source_image,
+        .sampler_settings = {
+            .mag_filter_mode = gltf_enum_to_texture_filter_mag(p_gltf_texture->sampler_mag_filter),
+            .min_filter_mode = gltf_enum_to_texture_filter_min(p_gltf_texture->sampler_min_filter),
             .address_mode_u = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_s),
             .address_mode_v = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_t)
-        }
+        },
+		.gfx_texture_format = ((const struct image*)p_source_image->_asset._p_data)->pixel_data_format.pixel_format
     };
-    
+
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_TEXTURE);
     handle->_asset._p_data = p_texture;
 
@@ -638,32 +650,32 @@ void copy_gltf_accessor_to_vertex_buffer(const struct gltf* p_gltf, const struct
     copy_gltf_accessor(p_gltf, p_gltf_accessor, p_dst_bytes, p_dst_layout->stride);
 }
 
-enum texture_filter_min gltf_enum_to_texture_filter_min(enum gltf_sampler_min_filter en) {
+enum cx_texture_min_filter_mode gltf_enum_to_texture_filter_min(enum gltf_sampler_min_filter en) {
     switch (en) {
-        case GLTF_SAMPLER_MIN_FILTER_nearest:                return TEXTURE_FILTER_MIN_nearest;
+        case GLTF_SAMPLER_MIN_FILTER_nearest:                return CX_TEXTURE_MIN_FILTER_MODE_nearest;
         default:
-        case GLTF_SAMPLER_MIN_FILTER_linear:                 return TEXTURE_FILTER_MIN_linear;
-        case GLTF_SAMPLER_MIN_FILTER_nearest_mipmap_nearest: return TEXTURE_FILTER_MIN_nearest_mipmap_nearest;
-        case GLTF_SAMPLER_MIN_FILTER_linear_mipmap_nearest:  return TEXTURE_FILTER_MIN_linear_mipmap_nearest;
-        case GLTF_SAMPLER_MIN_FILTER_nearest_mipmap_linear:  return TEXTURE_FILTER_MIN_nearest_mipmap_linear;
-        case GLTF_SAMPLER_MIN_FILTER_linear_mipmap_linear:   return TEXTURE_FILTER_MIN_linear_mipmap_linear;
+        case GLTF_SAMPLER_MIN_FILTER_linear:                 return CX_TEXTURE_MIN_FILTER_MODE_linear;
+        case GLTF_SAMPLER_MIN_FILTER_nearest_mipmap_nearest: return CX_TEXTURE_MIN_FILTER_MODE_nearest_mipmap_nearest;
+        case GLTF_SAMPLER_MIN_FILTER_linear_mipmap_nearest:  return CX_TEXTURE_MIN_FILTER_MODE_linear_mipmap_nearest;
+        case GLTF_SAMPLER_MIN_FILTER_nearest_mipmap_linear:  return CX_TEXTURE_MIN_FILTER_MODE_nearest_mipmap_linear;
+        case GLTF_SAMPLER_MIN_FILTER_linear_mipmap_linear:   return CX_TEXTURE_MIN_FILTER_MODE_linear_mipmap_linear;
     }
 }
 
-enum texture_filter_mag gltf_enum_to_texture_filter_mag(enum gltf_sampler_mag_filter en) {
+enum cx_texture_mag_filter_mode gltf_enum_to_texture_filter_mag(enum gltf_sampler_mag_filter en) {
     switch (en) {
-        case GLTF_SAMPLER_MAG_FILTER_nearest:                return TEXTURE_FILTER_MAG_nearest;
+        case GLTF_SAMPLER_MAG_FILTER_nearest: return CX_TEXTURE_MAG_FILTER_MODE_nearest;
         default:
-        case GLTF_SAMPLER_MAG_FILTER_linear:                 return TEXTURE_FILTER_MAG_linear;
+        case GLTF_SAMPLER_MAG_FILTER_linear:  return CX_TEXTURE_MAG_FILTER_MODE_linear;
     }
 }
 
-enum texture_address_mode gltf_enum_to_texture_address_mode(enum gltf_sampler_wrap en) {
+enum cx_texture_address_mode gltf_enum_to_texture_address_mode(enum gltf_sampler_wrap en) {
     switch (en) {
         default:
-        case GLTF_SAMPLER_WRAP_clamp_to_edge: return TEXTURE_ADDRESS_MODE_clamp_to_edge;
-        case GLTF_SAMPLER_WRAP_mirrored_repeat: return TEXTURE_ADDRESS_MODE_mirrored_repeat;
-        case GLTF_SAMPLER_WRAP_repeat: return TEXTURE_ADDRESS_MODE_repeat;
+        case GLTF_SAMPLER_WRAP_clamp_to_edge:   return CX_TEXTURE_ADDRESS_MODE_clamp_to_edge;
+        case GLTF_SAMPLER_WRAP_mirrored_repeat: return CX_TEXTURE_ADDRESS_MODE_mirrored_repeat;
+        case GLTF_SAMPLER_WRAP_repeat:          return CX_TEXTURE_ADDRESS_MODE_repeat;
     }
 }
 

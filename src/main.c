@@ -1,18 +1,21 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 
 #include "asset.h"
+#include "cx_gfx_framebuffer.h"
+#include "cx_gfx_texture.h"
+#include "cx_pixel_format.h"
 #include "dev.h"
 #include "gl_context.h"
 #include "gl_mesh.h"
-#include "gl_program.h"
-#include "gl_texture.h"
 #include "gl.h"
 #include "gltf.h"
 #include "input.h"
 #include "keys.h"
 #include "image.h"
 #include "import_gltf.h"
+#include "logging.h"
 #include "material.h"
 #include "matrix.h"
 #include "mouse_buttons.h"
@@ -23,6 +26,9 @@
 #include "texture.h"
 #include "transform.h"
 #include "vector.h"
+
+#include "cx_gfx_pipeline.h"
+#include "cx_gfx_program.h"
 
 static void platform_window_on_created(struct platform_window*, void*);
 static void platform_window_on_key(struct platform_window*, void*, enum key, int);
@@ -92,121 +98,111 @@ int main(int argc, const char* argv[]) {
 
     // create framebuffer
 
-    GLsizei framebuffer_resolution[] = { 800, 600 };
+    uint32_t framebuffer_resolution[] = { 800, 600 };
 
-    GLuint gl_color_attachment;
-    GLuint gl_depth_stencil_attachment;
-    GLuint gl_framebuffer;
+	struct cx_gfx_texture texture_fb_color;
+	struct cx_gfx_texture texture_fb_depth_stencil;
 
-    glGenTextures(1, &gl_color_attachment);
-    glBindTexture(GL_TEXTURE_2D, gl_color_attachment);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, framebuffer_resolution[0], framebuffer_resolution[1], 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	cx_gfx_texture_create(&texture_fb_color, framebuffer_resolution, CX_PIXEL_FORMAT_rgb);
+	cx_gfx_texture_create(&texture_fb_depth_stencil, framebuffer_resolution, CX_PIXEL_FORMAT_depth_stencil); 
 
-    glGenTextures(1, &gl_depth_stencil_attachment);
-    glBindTexture(GL_TEXTURE_2D, gl_depth_stencil_attachment);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, framebuffer_resolution[0], framebuffer_resolution[1], 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-
-    glGenFramebuffers(1, &gl_framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, gl_framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gl_color_attachment, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, gl_depth_stencil_attachment, 0);
+	struct cx_gfx_framebuffer framebuffer;
+	cx_gfx_framebuffer_create(&framebuffer);
+	cx_gfx_framebuffer_set_attachment(&framebuffer, CX_GFX_FRAMEBUFFER_ATTACHMENT_color0, &texture_fb_color);
+	cx_gfx_framebuffer_set_attachment(&framebuffer, CX_GFX_FRAMEBUFFER_ATTACHMENT_depth_stencil, &texture_fb_depth_stencil);
 
     // create shader program
+	
+	struct cx_gfx_program_source program_source = {
+		.s_vertex_stage_source = "#version 330 core\n"
+			"layout(std140) uniform blk_camera {"
+				"mat4 u_projection_matrix;"
+				"mat4 u_view_matrix;"
+			"};"
+			"layout(std140) uniform blk_object {"
+				"mat4 u_vertex_matrix;"
+			"};"
+			"layout (location=0) in vec3 a_pos;"
+			"layout (location=1) in vec3 a_normal;"
+			"layout (location=3) in vec2 a_texcoords;"
+			"out vec3 v_normal;"
+			"out vec2 v_texcoords;"
+			"void main() {"
+				"v_normal = normalize(mat3(transpose(inverse(u_vertex_matrix))) * a_normal);"
+				"v_texcoords = a_texcoords;"
+				"gl_Position = u_projection_matrix * u_view_matrix * u_vertex_matrix * vec4(a_pos, 1.0);"
+			"}",
+		.s_fragment_stage_source = "#version 330 core\n"
+			"layout(std140) uniform blk_material_properties {"
+				"vec3 u_color;"
+			"};"
+			"uniform sampler2D u_texture_albedo;"
+			"in vec3 v_normal;"
+			"in vec2 v_texcoords;"
+			"out vec4 f_color;"
+			"void main() {"
+				"const vec3 light_dir = normalize(-vec3(1, 1, 1));"
+				"const float ka = 0.3;"
+				
+				"vec3 texture_rgb = texture(u_texture_albedo, v_texcoords).rgb;"
+				"vec3 albedo = texture_rgb * u_color;"
 
-    struct gl_shader gl_vertex_shader;
-    struct gl_shader gl_fragment_shader;
-    struct gl_program gl_program;
+				"float kd = max(dot(v_normal, -light_dir), 0);"
 
-    gl_shader_create(&gl_vertex_shader, GL_VERTEX_SHADER);
-    gl_shader_compile(&gl_vertex_shader,
-        "#version 330 core\n"
-        "uniform mat4 u_projection_matrix;"
-        "uniform mat4 u_view_matrix;"
-        "uniform mat4 u_model_matrix;"
-        "layout (location=0) in vec3 a_pos;"
-        "layout (location=1) in vec3 a_normal;"
-        "layout (location=3) in vec2 a_texcoords;"
-        "out vec3 v_normal;"
-        "out vec2 v_texcoords;"
-        "void main() {"
-            "v_normal = normalize(mat3(transpose(inverse(u_model_matrix))) * a_normal);"
-            "v_texcoords = a_texcoords;"
-            "gl_Position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(a_pos, 1.0);"
-        "}");
+				"f_color = vec4(min((ka + kd), 1) * albedo, 1);"
+			"}"
+	};
 
-    gl_shader_create(&gl_fragment_shader, GL_FRAGMENT_SHADER);
-    gl_shader_compile(&gl_fragment_shader,
-        "#version 330 core\n"
-        "uniform vec3 u_color;"
-        "uniform sampler2D u_texture;"
-        "in vec3 v_normal;"
-        "in vec2 v_texcoords;"
-        "out vec4 f_color;"
-        "void main() {"
-            "const vec3 light_dir = normalize(-vec3(1, 1, 1));"
-            "const float ka = 0.3;"
-            
-            "vec3 texture_rgb = texture(u_texture, v_texcoords).rgb;"
-            "vec3 albedo = texture_rgb * u_color;"
+	struct cx_gfx_program program;
 
-            "float kd = max(dot(v_normal, -light_dir), 0);"
+	cx_gfx_program_create(&program);
+	cx_gfx_program_build(&program, &program_source);
 
-            "f_color = vec4(min((ka + kd), 1) * albedo, 1);"
-        "}");
+	struct cx_gfx_program_param_block program_pblock_camera;
+	struct cx_gfx_program_param_block program_pblock_object;
+	struct cx_gfx_program_param_block program_pblock_material;
+	struct cx_gfx_program_opaque_param program_opaque_texture_albedo;
 
-    gl_program_create(&gl_program);
-    gl_program_attach_shader(&gl_program, &gl_vertex_shader);
-    gl_program_attach_shader(&gl_program, &gl_fragment_shader);
-    gl_program_link(&gl_program);
+	cx_gfx_program_refl_param_block(&program, "blk_camera", &program_pblock_camera);
+	cx_gfx_program_refl_param_block(&program, "blk_object", &program_pblock_object);
+	cx_gfx_program_refl_param_block(&program, "blk_material_properties", &program_pblock_material);
+	cx_gfx_program_refl_opaque_param(&program, "u_texture_albedo", &program_opaque_texture_albedo);
 
-    gl_shader_destroy(&gl_vertex_shader);
-    gl_shader_destroy(&gl_fragment_shader);
+	struct cx_gfx_program_param_buffer program_pbuffer_camera;
+	struct cx_gfx_program_param_buffer program_pbuffer_object;
+	struct cx_gfx_program_param_buffer program_pbuffer_material;
 
-    struct gl_program_uniform gl_program_uniform_proj_mat;
-    struct gl_program_uniform gl_program_uniform_view_mat;
-    struct gl_program_uniform gl_program_uniform_modl_mat;
-    struct gl_program_uniform gl_program_uniform_color;
-
-    gl_program_get_uniform(&gl_program, "u_projection_matrix", &gl_program_uniform_proj_mat);
-    gl_program_get_uniform(&gl_program, "u_view_matrix", &gl_program_uniform_view_mat);
-    gl_program_get_uniform(&gl_program, "u_model_matrix", &gl_program_uniform_modl_mat);
-    gl_program_get_uniform(&gl_program, "u_color", &gl_program_uniform_color);
+	cx_gfx_program_param_buffer_create(&program_pbuffer_camera, program_pblock_camera._size);
+	cx_gfx_program_param_buffer_create(&program_pbuffer_object, program_pblock_object._size);
+	cx_gfx_program_param_buffer_create(&program_pbuffer_material, program_pblock_material._size);
 
     // create screen shader program
-
-    struct gl_shader gl_screen_vertex_shader;
-    struct gl_shader gl_screen_fragment_shader;
-    struct gl_program gl_screen_program;
-
-    gl_shader_create(&gl_screen_vertex_shader, GL_VERTEX_SHADER);
-    gl_shader_compile(&gl_screen_vertex_shader,
-        "#version 330 core\n"
-        "out vec2 v_texcoords;\n"
-        "void main() {\n"
-            "vec2 vertices[3] = vec2[3](vec2(-1, -1), vec2(3, -1), vec2(-1, 3));\n"
-            "gl_Position = vec4(vertices[gl_VertexID], 0, 1);\n"
-            "v_texcoords = 0.5 * gl_Position.xy + vec2(0.5);\n"
-        "}");
-
-    gl_shader_create(&gl_screen_fragment_shader, GL_FRAGMENT_SHADER);
-    gl_shader_compile(&gl_screen_fragment_shader,
-        "#version 330 core\n"
+	
+	struct cx_gfx_program_source program_screen_source = {
+		.s_vertex_stage_source = "#version 330 core\n"
+			"out vec2 v_texcoords;\n"
+			"void main() {\n"
+				"vec2 vertices[3] = vec2[3](vec2(-1, -1), vec2(3, -1), vec2(-1, 3));\n"
+				"gl_Position = vec4(vertices[gl_VertexID], 0, 1);\n"
+				"v_texcoords = 0.5 * gl_Position.xy + vec2(0.5);\n"
+			"}",
+		.s_fragment_stage_source = "#version 330 core\n"
         "uniform sampler2D u_texture;\n"
         "in vec2 v_texcoords;\n"
         "out vec4 f_color;\n"
         "void main() {\n"
             "f_color = texture(u_texture, v_texcoords);\n"
-        "}");
+        "}"
+	};
 
-    gl_program_create(&gl_screen_program);
-    gl_program_attach_shader(&gl_screen_program, &gl_screen_vertex_shader);
-    gl_program_attach_shader(&gl_screen_program, &gl_screen_fragment_shader);
-    gl_program_link(&gl_screen_program);
+	struct cx_gfx_program program_screen;
 
-    gl_shader_destroy(&gl_screen_vertex_shader);
-    gl_shader_destroy(&gl_screen_fragment_shader);
+	cx_gfx_program_create(&program_screen);
+	cx_gfx_program_build(&program_screen, &program_screen_source);
+
+	struct cx_gfx_program_opaque_param program_screen_texture_param;
+
+	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
     register_asset_type(ASSET_TYPE_IMAGE, "image", sizeof(struct image), 0, 0, 0);
     register_asset_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct texture), 0, 0, 0);
@@ -228,26 +224,31 @@ int main(int argc, const char* argv[]) {
     gltf_free(&gltf);
     import_gltf_free(&import_gltf_result);
 
-    unsigned char white_pixel[] = { 0xFF, 0xFF, 0xFF };
+    uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
     struct image white_image = {
-        .width = 1,
-        .height = 1,
-        .num_channels = 3,
+		.size = { 1, 1 },
+		.pixel_data_format = {
+			.pixel_format = CX_PIXEL_FORMAT_rgb,
+			.pixel_type = CX_PIXEL_TYPE_u8
+		},
         .p_pixel_data = white_pixel
     };
 
-    struct gl_texture gl_white_texture;
-    gl_texture_create(&gl_white_texture, &white_image, 0);
+	struct cx_gfx_texture texture_white_1x1;
+	cx_gfx_texture_create(&texture_white_1x1, white_image.size, CX_PIXEL_FORMAT_rgb);
+	cx_gfx_texture_set_data(&texture_white_1x1, white_image.p_pixel_data, &white_image.pixel_data_format);
 
-    float camera_position[3] = { 4, 4, 4 };
+    float camera_position[3] = { 10, 4, 10 };
     float camera_pitch = 0.3491f;
     float camera_yaw = -0.7854f;
 
-    float projection_matrix[16];
-    matrix_make_identity(projection_matrix);
+	struct {
+		float projection_matrix[16];
+		float view_matrix[16];
+	} camera;
 
-    float view_matrix[16];
-    matrix_make_identity(view_matrix);
+    matrix_make_identity(camera.projection_matrix);
+    matrix_make_identity(camera.view_matrix);
 
     input_init();
 
@@ -311,7 +312,11 @@ int main(int argc, const char* argv[]) {
 
         // STATE UPDATE LOGIC
         {
-            matrix_make_perspective_projection(1, (float)framebuffer_resolution[0] / framebuffer_resolution[1], 0.01f, 1000.0f, projection_matrix);
+            matrix_make_perspective_projection(
+				1,
+				(float)framebuffer_resolution[0] / framebuffer_resolution[1],
+				0.01f, 1000.0f,
+				camera.projection_matrix);
 
             float move_direction[3] = {0};
             if (input_frame_is_key_down(KEY_a)) {
@@ -390,7 +395,7 @@ int main(int argc, const char* argv[]) {
             float translation_matrix[16];
             matrix_make_translation(-camera_position[0], -camera_position[1], -camera_position[2], translation_matrix);
 
-            matrix_multiply(rotation_matrix, translation_matrix, view_matrix);
+            matrix_multiply(rotation_matrix, translation_matrix, camera.view_matrix);
 
             if (input_frame_is_key_down(KEY_p)) {
                 physics_world_step(&physics_world, frame_delta_seconds);
@@ -402,16 +407,17 @@ int main(int argc, const char* argv[]) {
             glEnable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST); 
             glViewport(0, 0, framebuffer_resolution[0], framebuffer_resolution[1]);
-            glBindFramebuffer(GL_FRAMEBUFFER, gl_framebuffer);
-            glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+			cx_gfx_framebuffer_bind(&framebuffer);
+            glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+			cx_gfx_program_bind(&program);
+			
+			cx_gfx_program_param_block_bind_buffer(&program_pblock_camera, &program_pbuffer_camera, 0, 0);
+			cx_gfx_program_param_block_bind_buffer(&program_pblock_object, &program_pbuffer_object, 0, 0);
+			cx_gfx_program_param_block_bind_buffer(&program_pblock_material, &program_pbuffer_material, 0, 0);
 
-            glUseProgram(gl_program.gl_handle);
-            
-            gl_program_uniform_set(&gl_program_uniform_proj_mat, 1, projection_matrix);
-            gl_program_uniform_set(&gl_program_uniform_view_mat, 1, view_matrix);
-
-            glActiveTexture(GL_TEXTURE0);
+			cx_gfx_program_param_buffer_set(&program_pbuffer_camera, 0, 0, &camera);
             
             for (size_t i = 0; i < p_scene->_entities._length; ++i) {
                 struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&p_scene->_entities, i);
@@ -422,10 +428,10 @@ int main(int argc, const char* argv[]) {
                     continue;
                 }
 
-                gl_program_uniform_set(&gl_program_uniform_modl_mat, 1, p_entity->transform.world_trs_matrix);
-                
+				cx_gfx_program_param_buffer_set(&program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+
                 float model_color[] = { 1, 1, 1 };
-                gl_program_uniform_set(&gl_program_uniform_color, 1, model_color);
+				cx_gfx_program_param_buffer_set(&program_pbuffer_material, 0, 0, model_color);
 
                 struct static_mesh* p_mesh = p_entity->p_mesh->_asset._p_data;
 
@@ -434,26 +440,23 @@ int main(int argc, const char* argv[]) {
                 }
 
                 for (size_t j = 0; j < p_mesh->num_primitives; ++j) {
-                    GLuint gl_texture_handle = gl_white_texture.gl_handle;
+					const struct cx_gfx_texture* p_gfx_texture = &texture_white_1x1;
 
                     if (p_mesh->p_materials[j]) {
                         const struct material* p_material = p_mesh->p_materials[j]->_asset._p_data;
                         if (p_material->p_texture) {
                             struct texture* p_texture = p_material->p_texture->_asset._p_data;
-                            if (p_texture->gl_texture.gl_handle == 0) {
-                                texture_load_device_texture(p_texture);
-                            }
-                            gl_texture_handle = p_texture->gl_texture.gl_handle;
+                            texture_load_gfx_texture(p_texture, 0);
+							p_gfx_texture = &p_texture->_gfx_texture;
                         }
                     }
-
-                    glBindTexture(GL_TEXTURE_2D, gl_texture_handle);
-
+					
+					cx_gfx_program_opaque_param_bind_resource(&program_opaque_texture_albedo, p_gfx_texture);
                     gl_mesh_draw(&p_mesh->p_gl_meshes[j]);
                 }
             }
 
-            dev_draw(gl_framebuffer, framebuffer_resolution[0], framebuffer_resolution[1], projection_matrix, view_matrix);
+        	dev_draw(&framebuffer, framebuffer_resolution, camera.projection_matrix, camera.view_matrix);
 
             // SCREEN QUAD
             {
@@ -461,12 +464,12 @@ int main(int argc, const char* argv[]) {
 
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
+				glClearColor(0, 0, 0, 0);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                glUseProgram(gl_screen_program.gl_handle);
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, gl_color_attachment);
+				cx_gfx_program_bind(&program_screen);
+		
+				cx_gfx_program_opaque_param_bind_resource(&program_screen_texture_param, &texture_fb_color);
 
                 GLuint gl_empty_vao;
                 glGenVertexArrays(1, &gl_empty_vao);
