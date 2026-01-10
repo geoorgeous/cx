@@ -1,9 +1,12 @@
 #ifndef _H__IMPORT_GLTF
 #define _H__IMPORT_GLTF
 
-#include <stdint.h>
+#include <stddef.h>
 
-struct asset_package;
+#include "asset.h"
+
+#define CX_LOG_CAT_IMPORT_GLTF "import:gltf"
+
 struct gltf;
 
 struct import_gltf_result {

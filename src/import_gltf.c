@@ -126,7 +126,7 @@ void import_gltf_image(struct gltf_importer* p_importer, size_t gltf_image_index
     p_image->p_pixel_data = stbi_load_from_memory(p_bytes, size, &x, &y, &comp, 0);
 
     if (!p_image->p_pixel_data) {
-        cx_log(CX_LOG_ERROR, 0, "Failed to import image from glTF\n");
+        cx_log(CX_LOG_ERROR, CX_LOG_CAT_IMPORT_GLTF, "Failed to import image from glTF\n");
         free(p_image);
         return;
     }
@@ -231,7 +231,7 @@ void import_gltf_mesh_primitive(struct gltf_importer* p_importer, struct static_
         offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
         ++num_attributes;
     } else {
-        cx_log(CX_LOG_ERROR, 0, "Mesh import failed: missing position data\n");
+        cx_log(CX_LOG_ERROR, CX_LOG_CAT_IMPORT_GLTF, "Mesh import failed: missing position data\n");
         return;
     }
 
@@ -309,7 +309,11 @@ void import_gltf_mesh_primitive(struct gltf_importer* p_importer, struct static_
         offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
         ++num_attributes;
     } else if (!!p_gltf_joints_accessor || !!p_gltf_weights_accessor) {
-        cx_log(CX_LOG_ERROR, 0, "Mesh joints data or weights data present, but missing the other. Skipping import of joints/weights data\n");
+        cx_log(
+			CX_LOG_ERROR,
+			CX_LOG_CAT_IMPORT_GLTF,
+			"Mesh joints data or weights data present,"
+			"but missing the other. Skipping import of joints/weights data\n");
     }
 
     for (size_t i = 0; i < num_attributes; ++i) {
