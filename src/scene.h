@@ -8,6 +8,8 @@
 #include "transform.h"
 #include "physics.h"
 
+#define CX_LOG_CAT_SCENE "scene"
+
 #define ASSET_TYPE_SCENE 5
 
 struct texture;

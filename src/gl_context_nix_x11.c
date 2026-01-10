@@ -22,7 +22,11 @@ enum error gl_context_create(int gl_version_major, int gl_version_minor, const s
 
     glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
     if (glx_version_major <= gl_version_major && glx_version_minor < gl_version_minor) {
-        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_OPENGL, "GLX %d.%d or greater is required\n", gl_version_major, gl_version_minor);
+        cx_log_fmt(
+			CX_LOG_ERROR,
+			CX_LOG_CAT_OPENGL,
+			"GLX %d.%d or greater is required\n",
+			gl_version_major, gl_version_minor);
         return 1;
     }
 

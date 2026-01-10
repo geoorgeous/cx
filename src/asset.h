@@ -6,6 +6,8 @@
 
 #include "hashtable.h"
 
+#define CX_LOG_CAT_ASSET "asset"
+
 #define ASSET_NAME_MAX_LEN 64
 #define ASSET_PACKAGE_FILENAME_MAX_LEN 260
 #define ASSET_TYPE_MAX 0xFF

@@ -16,6 +16,8 @@
 #define CX_LOG_LABEL_ERROR   "  ERROR"
 #define CX_LOG_LABEL_DEBUG   " ~  ~  "
 
+#define CX_LOG_CAT_LOGGING "logging"
+
 #ifndef NDEBUG
 #define CX_DBG_LOG(CAT, MSG) cx_log(CX_LOG_DEBUG, CAT, MSG)
 #define CX_DBG_LOG_FMT(CAT, FMT, ...) cx_log_fmt(CX_LOG_DEBUG, CAT, FMT, __VA_ARGS__)

@@ -7,8 +7,6 @@
 #include "json.h"
 #include "logging.h"
 
-#define LOG_CAT_GLTF "glTF"
-
 struct glb_chunk {
     size_t   length;
     uint32_t type;
@@ -73,11 +71,11 @@ int gltf_load_from_file(const char* s_filename, struct gltf* p_result) {
 
     FILE* p_file = fopen(s_filename, "rb");
     if (!p_file) {
-        cx_log_fmt(CX_LOG_ERROR, LOG_CAT_GLTF, "Failed to open glTF file '%s'\n", s_filename);
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_GLTF, "Failed to open glTF file '%s'\n", s_filename);
         return GLTF_ERROR_FILE;
     }
 
-    cx_log_fmt(CX_LOG_INFO, LOG_CAT_GLTF, "Loading glTF file '%s'...\n", s_filename);
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_GLTF, "Loading glTF file '%s'...\n", s_filename);
 
     copy_file_directory(s_filename, reader.s_filedir);
 
@@ -285,19 +283,19 @@ void read_gltf_asset(struct gltf_reader* p_reader) {
     const struct json_value* p_json_asset_copyright = json_object_get(p_json_asset, "copyright");
 
     if (p_json_asset_version){
-        cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "glTF specification version: %s\n", json_string(p_json_asset_version));
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "glTF specification version: %s\n", json_string(p_json_asset_version));
     }
 
     if (p_json_asset_min_version){
-        cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "glTF min specification version: %s\n", json_string(p_json_asset_min_version));
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "glTF min specification version: %s\n", json_string(p_json_asset_min_version));
     }
 
     if (p_json_asset_generator){
-        cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "Asset generator: %s\n", json_string(p_json_asset_generator));
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "Asset generator: %s\n", json_string(p_json_asset_generator));
     }
 
     if (p_json_asset_copyright) {
-        cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "Asset copyright notice: %s\n", json_string(p_json_asset_copyright));
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "Asset copyright notice: %s\n", json_string(p_json_asset_copyright));
     }
 }
 
@@ -311,14 +309,14 @@ void read_gltf_extensions(struct gltf_reader* p_reader) {
     const size_t n_extensions_used = json_array_len(p_json_ext_used);
 
     if (n_extensions_used == 0) {
-        cx_log(CX_LOG_TRACE, LOG_CAT_GLTF, "Extensions used: none\n");
+        cx_log(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "Extensions used: none\n");
         return;
     }
 
-    cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "Extensions used:\n");
+    cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "Extensions used:\n");
     for (size_t i = 0; i < json_array_len(p_json_ext_used); ++i) {
         const struct json_value* p_json_ext_str = json_array_get(p_json_ext_used, i);
-        cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "  '%s'\n", json_string(p_json_ext_str));
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "  '%s'\n", json_string(p_json_ext_str));
     }
 
     const struct json_value* p_json_ext_required = json_object_get(p_reader->p_json_gltf, "extensionsRequired");
@@ -330,14 +328,14 @@ void read_gltf_extensions(struct gltf_reader* p_reader) {
     const size_t n_extensions_required = json_array_len(p_json_ext_required);
 
     if (n_extensions_required == 0) {
-        cx_log(CX_LOG_TRACE, LOG_CAT_GLTF, "Extensions required: none\n");
+        cx_log(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "Extensions required: none\n");
         return;
     }
 
-    cx_log(CX_LOG_TRACE, LOG_CAT_GLTF, "Extensions required:\n");
+    cx_log(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "Extensions required:\n");
     for (size_t i = 0; i < json_array_len(p_json_ext_required); ++i) {
         const struct json_value* p_json_ext_str = json_array_get(p_json_ext_required, i);
-        cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "  '%s'\n", json_string(p_json_ext_str));
+        cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "  '%s'\n", json_string(p_json_ext_str));
     }
 }
 
@@ -381,7 +379,7 @@ void read_gltf_object_array(struct gltf_reader* p_reader, const char* s_array_ke
         }
     }
 
-    cx_log_fmt(CX_LOG_TRACE, LOG_CAT_GLTF, "%s count: %llu\n", s_array_key, *n_elements);
+    cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GLTF, "%s count: %llu\n", s_array_key, *n_elements);
 }
 
 void read_gltf_object_property(struct gltf_reader* p_reader, const struct json_value* p_json_gltf_object, const char* s_key, int b_required, int(*type_checker)(const struct json_value*), const struct json_value** p_result) {
@@ -1246,7 +1244,7 @@ void* load_uri_payload(struct gltf_reader* p_reader, const char* s_uri, size_t* 
     make_file_path(p_reader->s_filedir, s_uri, p_reader->s_temp_filepath);
     FILE* p_file = fopen(p_reader->s_temp_filepath, "rb");
     if (!p_file) {
-        cx_log_fmt(CX_LOG_ERROR, LOG_CAT_GLTF, "Failed to open glTF file from URI path '%s'\n", p_reader->s_temp_filepath);  
+        cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_GLTF, "Failed to open glTF file from URI path '%s'\n", p_reader->s_temp_filepath);  
         p_reader->error = GLTF_ERROR_BAD_URI;
     }
 

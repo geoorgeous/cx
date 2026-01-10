@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#define CX_LOG_CAT_GLTF "gltf"
+
 #define GLTF_SUCCESS 0
 #define GLTF_ERROR_UNKNOWN -1
 #define GLTF_ERROR_MEMORY 1

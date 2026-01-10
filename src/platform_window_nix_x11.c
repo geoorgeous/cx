@@ -95,7 +95,7 @@ void platform_window_destroy(struct platform_window* p_window) {
     XDestroyIC(p_internals->input_ctx);
     XDestroyWindow(p_internals->p_display, p_internals->window);
     
-    CX_DBG_LOG(CX_LOG_CAT_X11, "Window destroyed\n");
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_X11, "Window destroyed\n");
 
     --num_x11_windows;
     if (num_x11_windows <= 0) {
@@ -338,7 +338,7 @@ enum error x11_init_connection(void) {
 
     (void)XSetErrorHandler(x11_error_handler);
 
-    CX_DBG_LOG(CX_LOG_CAT_X11, "Connection to X server established\n");
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_X11, "Connection to X server established\n");
 
     return ERROR_OK;
 }
@@ -350,7 +350,7 @@ void x11_close_connection(void) {
     x11_input_method = 0;
     p_x11_display = 0;
 
-    CX_DBG_LOG(CX_LOG_CAT_X11, "Connection to X server closed\n");
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_X11, "Connection to X server closed\n");
 }
 
 enum key x11_keycode_to_key(unsigned int keycode) {

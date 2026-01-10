@@ -3,11 +3,8 @@
 #include <string.h>
 
 #include "asset.h"
-#include "darr.h"
 #include "logging.h"
 #include "serialization.h"
-
-#define CX_LOG_CAT_ASSET "asset"
 
 static struct asset_type_table {
     char                   s_display_name[ASSET_NAME_MAX_LEN];
