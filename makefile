@@ -1,42 +1,43 @@
-CC := clang
-CSTD = -std-c99
-CFLAGS_WARN := -Wformat=2 -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Waggregate-return -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
-CFLAGS_NOWARN := -Wno-unused-parameter
-CFLAGS_DBG := -ggdb -O0
-
-LIBS := m
-
+CC          := clang
+CSTD         = -std-c99
+CFLAGS_WARN := -Wformat=2 -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align\
+               -Waggregate-return -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
+CFLAGS_DBG  := -ggdb -O0
+LIBS        := m
 TARGET_NAME := cx
+SRC_DIR     := src
+BIN_DIR     := bin
+DBG_DIR     := dbg
 
-BIN_PATH := bin
-OBJ_PATH := obj
-SRC_PATH := src
-DBG_PATH := dbg
-
-SRC_IGNORE := src/gl_context_nix_x11.c src/gl_context_win32.c src/platform_window_nix_x11.c src/platform_window_win32.c
+# Do not compile platform-specific objects
+SRC_IGNORE_WILDCARDS := *.nix_x11.* *.win32.* *.gl.*
 
 CFLAGS := $(CCSTD) $(CFLAGS_WARN) $(CFLAGS_NOWARN)
 
+# Platform specific configuration
 ifeq ($(OS),Windows_NT)
-	MKDIRCMD := mkdir
-	RMDIRCMD := rmdir /q /s
-	LIBS += opengl32 gdi32
+	MKDIRCMD    := mkdir
+	RMDIRCMD    := rmdir /q /s
+	LIBS        += opengl32 gdi32
 	TARGET_NAME := $(addsuffix .exe,$(TARGET_NAME))
-	CFLAGS += -DPLATFORM_WIN32
+	CFLAGS      += -DPLATFORM_WIN32
 else
-	MKDIRCMD := mkdir -p
-	RMDIRCMD := rm -rf
-	LIBS += GL X11
+	MKDIRCMD    := mkdir -p
+	RMDIRCMD    := rm -rf
+	LIBS        += GL X11
 endif
 
 COBJFLAGS := $(CFLAGS) -c
 
-TARGET := $(BIN_PATH)/$(TARGET_NAME)
-TARGET_DEBUG := $(DBG_PATH)/$(TARGET_NAME)
+TARGET := $(BIN_DIR)/$(TARGET_NAME)
+TARGET_DBG := $(DBG_DIR)/$(TARGET_NAME)
 
-SRC := $(filter-out $(SRC_IGNORE), $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.c*))))
-OBJ := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
-OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
+SRC_ALL := $(wildcard $(addprefix $(SRC_DIR)/*, .c*))
+SRC_FILTER_OUT := $(foreach x, $(SRC_IGNORE_WILDCARDS), $(wildcard $(SRC_DIR)/$(x)))
+SRC := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
+
+OBJ := $(addprefix $(BIN_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
+OBJ_DBG := $(addprefix $(DBG_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 
 LIBS := $(foreach x,$(LIBS),$(addprefix -l,$(x)))
 
@@ -44,28 +45,25 @@ default: debug
 
 # release
 
-$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c* | $(OBJ_PATH)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c* | $(OBJ_DIR)
 	@$(CC) $(COBJFLAGS) -DNDEBUG -o $@ $<
 
-$(OBJ_PATH):
-	@$(MKDIRCMD) $(OBJ_PATH)
+$(BIN_DIR):
+	@$(MKDIRCMD) $(BIN_DIR)
 	
-$(TARGET): $(OBJ) | $(BIN_PATH)
+$(TARGET): $(OBJ) | $(BIN_DIR)
 	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS) -DNDEBUG
-	
-$(BIN_PATH):
-	@$(MKDIRCMD) $(BIN_PATH)
 
 #debug
 
-$(DBG_PATH)/%.o: $(SRC_PATH)/%.c* | $(DBG_PATH)
+$(DBG_DIR)/%.o: $(SRC_DIR)/%.c* | $(DBG_DIR)
 	@$(CC) $(COBJFLAGS) $(CFLAGS_DBG) -o $@ $<
 
-$(DBG_PATH):
-	@$(MKDIRCMD) $(DBG_PATH)
+$(DBG_DIR):
+	@$(MKDIRCMD) $(DBG_DIR)
 
-$(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
-	@$(CC) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DEBUG) $(LIBS) -o $@
+$(TARGET_DBG): $(OBJ_DBG) | $(DBG_DIR)
+	@$(CC) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DBG) $(LIBS) -o $@
 
 #phony rules
 
@@ -73,11 +71,11 @@ $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
 release: $(TARGET)
 
 .PHONY: debug
-debug: $(TARGET_DEBUG)
+debug: $(TARGET_DBG)
 
 .PHONY: clean
 clean:
-	@$(RMDIRCMD) $(OBJ_PATH) $(BIN_PATH) $(DBG_PATH)
+	@$(RMDIRCMD) $(BIN_DIR) $(DBG_DIR)
 
 .PHONY: compile_commands
 compile_commands:

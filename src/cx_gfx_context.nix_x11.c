@@ -1,9 +1,10 @@
-#include "gl_context.h"
 #include "gl.h"
 #include <GL/glx.h>
+
+#include "cx_gfx_context.h"
 #include "logging.h"
-#include "platform_window_nix_x11.h"
 #include "platform_window.h"
+#include "platform_window.nix_x11.h"
 
 #define CX_LOG_CAT_OPENGL "opengl"
 

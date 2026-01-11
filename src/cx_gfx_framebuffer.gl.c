@@ -1,9 +1,6 @@
-#ifdef CX_GFX_FRAMEBUFFER_IMPL
-#else
-
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_texture.h"
-#include "cx_gfx_texture_gl.h"
+#include "cx_gfx_texture.gl.h"
 #include "errors.h"
 #include "gl.h"
 
@@ -86,5 +83,3 @@ void cx_gfx_framebuffer_read(
 		GL_UNSIGNED_INT,
 		p_out_read_buffer);
 }
-
-#endif

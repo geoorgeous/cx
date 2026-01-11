@@ -1,8 +1,8 @@
 #include <X11/keysymdef.h>
 
 #include "logging.h"
-#include "platform_window_nix_x11.h"
 #include "platform_window.h"
+#include "platform_window.nix_x11.h"
 
 #define CX_LOG_CAT_X11 "x11"
 

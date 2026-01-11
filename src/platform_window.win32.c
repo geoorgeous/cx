@@ -1,4 +1,4 @@
-#include "platform_window_win32.h"
+#include "platform_window.win32.h"
 #include "platform_window.h"
 
 LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);

@@ -1,11 +1,8 @@
-#ifdef CX_GFX_PROGRAM_IMPL
-#else
-
 #include <string.h>
 
 #include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
-#include "cx_gfx_texture_gl.h"
+#include "cx_gfx_texture.gl.h"
 #include "errors.h"
 #include "gl.h"
 #include "logging.h"
@@ -457,5 +454,3 @@ GLint get_uniform_index(GLuint program, const char* s_name) {
 
 	return -1; 
 }
-
-#endif

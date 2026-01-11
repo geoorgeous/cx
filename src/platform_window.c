@@ -80,7 +80,7 @@ void platform_window_set_on_char_callback(struct platform_window* p_window, void
 }
 
 #ifdef PLATFORM_WIN32
-#include "platform_window_win32.c"
+#include "platform_window.win32.c"
 #else
-#include "platform_window_nix_x11.c"
+#include "platform_window.nix_x11.c"
 #endif

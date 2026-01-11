@@ -1,10 +1,7 @@
-#ifdef CX_GFX_TEXTURE_IMPL
-#else
-
 #include <stdint.h>
 
 #include "cx_gfx_texture.h"
-#include "cx_gfx_texture_gl.h"
+#include "cx_gfx_texture.gl.h"
 #include "cx_pixel_format.h"
 #include "cx_texture_sampler_settings.h"
 #include "errors.h"
@@ -190,5 +187,3 @@ void get_valid_pixel_transfer_params_for_format(
 		}
 	}
 }
-
-#endif

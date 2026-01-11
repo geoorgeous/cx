@@ -1,11 +1,8 @@
-
-#include <stdio.h>
-
-#include "gl_context.h"
+#include "cx_gfx_context.h"
 #include "gl.h"
 #include "logging.h"
-#include "platform_window_win32.h"
 #include "platform_window.h"
+#include "platform_window.win32.h"
 
 #define CX_LOG_CAT_OPENGL "opengl"
 
@@ -358,4 +355,5 @@ void gl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum sev
 
 	cx_log_fmt(log_level, CX_LOG_CAT_OPENGL, "Message: { id=%u, source='%s', type='%s' } %s\n", id, s_source, s_type, message);
 }
+#endif
 #endif

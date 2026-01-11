@@ -3,11 +3,11 @@
 #include <time.h>
 
 #include "asset.h"
+#include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
+#include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
-#include "cx_pixel_format.h"
 #include "dev.h"
-#include "gl_context.h"
 #include "gl_mesh.h"
 #include "gl.h"
 #include "gltf.h"
@@ -26,9 +26,6 @@
 #include "texture.h"
 #include "transform.h"
 #include "vector.h"
-
-#include "cx_gfx_pipeline.h"
-#include "cx_gfx_program.h"
 
 static void platform_window_on_created(struct platform_window*, void*);
 static void platform_window_on_key(struct platform_window*, void*, enum key, int);
