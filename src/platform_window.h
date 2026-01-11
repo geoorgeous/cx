@@ -5,6 +5,8 @@
 #include "keys.h"
 #include "mouse_buttons.h"
 
+#define CX_LOG_CAT_PLATFORM_WINDOW "platform:window"
+
 struct platform_window {
     void(*_p_callback_on_created)(struct platform_window*, void*);
     void* _p_callback_on_created_user_ptr;

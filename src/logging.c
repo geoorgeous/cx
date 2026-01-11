@@ -121,7 +121,7 @@ void cx_log_cat_set(const char *s_cat, int min_level) {
 	p_log_cat_str_buf_next += p_cat->display_str_len;
 	++log_cat_count;
 
-	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_LOGGING, "New log category: '%s' min_level=%d\n", s_cat, min_level);
+	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
 }
 
 int get_log_cat(const char* s_cat, size_t cat_len, struct cx_log_cat** p_out_cat) {

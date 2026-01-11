@@ -3,6 +3,8 @@
 
 #include "errors.h"
 
+#define CX_LOG_CAT_GFX_CORE "gfx:core"
+
 struct platform_window;
 
 struct gl_context {

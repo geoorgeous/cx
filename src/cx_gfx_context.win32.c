@@ -4,8 +4,6 @@
 #include "platform_window.h"
 #include "platform_window.win32.h"
 
-#define CX_LOG_CAT_OPENGL "opengl"
-
 typedef const char* APIENTRY wglGetExtensionsStringARB_fn(HDC);
 wglGetExtensionsStringARB_fn* wglGetExtensionsStringARB;
 
@@ -163,8 +161,8 @@ enum error gl_context_create(int gl_version_major, int gl_version_minor, const s
 	            
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
-	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_OPENGL, "OpenGL %scontext created (v%s, GLSL v%s)\n", context_flags & 0x2 ? "Debug " : "", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
-	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_OPENGL, "Graphics platform: %s, %s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
+	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_GFX_CORE, "OpenGL %scontext created (v%s, GLSL v%s)\n", context_flags & 0x2 ? "Debug " : "", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_GFX_CORE, "Graphics platform: %s, %s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
 	return ERROR_OK;
 }
@@ -269,10 +267,10 @@ enum error win32_load_gl_functions(void) {
 
 	// GLint extensions_n = 0;
 	// glGetIntegerv(GL_NUM_EXTENSIONS, &extensions_n);
-	// cx_log(CX_LOG_TRACE, CX_LOG_CAT_OPENGL, "OpenGL extensions supported:\n");
+	// cx_log(CX_LOG_TRACE, CX_LOG_CAT_GFX_CORE, "OpenGL extensions supported:\n");
 	// for (GLint i = 0; i < extensions_n; ++i) {
 	// 	const char* extension_str = (const char*)glGetStringi(GL_EXTENSIONS, i);
-	// 	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_OPENGL, "\t%d. %s\n", i + 1, extension_str);
+	// 	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GFX_CORE, "\t%d. %s\n", i + 1, extension_str);
 	// }
 
 #if defined(__GNUC__)
@@ -294,12 +292,12 @@ enum error win32_load_gl_functions(void) {
 #endif
 
 	// const char* extensions_str = wglGetExtensionsStringARB(hdc);
-	// cx_log(CX_LOG_TRACE, CX_LOG_CAT_OPENGL, "WGL extensions supported:\n");
+	// cx_log(CX_LOG_TRACE, CX_LOG_CAT_GFX_CORE, "WGL extensions supported:\n");
 	// const char* pos = extensions_str;
 	// int i = 0;
 	// while (*pos) {
 	// 	if (*pos == ' ') {
-	// 		cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_OPENGL, "\t%d. %.*s\n", i + 1, (int)(pos - extensions_str), extensions_str);
+	// 		cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GFX_CORE, "\t%d. %.*s\n", i + 1, (int)(pos - extensions_str), extensions_str);
 	// 		extensions_str = pos + 1;
 	// 		++i;
 	// 	}
@@ -353,7 +351,7 @@ void gl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum sev
 		log_level = CX_LOG_ERROR;
 	}
 
-	cx_log_fmt(log_level, CX_LOG_CAT_OPENGL, "Message: { id=%u, source='%s', type='%s' } %s\n", id, s_source, s_type, message);
+	cx_log_fmt(log_level, CX_LOG_CAT_GFX_CORE, "Message: { id=%u, source='%s', type='%s' } %s\n", id, s_source, s_type, message);
 }
 #endif
 #endif

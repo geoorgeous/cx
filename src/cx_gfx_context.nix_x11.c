@@ -6,8 +6,6 @@
 #include "platform_window.h"
 #include "platform_window.nix_x11.h"
 
-#define CX_LOG_CAT_OPENGL "opengl"
-
 typedef GLXContext glXCreateContextAttribsARB_fn(
     Display *dpy, GLXFBConfig config,
 	GLXContext share_context, Bool direct,
@@ -87,7 +85,7 @@ enum error gl_context_create(
     if (glx_version_major <= gl_version_major && glx_version_minor < gl_version_minor) {
         cx_log_fmt(
 			CX_LOG_ERROR,
-			CX_LOG_CAT_OPENGL,
+			CX_LOG_CAT_GFX_CORE,
 			"GLX %d.%d or greater is required\n",
 			gl_version_major, gl_version_minor);
         return 1;
@@ -149,12 +147,12 @@ enum error gl_context_create(
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
 	cx_log_fmt(
 		CX_LOG_INFO,
-		CX_LOG_CAT_OPENGL,
+		CX_LOG_CAT_GFX_CORE,
 		"OpenGL %scontext created (v%s, GLSL v%s)\n",
 		context_flags & 0x2 ? "Debug " : "", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 	cx_log_fmt(
 		CX_LOG_INFO,
-		CX_LOG_CAT_OPENGL,
+		CX_LOG_CAT_GFX_CORE,
 		"Graphics platform: %s, %s\n",
 		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
@@ -234,7 +232,7 @@ void gl_debug_message_callback(
 
 	cx_log_fmt(
 		log_level,
-		CX_LOG_CAT_OPENGL,
+		CX_LOG_CAT_GFX_CORE,
 		"Message: { id=%u, source='%s', type='%s' } %s\n",
 		id, s_source, s_type, s_message);
 }

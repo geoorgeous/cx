@@ -4,8 +4,6 @@
 #include "platform_window.h"
 #include "platform_window.nix_x11.h"
 
-#define CX_LOG_CAT_X11 "x11"
-
 static enum error x11_init_connection(void);
 static void       x11_close_connection(void);
 static enum key   x11_keycode_to_key(unsigned int keycode);
@@ -95,7 +93,7 @@ void platform_window_destroy(struct platform_window* p_window) {
     XDestroyIC(p_internals->input_ctx);
     XDestroyWindow(p_internals->p_display, p_internals->window);
     
-    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_X11, "Window destroyed\n");
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_PLATFORM_WINDOW, "Window destroyed\n");
 
     --num_x11_windows;
     if (num_x11_windows <= 0) {
@@ -338,7 +336,7 @@ enum error x11_init_connection(void) {
 
     (void)XSetErrorHandler(x11_error_handler);
 
-    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_X11, "Connection to X server established\n");
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_PLATFORM_WINDOW, "Connection to X server established\n");
 
     return ERROR_OK;
 }
@@ -350,11 +348,11 @@ void x11_close_connection(void) {
     x11_input_method = 0;
     p_x11_display = 0;
 
-    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_X11, "Connection to X server closed\n");
+    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_PLATFORM_WINDOW, "Connection to X server closed\n");
 }
 
 enum key x11_keycode_to_key(unsigned int keycode) {
-    CX_DBG_LOG_FMT(CX_LOG_CAT_X11, "keycode=%u\n", keycode);
+    CX_DBG_LOG_FMT(CX_LOG_CAT_PLATFORM_WINDOW, "keycode=%u\n", keycode);
 
     switch (keycode) {
         case 10: return KEY_1;
@@ -414,7 +412,7 @@ char x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event)
         return 0;
     }
 
-    CX_DBG_LOG_FMT(CX_LOG_CAT_X11, "character='%c'\n", sym_buf[0]);
+    CX_DBG_LOG_FMT(CX_LOG_CAT_PLATFORM_WINDOW, "character='%c'\n", sym_buf[0]);
 
     return sym_buf[0];
 }
@@ -423,7 +421,7 @@ int x11_error_handler(Display* p_display, XErrorEvent* p_error_event) {
     char text_buf[512];
     XGetErrorText(p_display, p_error_event->error_code, text_buf, sizeof(text_buf) - 1);
     
-    cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_X11, "Error: %s\n", text_buf);
+    cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Error: %s\n", text_buf);
 
     return 0;
 }
