@@ -476,7 +476,7 @@ int main(int argc, const char* argv[]) {
             }
         }
 
-        gl_context_swap_buffers(&gl_context);
+		cx_gfx_context_swap_buffers(&gl_context);
     }
 
     return 0;
