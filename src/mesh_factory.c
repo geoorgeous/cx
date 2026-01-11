@@ -290,6 +290,12 @@ void mesh_factory_make_hemisphere(float r, size_t n, struct mesh_primitive* p_me
 }
 
 void mesh_factory_make_cylinder(float r0, float r1, float y, size_t n, int b_cap0, int b_cap1, struct mesh_primitive* p_mesh_primitive) {
+	// todo:
+	(void)r1;
+	(void)y;
+	(void)b_cap0;
+	(void)b_cap1;
+
 	mesh_factory_make_sphere(r0, n, p_mesh_primitive);
 }
 

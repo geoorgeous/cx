@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "vector.h"
+#include <math.h>
 
 size_t vertex_attribute_type_size(enum vertex_attribute_type type) {
     switch (type) {
@@ -133,5 +134,8 @@ void mesh_generate_normals(struct mesh_primitive* p_mesh_primitive, size_t posit
 }
 
 void mesh_generate_tangents(struct mesh_primitive* p_mesh_primitive, size_t normals_attribute_index, size_t tangents_attribute_index) {
-
+	// todo
+	(void)p_mesh_primitive;
+	(void)normals_attribute_index;
+	(void)tangents_attribute_index;
 }

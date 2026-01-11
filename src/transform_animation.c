@@ -85,9 +85,16 @@ void interpolate_linear_spherical(const float* p_a, const float* p_b, float t, s
 	}
 }
 
-void interpolate_cubic_spline(const float* p_ta, const float* p_tb, const float* p_a, const float* p_b, float t, size_t num_comonents, float* p_result) {
+void interpolate_cubic_spline(const float* p_ta, const float* p_tb, const float* p_a, const float* p_b, float t, size_t num_components, float* p_result) {
 	// todo
 	// ((2*t^3 - 3*t^2 + 1) * p_a) + ((t^3 - 2t^2 + t) * p_tb) + ((-2t^3 + 3t^2) * p_b) + ((t^3 - t^2) * p_ta)
+	(void)p_ta;
+	(void)p_tb;
+	(void)p_a;
+	(void)p_b;
+	(void)t;
+	(void)num_components;
+	(void)p_result;
 }
 
 void transform_animator_update_transform(const struct transform_animator* p_animator);
@@ -101,13 +108,18 @@ void transform_animator_init(struct transform_animator* p_animator, const struct
 }
 
 void transform_animator_set_time(struct transform_animator* p_animator, float t) {
-
+	// todo
+	(void)p_animator;
+	(void)t;
 }
 
 void transform_animator_tick(struct transform_animator* p_animator, float dt) {
-	
+	// todo
+	(void)p_animator;
+	(void)dt;
 }
 
 void transform_animator_update_transform(const struct transform_animator* p_animator) {
-
+	// todo
+	(void)p_animator;
 }

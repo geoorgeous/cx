@@ -500,6 +500,10 @@ void import_gltf_animation(struct gltf_importer* p_importer, size_t gltf_animati
 
         transform_animation.sampler.p_keyframe_values = malloc(gltf_accessor_element_size(p_gltf_sampler_output_accessor) * transform_animation.sampler.num_keyframes);
         copy_gltf_accessor(p_importer->p_gltf, p_gltf_sampler_output_accessor, transform_animation.sampler.p_keyframe_values, 0);
+
+		// todo:
+		(void)b_is_skeletal;
+		(void)skeletal_animation;
         
         // if (b_is_skeletal) {
         //     const struct skeleton* p_skeleton = 0;

@@ -236,6 +236,7 @@ void json_object_remove(struct json_value* p_json_object, const char* s_key) {
     }
 
     // todo:
+	(void)s_key;
 }
 
 size_t json_array_len(const struct json_value* p_json_array) {

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "asset.h"
-#include "cx_color.h"
 #include "cx_gfx_framebuffer.h"
 #include "dev.h"
 #include "gl_mesh.h"
@@ -432,6 +431,8 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
 }
 
 void on_key(const void* p_event_data, void* p_user_ptr) {
+	(void)p_user_ptr;
+
 	ENSURE_DEV_MODE();
 
     const struct input_event_data_key* p_e = p_event_data;
@@ -608,6 +609,7 @@ void on_mouse_button(const void* p_event_data, void* p_user_ptr) {
 }
 
 void on_mouse_move(const void* p_event_data, void* p_user_ptr) {
+	(void)p_event_data;
 	(void)p_user_ptr;
 
 	ENSURE_DEV_MODE();
@@ -1002,7 +1004,7 @@ void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* 
 
             for (size_t j = 0; j < p_mesh->num_primitives; ++j) {
                 const struct gl_mesh* p_gl_mesh = &p_mesh->p_gl_meshes[j];
-                mesh_id_capturer_submit(&g_dev.mesh_id_capturer, p_gl_mesh, p_entity->transform.world_trs_matrix, mesh_id_capturer_entity_id);
+                mesh_id_capturer_submit(p_gl_mesh, p_entity->transform.world_trs_matrix, mesh_id_capturer_entity_id);
             }
         }
 
@@ -1062,7 +1064,7 @@ void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* 
 }
 
 void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_control* p_control) {
-    mesh_id_capturer_submit(&g_dev.mesh_id_capturer, &p_control->gl_mesh, g_dev.gizmos.gizmo_transform, p_control->mesh_id_capturer_id);
+    mesh_id_capturer_submit(&p_control->gl_mesh, g_dev.gizmos.gizmo_transform, p_control->mesh_id_capturer_id);
 } 
 
 void draw_hull_DEBUGDEBUGDEBUG(void) {

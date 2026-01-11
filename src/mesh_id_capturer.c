@@ -3,7 +3,6 @@
 #include "cx_gfx_texture.h"
 #include "cx_pixel_format.h"
 #include "gl_mesh.h"
-#include "logging.h"
 #include "matrix.h"
 #include <stdint.h>
 #include "mesh_id_capturer.h"
@@ -111,7 +110,7 @@ void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const u
 	cx_gfx_program_param_buffer_set(&program_pbuf_camera, 0, 0, &camera);
 }
 
-void mesh_id_capturer_submit(struct mesh_id_capturer* p_mesh_id_capturer, const struct gl_mesh* p_gl_mesh, const float* p_transform, unsigned int id) {
+void mesh_id_capturer_submit(const struct gl_mesh* p_gl_mesh, const float* p_transform, unsigned int id) {
 	struct {
 		float        vertex_matrix[16];
 		unsigned int id;

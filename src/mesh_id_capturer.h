@@ -17,7 +17,7 @@ struct mesh_id_capturer {
 
 void         mesh_id_capturer_free_resources(struct mesh_id_capturer* p_mesh_id_capturer);
 void         mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix);
-void         mesh_id_capturer_submit(struct mesh_id_capturer* p_mesh_id_capturer, const struct gl_mesh* p_gl_mesh, const float* p_transform, unsigned int id);
+void         mesh_id_capturer_submit(const struct gl_mesh* p_gl_mesh, const float* p_transform, unsigned int id);
 unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, const float* p_normalized_coordinates);
 
 #endif

@@ -254,6 +254,7 @@ void physics_capsule_apply_transform(struct physics_collider* p_collider, const 
 	// rotate p0 and p1
 	// translate p0 and p1
 	// scale radius and p0, p1?
+	(void)p_t;
 }
 
 void physics_hull_apply_transform(struct physics_collider* p_collider, const struct transform* p_t) {
@@ -563,6 +564,10 @@ int physics_test_collision_capsule_capsule(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
+	
+	(void)p_a;
+	(void)p_b;
+
 	*p_result = (struct physics_collision_result){0};
 	return 0;
 
@@ -580,6 +585,10 @@ int physics_test_collision_capsule_plane(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
+
+	(void)p_a;
+	(void)p_b;
+
 	*p_result = (struct physics_collision_result){0};
 	return 0;
 
@@ -619,6 +628,8 @@ int physics_test_collision_hull_plane(
 // SOLVERS
 
 void physics_collision_solver_impulse(const struct physics_collision* p_collisions, size_t n, float delta_time) {
+	(void)delta_time;
+
 	for (size_t i = 0; i < n; ++i) {
 		struct physics_rigidbody* p_rb_a = (struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
 		struct physics_rigidbody* p_rb_b = (struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
@@ -720,6 +731,8 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 }
 
 void physics_collision_solver_smooth_positions(const struct physics_collision* p_collisions, size_t n, float delta_time) {
+	(void)delta_time;
+
 	static struct darr deltas;
 	if (deltas._element_size == 0) {
 		darr_init(&deltas, sizeof(float) * 6);
@@ -901,6 +914,8 @@ int gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 }
 
 void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+	(void)p_simplex_d;
+
 	const float* p_a = simplex[1];
 	const float* p_b = simplex[0];
 
@@ -1048,6 +1063,10 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 // Expanding Polytope/Polyhedra Algorithm (EPA)
 
 void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result) {
+	(void)simplex;
+	(void)p_a;
+	(void)p_b;
+
 	// todo: use epa algorith to determine collision points, depth, normal
 
 	// Find closest feature on Minkowski Difference to origin

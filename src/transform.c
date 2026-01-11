@@ -2,8 +2,6 @@
 #include "transform.h"
 #include "vector.h"
 
-#include "logging.h"
-
 void transform_make_identity(struct transform* p_transform) {
     *p_transform = (struct transform) {0};
     quaternion_identity(p_transform->rotation);
@@ -82,6 +80,9 @@ void transform_set_world_scale(struct transform* p_transform, const float* p_sca
 }
 
 int transform_set_local_transform(struct transform* p_transform, struct transform* p_local_transform, int b_preserve_world_transform) {
+	// todo:
+	(void)b_preserve_world_transform;
+
     struct transform* p_t = p_local_transform;
     while (p_t) {
         if (p_t == p_transform) {
