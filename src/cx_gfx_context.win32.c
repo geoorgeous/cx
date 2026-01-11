@@ -4,6 +4,9 @@
 #include "platform_window.h"
 #include "platform_window.win32.h"
 
+#define MIN_GL_VER_MJR 3
+#define MIN_GL_VER_MIN 3
+
 typedef const char* APIENTRY wglGetExtensionsStringARB_fn(HDC);
 wglGetExtensionsStringARB_fn* wglGetExtensionsStringARB;
 
@@ -81,7 +84,7 @@ struct gl_context_win32_internals {
     HGLRC hrc;
 };
 
-enum error gl_context_create(int gl_version_major, int gl_version_minor, const struct platform_window* p_window, struct gl_context* p_out_context) {
+enum error cx_gfx_context_create(const struct platform_window* p_window, struct cx_gfx_context* p_out_context) {
     struct gl_context_win32_internals* p_context_win32_internals = (void*)p_out_context->_bytes;
     const struct platform_window_win32_internals* p_window_win32_internals = (const void*)p_window->_bytes;
 
@@ -130,8 +133,8 @@ enum error gl_context_create(int gl_version_major, int gl_version_minor, const s
 
 	// Specify that we want to create an OpenGL x.x core profile context
 	int gl_attribs[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, gl_version_major,
-		WGL_CONTEXT_MINOR_VERSION_ARB, gl_version_minor,
+		WGL_CONTEXT_MAJOR_VERSION_ARB, MIN_GL_VER_MJR,
+		WGL_CONTEXT_MINOR_VERSION_ARB, MIN_GL_VER_MIN,
 		WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		WGL_CONTEXT_FLAGS_ARB,         gl_context_flags,
 		0,
@@ -167,13 +170,13 @@ enum error gl_context_create(int gl_version_major, int gl_version_minor, const s
 	return ERROR_OK;
 }
 
-void gl_context_destroy(struct gl_context* p_context) {
+void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
     struct gl_context_win32_internals* p_internals = (void*)p_context->_bytes;
 
 	wglDeleteContext(p_internals->hrc);
 }
 
-enum error gl_context_make_current(const struct gl_context* p_context) {
+enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
     const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglMakeCurrent(p_internals->hdc, p_internals->hrc)) {
@@ -182,7 +185,7 @@ enum error gl_context_make_current(const struct gl_context* p_context) {
 	return ERROR_WGL_MAKE_CURRENT;
 }
 
-enum error gl_context_swap_buffers(const struct gl_context* p_context) {
+enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
     const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglSwapLayerBuffers(p_internals->hdc, WGL_SWAP_MAIN_PLANE)) {

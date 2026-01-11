@@ -6,6 +6,9 @@
 #include "platform_window.h"
 #include "platform_window.nix_x11.h"
 
+#define MIN_GL_VER_MJR 3
+#define MIN_GL_VER_MNR 3
+
 typedef GLXContext glXCreateContextAttribsARB_fn(
     Display *dpy, GLXFBConfig config,
 	GLXContext share_context, Bool direct,
@@ -69,11 +72,9 @@ struct gl_context_nix_x11_internals {
     GLXContext                    context;
 };
 
-enum error gl_context_create(
-	int gl_version_major,
-	int gl_version_minor,
+enum error cx_gfx_context_create(
 	const struct platform_window* p_window,
-	struct gl_context* p_out_context) {
+	struct cx_gfx_context* p_out_context) {
 
     struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->_bytes;
     const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->_bytes;
@@ -82,12 +83,12 @@ enum error gl_context_create(
     GLint glx_version_minor = 0;
 
     glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
-    if (glx_version_major <= gl_version_major && glx_version_minor < gl_version_minor) {
+    if (glx_version_major <= MIN_GL_VER_MJR && glx_version_minor < MIN_GL_VER_MNR) {
         cx_log_fmt(
 			CX_LOG_ERROR,
 			CX_LOG_CAT_GFX_CORE,
-			"GLX %d.%d or greater is required\n",
-			gl_version_major, gl_version_minor);
+			"glX %d.%d or greater is required\n",
+			MIN_GL_VER_MJR, MIN_GL_VER_MNR);
         return 1;
     }
 
@@ -159,14 +160,14 @@ enum error gl_context_create(
     return ERROR_OK;
 }
 
-void gl_context_destroy(struct gl_context* p_context) {
+void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
     const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->_bytes;
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->_bytes;
     glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
 }
 
-enum error gl_context_make_current(const struct gl_context* p_context) {
+enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
     const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->_bytes;
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->_bytes;
@@ -174,7 +175,7 @@ enum error gl_context_make_current(const struct gl_context* p_context) {
     return ERROR_OK;
 }
 
-enum error gl_context_swap_buffers(const struct gl_context* p_context) {
+enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
     const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->_bytes;
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->_bytes;

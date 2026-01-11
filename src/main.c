@@ -90,8 +90,8 @@ int main(int argc, const char* argv[]) {
     struct platform_window platform_window;
     platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
 
-    struct gl_context gl_context;
-    gl_context_create(3, 3, &platform_window, &gl_context);
+    struct cx_gfx_context gl_context;
+    cx_gfx_context_create(&platform_window, &gl_context);
 
     // create framebuffer
 
