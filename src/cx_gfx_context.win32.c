@@ -142,7 +142,7 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 
 	HGLRC hrc = wglCreateContextAttribsARB(p_window_win32_internals->hdc, 0, gl_attribs);
 	if (!hrc) {
-		return ERROR_WGL_CREATE_CONTEXT;
+		return ERROR_gfx_core_create_context;
 	}
 
 	if (!wglMakeCurrent(p_window_win32_internals->hdc, hrc)) {
@@ -261,7 +261,7 @@ enum error win32_load_gl_functions(void) {
 
 	HGLRC hglrc = wglCreateContext(hdc);
 	if (!hglrc) {
-		return ERROR_WGL_CREATE_CONTEXT;
+		return ERROR_gfx_core_create_context;
 	}
 
 	if (!wglMakeCurrent(hdc, hglrc)) {

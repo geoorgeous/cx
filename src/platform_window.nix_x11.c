@@ -1,7 +1,12 @@
+#include <GL/glx.h>
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/keysymdef.h>
 
 #include "cx_logging.h"
 #include "platform_window.h"
+#include "errors.h"
 #include "platform_window.nix_x11.h"
 
 static enum error x11_init_connection(void);
@@ -20,16 +25,90 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
         return err;
     }
 
-    Window x11_window = XCreateSimpleWindow(
-        p_x11_display,
-        XDefaultRootWindow(p_x11_display),   // parent
-        0, 0,							     // x, y
-        width ? width : 800,                 // width
-        height ? height : 600,		         // height
-        0,								     // border width
-        0x00000000,						     // border color
-        0x00000000						     // background color
-    );
+	if (!width) {
+		width = 800;
+	}
+
+	if (!height) {
+		height = 600;
+	}
+
+	const int default_screen = DefaultScreen(p_x11_display);
+	const Window root_window = XDefaultRootWindow(p_x11_display);
+
+	Window x11_window = 0;
+	GLXFBConfig fbconfig = 0;
+
+	int fb_attribs[] = {
+		GLX_RENDER_TYPE,   GLX_RGBA_BIT,
+		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+		GLX_DOUBLEBUFFER,  True,
+		GLX_RED_SIZE,      8,
+		GLX_GREEN_SIZE,    8,
+		GLX_BLUE_SIZE,     8,
+		GLX_ALPHA_SIZE,    8,
+		GLX_DEPTH_SIZE,    24,
+		GLX_STENCIL_SIZE,  8,
+		None
+	};
+
+	XVisualInfo* p_visual_info = 0;
+
+	int fbconfigs_count;
+	GLXFBConfig* p_fbconfigs = glXChooseFBConfig(p_x11_display, default_screen, fb_attribs, &fbconfigs_count);
+	for (int i = 0; i < fbconfigs_count; ++i) {
+		p_visual_info = glXGetVisualFromFBConfig(p_x11_display, p_fbconfigs[i]);
+		if (!p_visual_info) {
+			continue;
+		}
+
+		fbconfig = p_fbconfigs[i];
+	}
+
+	if (!fbconfig) {
+		cx_log(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Failed to find required visual info\n");
+		return ERROR_platform_window_create;
+	}
+
+	const Colormap colormap = XCreateColormap(p_x11_display, root_window, p_visual_info->visual, AllocNone);
+
+	XSetWindowAttributes attribs = {
+		.colormap = colormap,
+		.background_pixel = None,
+		.border_pixmap = None,
+		.event_mask = 
+			KeyPressMask |
+			KeyReleaseMask |
+			ButtonPressMask |
+			ButtonReleaseMask |
+			PointerMotionMask |
+			ButtonMotionMask |
+			FocusChangeMask |
+			StructureNotifyMask |
+			ExposureMask
+	};
+
+	const unsigned long attrib_mask =
+		CWColormap |
+		CWBorderPixel |
+		CWEventMask;
+
+	x11_window = XCreateWindow(
+		p_x11_display,
+		root_window,
+		0, 0,
+		width, height,
+		0,
+		p_visual_info->depth,
+		InputOutput,
+		p_visual_info->visual,
+		attrib_mask,
+		&attribs);
+
+	if (!x11_window) {
+		cx_log(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Failed to create platform window\n");
+		return ERROR_platform_window_create;
+	}
 
     XIC x11_input_ctx = XCreateIC(x11_input_method,
         XNInputStyle,   XIMPreeditNothing | XIMStatusNothing,
@@ -37,8 +116,9 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
         XNFocusWindow,  x11_window,
         NULL);
 
-    if (x11_input_ctx == NULL) {
-        return ERROR_X11_CREATE_IC;
+    if (!x11_input_ctx) {
+		cx_log(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Failed to create platform input context\n");
+        return ERROR_platform_window_create;
     }
 
     XStoreName(p_x11_display, x11_window, s_title);
@@ -66,7 +146,8 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
         .p_display = p_x11_display,
         .window = x11_window,
         .input_ctx = x11_input_ctx,
-        .wm_delete_window = XInternAtom(p_x11_display, "WM_DELETE_WINDOW", 0)
+        .wm_delete_window = XInternAtom(p_x11_display, "WM_DELETE_WINDOW", 0),
+		.fbconfig = fbconfig
     };
 
     XSetWMProtocols(

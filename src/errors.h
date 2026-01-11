@@ -5,7 +5,7 @@ enum error {
     ERROR_OK,
 
     ERROR_WGL,
-    ERROR_WGL_CREATE_CONTEXT,
+    ERROR_gfx_core_create_context,
     ERROR_WGL_MAKE_CURRENT,
     ERROR_WGL_CHOOSE_PIXEL_FORMAT,
     ERROR_WGL_NO_SUITABLE_PIXEL_FORMAT,
@@ -20,6 +20,8 @@ enum error {
     ERROR_X11_OPEN_DISPLAY,
     ERROR_X11_OPEN_IM,
     ERROR_X11_CREATE_IC,
+
+	ERROR_platform_window_create,
 
     ERROR_OPENGL,
 

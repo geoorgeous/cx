@@ -9,6 +9,7 @@
 #include "cx_gfx_texture.h"
 #include "cx_logging.h"
 #include "dev.h"
+#include "errors.h"
 #include "gl_mesh.h"
 #include "gl.h"
 #include "gltf.h"
@@ -85,13 +86,23 @@ int main(int argc, const char* argv[]) {
 	cx_log_cat_set(CX_LOG_CAT_SCENE, CX_LOG_WARNING);
 	cx_log_cat_set(CX_LOG_CAT_TEXTURE, CX_LOG_WARNING);
 
+	enum error err;
+
     unsigned int window_size[] = { 1200, 900 };
 
     struct platform_window platform_window;
-    platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
+    err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
+
+	if (err != ERROR_OK) {
+		return err;
+	}
 
     struct cx_gfx_context gl_context;
-    cx_gfx_context_create(&platform_window, &gl_context);
+    err = cx_gfx_context_create(&platform_window, &gl_context);
+
+	if (err != ERROR_OK) {
+		return err;
+	}
 
     // create framebuffer
 

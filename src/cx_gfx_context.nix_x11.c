@@ -1,13 +1,18 @@
+#include "errors.h"
 #include "gl.h"
 #include <GL/glx.h>
+
+#include <GL/glxext.h>
+#include <string.h>
+#include <X11/Xlib.h>
 
 #include "cx_gfx_context.h"
 #include "cx_logging.h"
 #include "platform_window.h"
 #include "platform_window.nix_x11.h"
 
-#define MIN_GL_VER_MJR 3
-#define MIN_GL_VER_MNR 3
+#define GLX_MIN_VER_MAJOR 1
+#define GLX_MIN_VER_MINOR 2
 
 typedef GLXContext glXCreateContextAttribsARB_fn(
     Display *dpy, GLXFBConfig config,
@@ -15,14 +20,20 @@ typedef GLXContext glXCreateContextAttribsARB_fn(
     const int *attrib_list);
 glXCreateContextAttribsARB_fn* glXCreateContextAttribsARB;
 
-#define WGL_CONTEXT_MAJOR_VERSION_ARB             0x2091
-#define WGL_CONTEXT_MINOR_VERSION_ARB             0x2092
-#define WGL_CONTEXT_PROFILE_MASK_ARB              0x9126
-#define WGL_CONTEXT_FLAGS_ARB                     0x2094
+#define GLX_CONTEXT_MAJOR_VERSION_ARB             0x2091
+#define GLX_CONTEXT_MINOR_VERSION_ARB             0x2092
+#define GLX_CONTEXT_PROFILE_MASK_ARB              0x9126
+#define GLX_CONTEXT_FLAGS_ARB                     0x2094
 
-#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB          0x0001
-#define WGL_CONTEXT_DEBUG_BIT_ARB                 0x0001
-#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB    0x0002
+#ifndef GLX_CONTEXT_CORE_PROFILE_BIT_ARB
+#define GLX_CONTEXT_CORE_PROFILE_BIT_ARB          0x0001
+#endif
+#ifndef GLX_CONTEXT_DEBUG_BIT_ARB
+#define GLX_CONTEXT_DEBUG_BIT_ARB                 0x0001
+#endif
+#ifndef GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
+#define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB    0x0002
+#endif
 
 #ifndef NDEBUG
 
@@ -55,6 +66,8 @@ glDebugMessageControlARB_fn* glDebugMessageControlARB;
 #define GL_DEBUG_OUTPUT                           0x92E0
 #define GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB           0x8242
 
+#define GL_EXT
+
 static void gl_debug_message_callback(
 	GLenum source,
 	GLenum type,
@@ -65,6 +78,8 @@ static void gl_debug_message_callback(
 	const void* p_user_param);
 
 #endif
+
+int get_glx_proc(const char* s_proc_addr, void** pp_proc);
 
 struct gl_context_nix_x11_internals {
     const struct platform_window* p_window;
@@ -78,62 +93,67 @@ enum error cx_gfx_context_create(
 
     struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->_bytes;
     const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->_bytes;
+	
+	GLint glx_version_major = 0;
+	GLint glx_version_minor = 0;
 
-    GLint glx_version_major = 0;
-    GLint glx_version_minor = 0;
-
-    glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
-    if (glx_version_major < MIN_GL_VER_MJR || glx_version_minor < MIN_GL_VER_MNR) {
-        cx_log_fmt(
+	glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
+	if (glx_version_major < GLX_MIN_VER_MAJOR || glx_version_minor < GLX_MIN_VER_MINOR) {
+		cx_log_fmt(
 			CX_LOG_ERROR,
 			CX_LOG_CAT_GFX_CORE,
-			"glX %d.%d or greater is required\n",
-			MIN_GL_VER_MJR, MIN_GL_VER_MNR);
-        return 1;
-    }
+			"glX %d.%d or greater is required (glX version = %d.%d)\n",
+			GLX_MIN_VER_MAJOR, GLX_MIN_VER_MINOR, glx_version_major, glx_version_minor);
+		return ERROR_gfx_core_create_context;
+	}
 
+	// const int screen = DefaultScreen(p_window_internals->p_display);
+	// const char* s_extension_list = glXQueryExtensionsString(p_window_internals->p_display, screen);
+	// cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
+
+	if (get_glx_proc("glXCreateContextAttribsARB", (void**)&glXCreateContextAttribsARB)) {
+		int glx_context_flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 #ifndef NDEBUG
-	glDebugMessageCallbackARB =
-		(glDebugMessageCallbackARB_fn*)glXGetProcAddress((const GLubyte*)"glDebugMessageCallbackARB");
-	glDebugMessageControlARB =
-		(glDebugMessageControlARB_fn*)glXGetProcAddress((const GLubyte*)"glDebugMessageControlARB");
+		glx_context_flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
 #endif
-	glXCreateContextAttribsARB =
-		(glXCreateContextAttribsARB_fn*)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
+		glx_context_flags = GLX_CONTEXT_DEBUG_BIT_ARB | GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 
-	// todo: create debug context via glXCreateContextAttribsARB
+		int glx_context_attribs[] = {
+			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+			GLX_CONTEXT_FLAGS_ARB,         glx_context_flags,
+			GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+			None
+		};
 
-    GLint glx_attribs[] = {
-        GLX_RGBA,
-        GLX_DOUBLEBUFFER,
-        GLX_DEPTH_SIZE,     24,
-        GLX_STENCIL_SIZE,   8,
-        GLX_RED_SIZE,       8,
-        GLX_GREEN_SIZE,     8,
-        GLX_BLUE_SIZE,      8,
-        GLX_SAMPLE_BUFFERS, 0,
-        GLX_SAMPLES,        0,
-        None
-    };
-    p_context_internals->p_visualinfo = glXChooseVisual(
-		p_window_internals->p_display,
-		DefaultScreen(p_window_internals->p_display),
-		glx_attribs);
-	
-    if (!p_context_internals->p_visualinfo) {
-        return 1;
-    }
+		p_context_internals->context = glXCreateContextAttribsARB(
+			p_window_internals->p_display,
+			p_window_internals->fbconfig,
+			0,
+			True,
+			glx_context_attribs);
+	} else {
+		p_context_internals->p_visualinfo = glXGetVisualFromFBConfig(
+			p_window_internals->p_display,
+			p_window_internals->fbconfig);
 
-    p_context_internals->context = glXCreateContext(
-		p_window_internals->p_display,
-		p_context_internals->p_visualinfo,
-		NULL,
-		GL_TRUE);
+		p_context_internals->context = glXCreateContext(
+			p_window_internals->p_display,
+			p_context_internals->p_visualinfo,
+			0,
+			True);
+	}
+
+	if (!p_context_internals->context) {
+		return ERROR_gfx_core_create_context;
+	}
 
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
 
 #ifndef NDEBUG
-	if (glDebugMessageCallbackARB) {
+	if(get_glx_proc("glDebugMessageCallbackARB", (void**)&glDebugMessageCallbackARB)
+		&& get_glx_proc("glDebugMessageControlARB", (void**)&glDebugMessageControlARB)) {
+		
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 		glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW_ARB, 0, NULL, GL_FALSE);
@@ -144,13 +164,17 @@ enum error cx_gfx_context_create(
 
     p_context_internals->p_window = p_window;
 
+	const GLint debug_context_flag = 0x2;
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
+	
 	cx_log_fmt(
 		CX_LOG_INFO,
 		CX_LOG_CAT_GFX_CORE,
 		"OpenGL %scontext created (v%s, GLSL v%s)\n",
-		context_flags & 0x2 ? "Debug " : "", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+		context_flags & debug_context_flag ? "Debug " : "",
+		glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+	
 	cx_log_fmt(
 		CX_LOG_INFO,
 		CX_LOG_CAT_GFX_CORE,
@@ -237,4 +261,15 @@ void gl_debug_message_callback(
 		"Message: { id=%u, source='%s', type='%s' } %s\n",
 		id, s_source, s_type, s_message);
 }
+
+int get_glx_proc(const char* s_proc_addr, void** pp_proc) {
+	*pp_proc = glXGetProcAddressARB((const GLubyte*)s_proc_addr);
+	
+	if (!(*pp_proc)) {
+		cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_GFX_CORE, "Failed to get glX proc address: '%s'\n", s_proc_addr);
+	}
+
+	return !!(*pp_proc);
+}
+	
 #endif

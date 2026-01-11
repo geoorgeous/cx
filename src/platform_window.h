@@ -28,7 +28,7 @@ struct platform_window {
     void* _p_callback_on_char_user_ptr;
     int   _mouse_pos[2];
     int   _mouse_pos_old[2];
-    char  _bytes[40]; // Reserved for platform-dependent internals
+    char  _bytes[48]; // Reserved for platform-dependent internals
 };
 
 // Platform-dependent interface
