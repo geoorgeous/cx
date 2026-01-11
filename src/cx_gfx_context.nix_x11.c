@@ -83,7 +83,7 @@ enum error cx_gfx_context_create(
     GLint glx_version_minor = 0;
 
     glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
-    if (glx_version_major <= MIN_GL_VER_MJR && glx_version_minor < MIN_GL_VER_MNR) {
+    if (glx_version_major < MIN_GL_VER_MJR || glx_version_minor < MIN_GL_VER_MNR) {
         cx_log_fmt(
 			CX_LOG_ERROR,
 			CX_LOG_CAT_GFX_CORE,
