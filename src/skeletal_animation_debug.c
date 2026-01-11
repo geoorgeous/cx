@@ -1,6 +1,6 @@
 #include "gl_program.h"
 #include "gl_mesh.h"
-#include "logging.h"
+#include "cx_logging.h"
 #include "matrix.h"
 #include "mesh_factory.h"
 #include "mesh.h"

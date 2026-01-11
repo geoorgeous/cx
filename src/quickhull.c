@@ -6,7 +6,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 
-#include "logging.h"
+#include "cx_logging.h"
 #include "math_utils.h"
 #include "mesh.h"
 #include "quickhull.h"

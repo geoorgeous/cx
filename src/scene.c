@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "logging.h"
+#include "cx_logging.h"
 #include "scene.h"
 
 void scene_init(struct scene* p_scene) {

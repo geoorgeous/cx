@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "logging.h"
+#include "cx_logging.h"
 
 #define CX_LOG_CAT_DELIM ':'
 #define CX_LOG_CAT_STR_BUF_LEN 2048

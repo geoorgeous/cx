@@ -5,7 +5,7 @@
 #include "cx_gfx_texture.gl.h"
 #include "errors.h"
 #include "gl.h"
-#include "logging.h"
+#include "cx_logging.h"
 
 #define UNIFORM_NAME_MAX_LEN 64
 #define UNIFORM_BLOCK_MAX_UNIFORMS 64

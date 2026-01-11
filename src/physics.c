@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "logging.h"
+#include "cx_logging.h"
 #include "math_utils.h"
 #include "matrix.h"
 #include "physics.h"

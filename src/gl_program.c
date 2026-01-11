@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "gl_program.h"
-#include "logging.h"
+#include "cx_logging.h"
 
 static void set_uniform_int(GLint gl_location, size_t count, const int* p_data);
 static void set_uniform_uint(GLint gl_location, size_t count, const unsigned int* p_data);

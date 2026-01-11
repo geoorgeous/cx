@@ -8,7 +8,7 @@
 #include "gltf.h"
 #include "image.h"
 #include "import_gltf.h"
-#include "logging.h"
+#include "cx_logging.h"
 #include "material.h"
 #include "matrix.h"
 #include "mesh.h"

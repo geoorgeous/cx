@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "logging.h"
+#include "cx_logging.h"
 #include "object_pool.h"
 
 void object_pool_init(struct object_pool* p_pool, size_t object_size, size_t capacity) {

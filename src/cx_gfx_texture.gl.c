@@ -6,7 +6,7 @@
 #include "cx_texture_sampler_settings.h"
 #include "errors.h"
 #include "gl.h"
-#include "logging.h"
+#include "cx_logging.h"
 
 static const GLenum gl_pixel_format_table[] = {
 	GL_RED,

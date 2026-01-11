@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "hashtable.h"
-#include "logging.h"
+#include "cx_logging.h"
 
 #define HASHTABLE_LOAD_THRESHOLD 0.7f
 #define HASHTABLE_MIN_BUCKETS 8

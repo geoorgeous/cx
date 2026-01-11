@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "asset.h"
-#include "logging.h"
+#include "cx_logging.h"
 #include "serialization.h"
 
 static struct asset_type_table {

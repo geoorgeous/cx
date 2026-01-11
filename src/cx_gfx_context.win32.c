@@ -1,6 +1,6 @@
 #include "cx_gfx_context.h"
 #include "gl.h"
-#include "logging.h"
+#include "cx_logging.h"
 #include "platform_window.h"
 #include "platform_window.win32.h"
 

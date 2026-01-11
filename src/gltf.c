@@ -5,7 +5,7 @@
 
 #include "gltf.h"
 #include "json.h"
-#include "logging.h"
+#include "cx_logging.h"
 
 struct glb_chunk {
     size_t   length;
