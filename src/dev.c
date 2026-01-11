@@ -11,7 +11,7 @@
 #include "half_edge.h"
 #include "import_gltf.h"
 #include "input.h"
-#include "logging.h"
+#include "cx_logging.h"
 #include "math_utils.h"
 #include "matrix.h"
 #include "mesh_factory.h"
