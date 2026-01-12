@@ -1,5 +1,6 @@
 #include "errors.h"
 #include "gl.h"
+#include <GL/glext.h>
 #include <GL/glx.h>
 
 #include <GL/glxext.h>
@@ -114,7 +115,6 @@ enum error cx_gfx_context_create(
 #ifndef NDEBUG
 		glx_context_flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
 #endif
-		glx_context_flags = GLX_CONTEXT_DEBUG_BIT_ARB | GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 
 		int glx_context_attribs[] = {
 			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
@@ -162,13 +162,12 @@ enum error cx_gfx_context_create(
 
     p_context_internals->p_window = p_window;
 
-	const GLint debug_context_flag = 0x2;
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
 	
 	CX_LOG_FMT(INFO, GFX_CORE,
 		"OpenGL %scontext created (v%s, GLSL v%s)\n",
-		context_flags & debug_context_flag ? "Debug " : "",
+		(context_flags & GL_CONTEXT_FLAG_DEBUG_BIT) ? "Debug " : "",
 		glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 	
 	CX_LOG_FMT(INFO, GFX_CORE,

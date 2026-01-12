@@ -52,7 +52,7 @@ $(BIN_DIR):
 	@$(MKDIRCMD) $(BIN_DIR)
 	
 $(TARGET): $(OBJ) | $(BIN_DIR)
-	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS) -DNDEBUG
+	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS)
 
 #debug
 
