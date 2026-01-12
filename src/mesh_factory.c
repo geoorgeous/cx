@@ -7,15 +7,15 @@
 #include "mesh_factory.h"
 #include "mesh.h"
 
-void mesh_factory_make_quad(const float* p_half_size_xz, struct mesh_primitive* p_mesh_primitive) {
+void mesh_factory_make_quad(const float* p_half_size, struct mesh_primitive* p_out_mesh_primitive) {
     const float vertices[] = {
-        -p_half_size_xz[0], 0, -p_half_size_xz[1], 0, 1, 0,
-         p_half_size_xz[0], 0,  p_half_size_xz[1], 0, 1, 0,
-         p_half_size_xz[0], 0, -p_half_size_xz[1], 0, 1, 0,
+        -p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
+         p_half_size[0], 0,  p_half_size[1], 0, 1, 0,
+         p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
 
-         p_half_size_xz[0], 0,  p_half_size_xz[1], 0, 1, 0,
-        -p_half_size_xz[0], 0, -p_half_size_xz[1], 0, 1, 0,
-        -p_half_size_xz[0], 0,  p_half_size_xz[1], 0, 1, 0
+         p_half_size[0], 0,  p_half_size[1], 0, 1, 0,
+        -p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
+        -p_half_size[0], 0,  p_half_size[1], 0, 1, 0
     };
     
     const size_t num_vertices = 6;
@@ -25,23 +25,23 @@ void mesh_factory_make_quad(const float* p_half_size_xz, struct mesh_primitive* 
     float* p_vertices = malloc(vertices_size);
     memcpy(p_vertices, vertices, vertices_size);
 
-    *p_mesh_primitive = (struct mesh_primitive) {
-        .p_vertex_buffers = malloc(sizeof(*p_mesh_primitive->p_vertex_buffers)),
+    *p_out_mesh_primitive = (struct mesh_primitive) {
+        .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
         .num_vertex_buffers = 1,
-        .p_attributes = malloc(sizeof(*p_mesh_primitive->p_attributes) * 2),
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
         .num_attributes = 2,
         .vertex_count = num_vertices,
         .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
-        .bounds_min = { -p_half_size_xz[0], 0, -p_half_size_xz[1] },
-        .bounds_max = {  p_half_size_xz[0],  0, p_half_size_xz[1] }
+        .bounds_min = { -p_half_size[0], 0, -p_half_size[1] },
+        .bounds_max = {  p_half_size[0],  0, p_half_size[1] }
     };
 
-    *p_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
+    *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
         .p_bytes = p_vertices,
         .size = vertices_size
     };
 
-    p_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
         .index = 0,
         .vertex_buffer_index = 0,
         .layout = {
@@ -51,7 +51,7 @@ void mesh_factory_make_quad(const float* p_half_size_xz, struct mesh_primitive* 
         }
     };
 
-    p_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
         .index = 1,
         .vertex_buffer_index = 0,
         .layout = {
@@ -63,55 +63,55 @@ void mesh_factory_make_quad(const float* p_half_size_xz, struct mesh_primitive* 
     };
 }
 
-void mesh_factory_make_box(const float* p_half_size_xyz, struct mesh_primitive* p_mesh_primitive) {
+void mesh_factory_make_box(const float* p_half_size, struct mesh_primitive* p_out_mesh_primitive) {
     const float vertices[] = {
-        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2], -1,  0,  0,
-        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2], -1,  0,  0,
-        -p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2], -1,  0,  0,
+        -p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
+        -p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
+        -p_half_size[0],  p_half_size[1], -p_half_size[2], -1,  0,  0,
 
-        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2], -1,  0,  0,
-        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2], -1,  0,  0,
-        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2], -1,  0,  0,
+        -p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
+        -p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
+        -p_half_size[0], -p_half_size[1],  p_half_size[2], -1,  0,  0,
 
-         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  1,  0,  0,
-         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  1,  0,  0,
-         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  1,  0,  0,
+         p_half_size[0], -p_half_size[1],  p_half_size[2],  1,  0,  0,
+         p_half_size[0],  p_half_size[1], -p_half_size[2],  1,  0,  0,
+         p_half_size[0],  p_half_size[1],  p_half_size[2],  1,  0,  0,
 
-         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  1,  0,  0,
-         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  1,  0,  0,
-         p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  1,  0,  0,
+         p_half_size[0],  p_half_size[1], -p_half_size[2],  1,  0,  0,
+         p_half_size[0], -p_half_size[1],  p_half_size[2],  1,  0,  0,
+         p_half_size[0], -p_half_size[1], -p_half_size[2],  1,  0,  0,
 
-        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0, -1,  0,
-         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0, -1,  0,
-        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0, -1,  0,
+        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
+         p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
+        -p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
 
-         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0, -1,  0,
-        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0, -1,  0,
-         p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0, -1,  0,
+         p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
+        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
+         p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
 
-         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  1,  0,
-        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  1,  0,
-         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  1,  0,
+         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
+        -p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
+         p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
 
-        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  1,  0,
-         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  1,  0,
-        -p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  1,  0,
+        -p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
+         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
+        -p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
 
-        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
-         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
-         p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
+        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
+         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
+         p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
 
-         p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
-        -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
-        -p_half_size_xyz[0],  p_half_size_xyz[1], -p_half_size_xyz[2],  0,  0, -1,
+         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
+        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
+        -p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
 
-        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
-         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
-        -p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
+        -p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
+         p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
+        -p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
 
-         p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
-        -p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
-         p_half_size_xyz[0], -p_half_size_xyz[1],  p_half_size_xyz[2],  0,  0,  1,
+         p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
+        -p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
+         p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
     };
     
     const size_t num_vertices = 36;
@@ -121,23 +121,23 @@ void mesh_factory_make_box(const float* p_half_size_xyz, struct mesh_primitive* 
     float* p_vertices = malloc(vertices_size);
     memcpy(p_vertices, vertices, vertices_size);
 
-    *p_mesh_primitive = (struct mesh_primitive) {
-        .p_vertex_buffers = malloc(sizeof(*p_mesh_primitive->p_vertex_buffers)),
+    *p_out_mesh_primitive = (struct mesh_primitive) {
+        .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
         .num_vertex_buffers = 1,
-        .p_attributes = malloc(sizeof(*p_mesh_primitive->p_attributes) * 2),
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
         .num_attributes = 2,
         .vertex_count = num_vertices,
         .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
-        .bounds_min = { -p_half_size_xyz[0], -p_half_size_xyz[1], -p_half_size_xyz[2] },
-        .bounds_max = {  p_half_size_xyz[0],  p_half_size_xyz[1],  p_half_size_xyz[2] }
+        .bounds_min = { -p_half_size[0], -p_half_size[1], -p_half_size[2] },
+        .bounds_max = {  p_half_size[0],  p_half_size[1],  p_half_size[2] }
     };
 
-    *p_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
+    *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
         .p_bytes = p_vertices,
         .size = vertices_size
     };
 
-    p_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
         .index = 0,
         .vertex_buffer_index = 0,
         .layout = {
@@ -147,7 +147,7 @@ void mesh_factory_make_box(const float* p_half_size_xyz, struct mesh_primitive* 
         }
     };
 
-    p_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
         .index = 1,
         .vertex_buffer_index = 0,
         .layout = {
@@ -159,7 +159,7 @@ void mesh_factory_make_box(const float* p_half_size_xyz, struct mesh_primitive* 
     };
 }
 
-void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_primitive) {
+void mesh_factory_make_sphere(float radius, unsigned int n, struct mesh_primitive* p_out_mesh_primitive) {
     const size_t num_vertices = (n - 1) * n + 2;
     const size_t vertex_size = sizeof(float) * 6;
     const size_t vertices_size = num_vertices * vertex_size;
@@ -167,7 +167,7 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
 
     float* p_v = p_vertices;
     *p_v++ = 0;
-    *p_v++ = r;
+    *p_v++ = radius;
     *p_v++ = 0;
 
     *p_v++ = 0;
@@ -190,9 +190,9 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
             const float y = cit;
             const float z = sjs * sit;
 
-            *p_v++ = r * x;
-            *p_v++ = r * y;
-            *p_v++ = r * z;
+            *p_v++ = radius * x;
+            *p_v++ = radius * y;
+            *p_v++ = radius * z;
     
             *p_v++ = x;
             *p_v++ = y;
@@ -201,7 +201,7 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
     }
 
     *p_v++ = 0;
-    *p_v++ = -r;
+    *p_v++ = -radius;
     *p_v++ = 0;
 
     *p_v++ = 0;
@@ -242,10 +242,10 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
         *p_i++ = num_vertices - 1 - (i + 1);
     }
 
-    *p_mesh_primitive = (struct mesh_primitive) {
-        .p_vertex_buffers = malloc(sizeof(*p_mesh_primitive->p_vertex_buffers)),
+    *p_out_mesh_primitive = (struct mesh_primitive) {
+        .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
         .num_vertex_buffers = 1,
-        .p_attributes = malloc(sizeof(*p_mesh_primitive->p_attributes) * 2),
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
         .num_attributes = 2,
         .vertex_count = num_vertices,
         .index_buffer = {
@@ -254,16 +254,16 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
             .type = VERTEX_INDEX_TYPE_u16
         },
         .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
-        .bounds_min = { -r, -r, -r },
-        .bounds_max = {  r,  r,  r }
+        .bounds_min = { -radius, -radius, -radius },
+        .bounds_max = {  radius,  radius,  radius }
     };
 
-    *p_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
+    *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
         .p_bytes = p_vertices,
         .size = vertices_size
     };
 
-    p_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
         .index = 0,
         .vertex_buffer_index = 0,
         .layout = {
@@ -273,7 +273,7 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
         }
     };
 
-    p_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
         .index = 1,
         .vertex_buffer_index = 0,
         .layout = {
@@ -285,96 +285,81 @@ void mesh_factory_make_sphere(float r, size_t n, struct mesh_primitive* p_mesh_p
     };
 }
 
-void mesh_factory_make_hemisphere(float r, size_t n, struct mesh_primitive* p_mesh_primitive) {
-	mesh_factory_make_sphere(r, n, p_mesh_primitive);
+void mesh_factory_make_hemisphere(float radius, unsigned int n, struct mesh_primitive* p_out_mesh_primitive) {
+	mesh_factory_make_sphere(radius, n, p_out_mesh_primitive);
 }
 
-void mesh_factory_make_cylinder(float r0, float r1, float y, size_t n, int b_cap0, int b_cap1, struct mesh_primitive* p_mesh_primitive) {
+void mesh_factory_make_cylinder(
+	float radius_a, float radius_b, float half_length,
+	unsigned int n,
+	int b_cap_a, int b_cap_b,
+	struct mesh_primitive* p_out_mesh_primitive) {
+	
 	// todo:
-	(void)r1;
-	(void)y;
-	(void)b_cap0;
-	(void)b_cap1;
+	(void)radius_b;
+	(void)half_length;
+	(void)b_cap_a;
+	(void)b_cap_b;
 
-	mesh_factory_make_sphere(r0, n, p_mesh_primitive);
+	mesh_factory_make_sphere(radius_a, n, p_out_mesh_primitive);
 }
 
-void mesh_factory_make_from_halfedge_mesh(const struct he_mesh* p_he_mesh, struct mesh_primitive* p_mesh_primitive, int b_lines) {
-    struct darr vertices;
+void mesh_factory_make_from_halfedge_mesh(
+	const struct he_mesh* p_he_mesh,
+	struct mesh_primitive* p_out_mesh_primitive) {
+    
+	struct darr vertices;
     darr_init(&vertices, sizeof(float) * 3);
 
     struct he_face* p_face = p_he_mesh->p_faces;
 
-    if (b_lines) {
-        while (p_face) {
-            struct he_edge* p_edge = p_face->p_edges;
-            do {
-                float* p_vertex;
+	while (p_face) {
+		size_t num_vertices = 0;
 
-                p_vertex = darr_push(&vertices);
-                p_vertex[0] = p_edge->p_tail->position[0];
-                p_vertex[1] = p_edge->p_tail->position[1];
-                p_vertex[2] = p_edge->p_tail->position[2];
-                
-                p_vertex = darr_push(&vertices);
-                p_vertex[0] = p_edge->p_next->p_tail->position[0];
-                p_vertex[1] = p_edge->p_next->p_tail->position[1];
-                p_vertex[2] = p_edge->p_next->p_tail->position[2];
+		struct he_edge* p_edge = p_face->p_edges;
+		do {
+			float* p_vertex = darr_push(&vertices);
+			p_vertex[0] = p_edge->p_tail->position[0];
+			p_vertex[1] = p_edge->p_tail->position[1];
+			p_vertex[2] = p_edge->p_tail->position[2];
 
-                p_edge = p_edge->p_next;
-            } while (p_edge != p_face->p_edges);
+			++num_vertices;
 
-            p_face = p_face->p_next;
-        };
-    } else {
-        while (p_face) {
-            size_t num_vertices = 0;
+			if (num_vertices > 3) {
+				p_vertex = darr_push(&vertices);
+				p_vertex[0] = p_face->p_edges->p_tail->position[0];
+				p_vertex[1] = p_face->p_edges->p_tail->position[1];
+				p_vertex[2] = p_face->p_edges->p_tail->position[2];
+				
+				p_vertex = darr_push(&vertices);
+				p_vertex[0] = p_edge->p_prev->p_tail->position[0];
+				p_vertex[1] = p_edge->p_prev->p_tail->position[1];
+				p_vertex[2] = p_edge->p_prev->p_tail->position[2];
+			}
 
-            struct he_edge* p_edge = p_face->p_edges;
-            do {
-                float* p_vertex = darr_push(&vertices);
-                p_vertex[0] = p_edge->p_tail->position[0];
-                p_vertex[1] = p_edge->p_tail->position[1];
-                p_vertex[2] = p_edge->p_tail->position[2];
+			p_edge = p_edge->p_next;
+		} while (p_edge != p_face->p_edges);
 
-                ++num_vertices;
-
-                if (num_vertices > 3) {
-                    p_vertex = darr_push(&vertices);
-                    p_vertex[0] = p_face->p_edges->p_tail->position[0];
-                    p_vertex[1] = p_face->p_edges->p_tail->position[1];
-                    p_vertex[2] = p_face->p_edges->p_tail->position[2];
-                    
-                    p_vertex = darr_push(&vertices);
-                    p_vertex[0] = p_edge->p_prev->p_tail->position[0];
-                    p_vertex[1] = p_edge->p_prev->p_tail->position[1];
-                    p_vertex[2] = p_edge->p_prev->p_tail->position[2];
-                }
-
-                p_edge = p_edge->p_next;
-            } while (p_edge != p_face->p_edges);
-
-            p_face = p_face->p_next;
-        };
-    }
+		p_face = p_face->p_next;
+	};
 
     darr_shrink(&vertices);
 
-    *p_mesh_primitive = (struct mesh_primitive) {
-        .p_vertex_buffers = malloc(sizeof(*p_mesh_primitive->p_vertex_buffers)),
+    *p_out_mesh_primitive = (struct mesh_primitive) {
+        .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
         .num_vertex_buffers = 1,
-        .p_attributes = malloc(sizeof(*p_mesh_primitive->p_attributes) * 1),
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 1),
         .num_attributes = 1,
         .vertex_count = vertices._length,
-        .draw_mode = b_lines ? MESH_PRIMITIVE_DRAW_MODE_lines : MESH_PRIMITIVE_DRAW_MODE_triangles
+        .draw_mode = MESH_PRIMITIVE_DRAW_MODE_lines
     };
 
-    *p_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
+    *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
         .p_bytes = vertices._p_buffer,
         .size = vertices._capacity * vertices._element_size
     };
 
-    p_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
+    p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
         .index = 0,
         .vertex_buffer_index = 0,
         .layout = {
@@ -385,10 +370,10 @@ void mesh_factory_make_from_halfedge_mesh(const struct he_mesh* p_he_mesh, struc
     };
 }
 
-void mesh_factory_free_primitive(struct mesh_primitive* p_mesh_primitive) {
-    free(p_mesh_primitive->p_vertex_buffers[0].p_bytes);
-    free(p_mesh_primitive->p_vertex_buffers);
-    free(p_mesh_primitive->p_attributes);
-    free(p_mesh_primitive->index_buffer.p_bytes);
-    *p_mesh_primitive = (struct mesh_primitive) {0};
+void mesh_factory_free_primitive(struct mesh_primitive* p_out_mesh_primitive) {
+    free(p_out_mesh_primitive->p_vertex_buffers[0].p_bytes);
+    free(p_out_mesh_primitive->p_vertex_buffers);
+    free(p_out_mesh_primitive->p_attributes);
+    free(p_out_mesh_primitive->index_buffer.p_bytes);
+    *p_out_mesh_primitive = (struct mesh_primitive) {0};
 }
