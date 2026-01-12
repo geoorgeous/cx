@@ -5,7 +5,7 @@
 
 #include "errors.h"
 
-#define CX_LOG_CAT_PROGRAM "gfx:program"
+#define CX_LOG_CAT_GFX_PROGRAM "gfx:program"
 
 enum cx_gfx_program_param_type {
 	CX_GFX_PROGRAM_PARAM_TYPE_unknown,

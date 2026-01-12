@@ -91,7 +91,7 @@ void physics_world_init(struct physics_world* p_world) {
 	object_pool_init(&p_world->_physics_object_pools[0], sizeof(struct physics_object), PHYSICS_MAX_STATIC_OBJECTS);
 	object_pool_init(&p_world->_physics_object_pools[1], sizeof(struct physics_rigidbody), PHYSICS_MAX_RIGIDBODIES);
 
-	cx_log(CX_LOG_TRACE, "physics", "Physics world initialised\n");
+	CX_LOG(TRACE, PHYSICS, "Physics world initialised\n");
 }
 
 void physics_world_destroy(struct physics_world* p_world) {
@@ -125,7 +125,7 @@ struct physics_object* physics_world_new_object(struct physics_world* p_world, s
 	struct physics_object** pp_object = darr_push(&p_world->_objects);
 	*pp_object = p_object;
 
-	cx_log_fmt(CX_LOG_TRACE, "physics", "%s created\n", b_is_rigidbody ? "Rigidbody" : "Static body");
+	CX_LOG_FMT(TRACE, PHYSICS, "%s created\n", b_is_rigidbody ? "Rigidbody" : "Static body");
 
 	return p_object;
 }
@@ -139,7 +139,7 @@ void physics_world_destroy_object(struct physics_world* p_world, struct physics_
 		}
 	}
 
-	cx_log_fmt(CX_LOG_TRACE, "physics", "%s destroyed\n", p_object->_b_is_rigidbody ? "Rigidbody" : "Static object");
+	CX_LOG_FMT(TRACE, PHYSICS, "%s destroyed\n", p_object->_b_is_rigidbody ? "Rigidbody" : "Static object");
 
 	if (p_object->_p_collider) {
 		object_pool_return(&p_world->_collider_pool, p_object->_p_collider);
@@ -157,7 +157,7 @@ void physics_world_new_object_collider(struct physics_world* p_world, struct phy
 	p_object->_p_collider = object_pool_get(&p_world->_collider_pool);
 	physics_collider_init(p_object->_p_collider, type);
 
-	cx_log_fmt(CX_LOG_TRACE, "physics", "Collider added to %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", type);
+	CX_LOG_FMT(TRACE, PHYSICS, "Collider added to %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", type);
 }
 
 void physics_world_destroy_object_collider(struct physics_world* p_world, struct physics_object* p_object) {
@@ -165,7 +165,7 @@ void physics_world_destroy_object_collider(struct physics_world* p_world, struct
 		return;
 	}
 
-	cx_log_fmt(CX_LOG_TRACE, "physics", "Collider removed from %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", p_object->_p_collider->type);
+	CX_LOG_FMT(TRACE, PHYSICS, "Collider removed from %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", p_object->_p_collider->type);
 
 	if (p_object->_p_collider->type == PHYSICS_COLLIDER_TYPE_hull) {
 		darr_free(&p_object->_p_collider->as_hull.verts);
@@ -191,7 +191,7 @@ void physics_world_remove_solver(struct physics_world* p_world, physics_collisio
 }
 
 void physics_world_step(struct physics_world* p_world, float delta_time) {
-	//CX_DBG_LOG_FMT("physics", "Step (delta_time=%f)\n", delta_time);
+	//CX_DBG_LOG_FMT(PHYSICS, "Step (delta_time=%f)\n", delta_time);
 
 	if (FLT_CMP(delta_time, 0)) {
 		return;
@@ -430,7 +430,7 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 
 	if (d > radius_ab * radius_ab) {
 		*p_result = (struct physics_collision_result){0};
-		// CX_DBG_LOG_FMT("physics", "Sphere-sphere no collision: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(radius_ab*radius_ab)=%u\n"
+		// CX_DBG_LOG_FMT(PHYSICS, "Sphere-sphere no collision: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(radius_ab*radius_ab)=%u\n"
 		//     , p_center_a[0], p_center_a[1], p_center_a[2], radius_a
 		//     , p_center_b[0], p_center_b[1], p_center_b[2], radius_b
 		//     , d
@@ -451,7 +451,7 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 	vec3_mul_s(p_result->ab_normal, radius_b, p_result->b);
 	vec3_sub(p_result->b, p_center_b, p_result->b);
 	
-	// CX_DBG_LOG_FMT("physics", "Sphere-sphere collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(a.radius+b.radius)=%u, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
+	// CX_DBG_LOG_FMT(PHYSICS, "Sphere-sphere collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(a.radius+b.radius)=%u, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
 	//     , p_center_a[0], p_center_a[1], p_center_a[2], radius_a
 	//     , p_center_b[0], p_center_b[1], p_center_b[2], radius_b
 	//     , d
@@ -548,7 +548,7 @@ int physics_test_collision_sphere_plane(
 	
 	p_result->depth = p_a->as_sphere.radius - d;
 
-	// CX_DBG_LOG_FMT("physics", "Sphere-plane collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
+	// CX_DBG_LOG_FMT(PHYSICS, "Sphere-plane collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
 	//     , center_a[0], center_a[1], center_a[2], radius_a
 	//     , normal_b[0], normal_b[1], normal_b[2], p_b->distance
 	//     , distance
@@ -658,7 +658,7 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 		const float invmass_b = p_rb_b && !FLT_CMP(p_rb_b->mass, 0) ? 1.0f / p_rb_b->mass : 1;
 
 		if (FLT_CMP(invmass_a, 0) && FLT_CMP(invmass_b, 0)) {
-			cx_log(CX_LOG_WARNING, "physics", "Zero-mass collision detected.\n");
+			CX_LOG(WARNING, PHYSICS, "Zero-mass collision detected.\n");
 			continue;
 		}
 
@@ -753,7 +753,7 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 		const float invmass_b = p_rb_b && !FLT_CMP(p_rb_b->mass, 0) ? 1.0f / p_rb_b->mass : 0;
 
 		if (FLT_CMP(invmass_a, 0) && FLT_CMP(invmass_b, 0)) {
-			cx_log(CX_LOG_WARNING, "physics", "Zero-mass collision detected.\n");
+			CX_LOG(WARNING, PHYSICS, "Zero-mass collision detected.\n");
 			continue;
 		}
 

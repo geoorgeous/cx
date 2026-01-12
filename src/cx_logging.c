@@ -20,17 +20,17 @@ static int  is_log_visible(const char* s_cat, int level);
 static void print_prefix(FILE* p_file, int log_level, const char* s_category);
 
 static const char* k_log_level_strings[] = {
+	CX_LOG_LABEL_UNDEFINED,
     CX_LOG_LABEL_TRACE,
     CX_LOG_LABEL_INFO,
     CX_LOG_LABEL_WARNING,
     CX_LOG_LABEL_ERROR,
-    CX_LOG_LABEL_DEBUG
 };
 
 static char              log_cat_str_buf[CX_LOG_CAT_STR_BUF_LEN];
 static char*             p_log_cat_str_buf_next = log_cat_str_buf;
 static struct cx_log_cat log_cats[CX_MAX_LOG_CATS];
-static int               log_cat_global_min_level = CX_LOG_INFO;
+static int               log_cat_global_min_level = CX_LOG_LEVEL_INFO;
 static size_t            log_cat_count;
 
 void cx_log(int level, const char* s_cat, const char* s_msg) {
@@ -38,7 +38,7 @@ void cx_log(int level, const char* s_cat, const char* s_msg) {
 		return;
 	}
 
-    FILE* const p_file = level == CX_LOG_ERROR ? stderr : stdout;
+    FILE* const p_file = level == CX_LOG_LEVEL_ERROR ? stderr : stdout;
 
     print_prefix(p_file, level, s_cat);
 
@@ -50,7 +50,7 @@ void cx_log_fmt(int level, const char* s_cat, const char* s_fmt, ...) {
 		return;
 	}
 
-    FILE* const p_file = level == CX_LOG_ERROR ? stderr : stdout;
+    FILE* const p_file = level == CX_LOG_LEVEL_ERROR ? stderr : stdout;
 	
     print_prefix(p_file, level, s_cat);
 
@@ -78,7 +78,7 @@ void cx_log_fmt(int level, const char* s_cat, const char* s_fmt, ...) {
 void cx_log_cat_set(const char *s_cat, int min_level) {
 	if (!s_cat) {
 		log_cat_global_min_level = min_level;
-		cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_LOGGING, "Log category minimum level set: (Global) -> %d\n", min_level);
+		CX_LOG_FMT(INFO, LOGGING, "Log category minimum level set: (Global) -> %d\n", min_level);
 		return;
 	}
 
@@ -86,16 +86,12 @@ void cx_log_cat_set(const char *s_cat, int min_level) {
 
 	if (get_log_cat(s_cat, 0, &p_cat)) {
 		p_cat->min_level = min_level;
-		cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
+		CX_LOG_FMT(INFO, LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
 		return;
 	}
 
 	if (log_cat_count == CX_MAX_LOG_CATS) {
-		cx_log_fmt(
-			CX_LOG_ERROR,
-			CX_LOG_CAT_LOGGING,
-			"Couldn't create new log category '%s': limit exceeded.\n",
-			s_cat);
+		CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': limit exceeded.\n", s_cat);
 		return;
 	}
 
@@ -103,11 +99,7 @@ void cx_log_cat_set(const char *s_cat, int min_level) {
 	const size_t log_cat_str_buf_available = (p_log_cat_str_buf_next - log_cat_str_buf) - CX_LOG_CAT_STR_BUF_LEN;
 
 	if (log_cat_str_buf_available < cat_len) {
-		cx_log_fmt(
-			CX_LOG_ERROR,
-			CX_LOG_CAT_LOGGING,
-			"Couldn't create new log category '%s': not enough memory.\n",
-			s_cat);
+		CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': not enough memory.\n", s_cat);
 		return;
 	}
 
@@ -121,7 +113,7 @@ void cx_log_cat_set(const char *s_cat, int min_level) {
 	p_log_cat_str_buf_next += p_cat->display_str_len;
 	++log_cat_count;
 
-	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
+	CX_LOG_FMT(INFO, LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
 }
 
 int get_log_cat(const char* s_cat, size_t cat_len, struct cx_log_cat** p_out_cat) {
@@ -152,7 +144,7 @@ int is_log_visible(const char* s_cat, int level) {
 		return 0;
 	}
 
-	if (s_cat == 0) {
+	if (s_cat == CX_LOG_CAT_DONTCARE) {
 		return 1;
 	}
 
@@ -164,8 +156,8 @@ int is_log_visible(const char* s_cat, int level) {
 			continue;
 		}
 		struct cx_log_cat* p_cat;
-		const int cat_min_level = get_log_cat(s_cat, len, &p_cat) ? p_cat->min_level : CX_LOG_ALL;
-		const int b_visible = cat_min_level <= level && cat_min_level >= 0;  
+		const int cat_min_level = get_log_cat(s_cat, len, &p_cat) ? p_cat->min_level : 0;
+		const int b_visible = cat_min_level <= level && cat_min_level > CX_LOG_LEVEL_SILENT;  
 		if (!b_visible || *p == '\0') {
 			return b_visible;
 		}
@@ -180,8 +172,8 @@ void print_prefix(FILE* p_file, int log_level, const char* s_category) {
     (void)strftime(timestamp_str_buffer, sizeof(timestamp_str_buffer), "%Y-%m-%d %H:%M:%S", tm);
 
     if (s_category) {
-        (void)fprintf(p_file, "[%s] %s: (%s) ", timestamp_str_buffer, k_log_level_strings[log_level], s_category);
+        (void)fprintf(p_file, "[%s]%s: (%s) ", timestamp_str_buffer, k_log_level_strings[log_level], s_category);
     } else {
-        (void)fprintf(p_file, "[%s] %s: ", timestamp_str_buffer, k_log_level_strings[log_level]);
+        (void)fprintf(p_file, "[%s]%s: ", timestamp_str_buffer, k_log_level_strings[log_level]);
     }
 }

@@ -2,40 +2,21 @@
 #define _H__ERRORS
 
 enum error {
-    ERROR_OK,
+    ERROR_none = 0,
 
-    ERROR_WGL,
-    ERROR_gfx_core_create_context,
-    ERROR_WGL_MAKE_CURRENT,
-    ERROR_WGL_CHOOSE_PIXEL_FORMAT,
-    ERROR_WGL_NO_SUITABLE_PIXEL_FORMAT,
-    
-    ERROR_WINGDI_CHOOSE_PIXEL_FORMAT,
-    ERROR_WINGDI_SET_PIXEL_FORMAT,
-    ERROR_WINGDI_DESCRIBE_PIXEL_FORMAT,
+	ERROR_invalid_argument,
+	ERROR_allocation_failed,
+	ERROR_index_out_of_range,
+	ERROR_not_found,
+	ERROR_not_supported,
+	ERROR_invalid_state,
 
-    ERROR_WIN32_REGISTER_CLASS,
-    ERROR_WIN32_CREATE_WINDOW,
+	ERROR_api_x11,
+	ERROR_api_win32,
+	ERROR_api_glx,
+	ERROR_api_wgl,
 
-    ERROR_X11_OPEN_DISPLAY,
-    ERROR_X11_OPEN_IM,
-    ERROR_X11_CREATE_IC,
-
-	ERROR_platform_window_create,
-
-    ERROR_OPENGL,
-
-    ERROR_INVALID_VALUE,
-
-    ERROR_SHADER_COMPILATION,
-    ERROR_SHADER_PROGRAM_LINKAGE,
-
-	ERROR_gl_invalid_operation,
-	ERROR_gl_generate_buffer,
-	ERROR_gl_create_resource,
-	ERROR_gl_compile_shader,
-	ERROR_gl_link_program,
-	ERROR_gl_validate_program
+	ERROR_gfx_program_build_failure
 };
 
 #endif

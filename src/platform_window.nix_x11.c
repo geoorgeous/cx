@@ -4,6 +4,7 @@
 #include <X11/Xutil.h>
 #include <X11/keysymdef.h>
 
+#include "cx_dbg.h"
 #include "cx_logging.h"
 #include "platform_window.h"
 #include "errors.h"
@@ -21,7 +22,7 @@ static int      num_x11_windows;
 
 enum error platform_window_create(int width, int height, const char* s_title, void(*p_callback_on_created)(struct platform_window*, void*), void* p_callback_on_created_user_ptr, struct platform_window* p_out_window) {
     enum error err = x11_init_connection();
-    if (err != ERROR_OK) {
+    if (err != ERROR_none) {
         return err;
     }
 
@@ -66,8 +67,8 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
 	}
 
 	if (!fbconfig) {
-		cx_log(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Failed to find required visual info\n");
-		return ERROR_platform_window_create;
+		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to find required visual info\n"));
+		return ERROR_api_glx;
 	}
 
 	const Colormap colormap = XCreateColormap(p_x11_display, root_window, p_visual_info->visual, AllocNone);
@@ -106,8 +107,8 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
 		&attribs);
 
 	if (!x11_window) {
-		cx_log(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Failed to create platform window\n");
-		return ERROR_platform_window_create;
+		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform window\n"));
+		return ERROR_api_x11;
 	}
 
     XIC x11_input_ctx = XCreateIC(x11_input_method,
@@ -117,8 +118,8 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
         NULL);
 
     if (!x11_input_ctx) {
-		cx_log(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Failed to create platform input context\n");
-        return ERROR_platform_window_create;
+		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform input context\n"));
+        return ERROR_api_x11;
     }
 
     XStoreName(p_x11_display, x11_window, s_title);
@@ -162,7 +163,7 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
         p_out_window->_p_callback_on_created(p_out_window, p_out_window->_p_callback_on_created_user_ptr);
     }
 
-    return ERROR_OK;
+    return ERROR_none;
 }
 
 void platform_window_destroy(struct platform_window* p_window) {
@@ -174,7 +175,7 @@ void platform_window_destroy(struct platform_window* p_window) {
     XDestroyIC(p_internals->input_ctx);
     XDestroyWindow(p_internals->p_display, p_internals->window);
     
-    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_PLATFORM_WINDOW, "Window destroyed\n");
+    CX_LOG(INFO, PLATFORM_WINDOW, "Window destroyed\n");
 
     --num_x11_windows;
     if (num_x11_windows <= 0) {
@@ -394,13 +395,13 @@ void platform_window_size(const struct platform_window* p_window, unsigned int* 
 
 enum error x11_init_connection(void) {
     if (p_x11_display) {
-        return ERROR_OK;
+        return ERROR_none;
     }
 
     p_x11_display = XOpenDisplay(NULL);
 
     if (!p_x11_display) {
-        return ERROR_X11_OPEN_DISPLAY;
+        return ERROR_api_x11;
     }
 
     (void)XSetLocaleModifiers("");
@@ -412,14 +413,14 @@ enum error x11_init_connection(void) {
     }
 
     if (!x11_input_method) {
-        return ERROR_X11_OPEN_IM;
+        return ERROR_api_x11;
     }
 
     (void)XSetErrorHandler(x11_error_handler);
 
-    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_PLATFORM_WINDOW, "Connection to X server established\n");
+    CX_LOG(INFO, PLATFORM_WINDOW, "Connection to X server established\n");
 
-    return ERROR_OK;
+    return ERROR_none;
 }
 
 void x11_close_connection(void) {
@@ -429,11 +430,11 @@ void x11_close_connection(void) {
     x11_input_method = 0;
     p_x11_display = 0;
 
-    cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_PLATFORM_WINDOW, "Connection to X server closed\n");
+    CX_LOG(INFO, PLATFORM_WINDOW, "Connection to X server closed\n");
 }
 
 enum key x11_keycode_to_key(unsigned int keycode) {
-    CX_DBG_LOG_FMT(CX_LOG_CAT_PLATFORM_WINDOW, "keycode=%u\n", keycode);
+    CX_DBG(CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "keycode=%u\n", keycode));
 
     switch (keycode) {
         case 10: return KEY_1;
@@ -493,7 +494,7 @@ char x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event)
         return 0;
     }
 
-    CX_DBG_LOG_FMT(CX_LOG_CAT_PLATFORM_WINDOW, "character='%c'\n", sym_buf[0]);
+    CX_DBG(CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "character='%c'\n", sym_buf[0]));
 
     return sym_buf[0];
 }
@@ -502,7 +503,7 @@ int x11_error_handler(Display* p_display, XErrorEvent* p_error_event) {
     char text_buf[512];
     XGetErrorText(p_display, p_error_event->error_code, text_buf, sizeof(text_buf) - 1);
     
-    cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_PLATFORM_WINDOW, "Error: %s\n", text_buf);
+    CX_LOG_FMT(ERROR, PLATFORM_WINDOW, "Error: %s\n", text_buf);
 
     return 0;
 }

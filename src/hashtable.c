@@ -6,7 +6,7 @@
 
 #define HASHTABLE_LOAD_THRESHOLD 0.7f
 #define HASHTABLE_MIN_BUCKETS 8
-#define LOG_CAT_HASHTABLE "hashtable"
+#define CX_LOG_CAT_HASHTABLE "hashtable"
 
 struct hashtable_element {
     void*                     p_key;
@@ -21,16 +21,21 @@ struct hashtable_bucket {
 };
 
 static size_t                   hash_key(const void* p_key, size_t key_len);
-static void                     hashtable_bucket_append(struct hashtable_bucket* p_bucket, struct hashtable_element* p_element);
+
+static void                     hashtable_bucket_append(
+	struct hashtable_bucket* p_bucket,
+	struct hashtable_element* p_element);
+
 static struct hashtable_bucket* hashtable_find_bucket(const struct hashtable* p_table, const void* p_key, size_t key_len);
+
 int                             key_cmp(const void* p_key0, size_t key0_len, const void* p_key1, size_t key1_len);
+
 static int                      hashtable_resize(struct hashtable* p_table, size_t num_buckets);
 
 void hashtable_init(struct hashtable* p_table, size_t element_size) {
     *p_table = (struct hashtable) {
         ._element_size = element_size
     };
-    //cx_log_fmt(LOG_LEVEL_TRACE, LOG_CAT_HASHTABLE, "hashtable_init: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets);
 }
 
 void hashtable_free(struct hashtable* p_table) {
@@ -48,7 +53,6 @@ void hashtable_free(struct hashtable* p_table) {
 
 void* hashtable_find(const struct hashtable* p_table, const void* p_key, size_t key_len) {
     if (p_table->_n_elements == 0) {
-        //cx_log_fmt(LOG_LEVEL_TRACE, LOG_CAT_HASHTABLE, "hashtable_find: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, p_key=%x, key_len=%llu: Couldn't find item. Hashtable is empty\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, p_key, key_len);
         return 0;
     }
 
@@ -62,14 +66,16 @@ void* hashtable_find(const struct hashtable* p_table, const void* p_key, size_t 
         p_elem = p_elem->p_next;
     }
 
-    //cx_log_fmt(LOG_LEVEL_TRACE, LOG_CAT_HASHTABLE, "hashtable_find: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, p_key=%x, key_len=%llu: Couldn't find item. No matching key found\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, p_key, key_len);
-
     return 0;
 }
 
 void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len) {
     if (hashtable_find(p_table, p_key, key_len) != 0) {
-        cx_log_fmt(CX_LOG_ERROR, LOG_CAT_HASHTABLE, "hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, p_key=%x, key_len=%llu: Couldn't add new item. An item with the specified key already exists\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, p_key, key_len);
+        CX_LOG_FMT(ERROR, HASHTABLE,
+			"hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x },"
+			"p_key=%x, key_len=%llu: Couldn't add new item. An item with the specified key already exists\n",
+			p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets,
+			p_key, key_len);
         return 0;
     }
 
@@ -77,7 +83,11 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
     unsigned char* p_new_elem_bytes = malloc(elem_size);
 
     if (!p_new_elem_bytes) {
-        cx_log_fmt(CX_LOG_ERROR, LOG_CAT_HASHTABLE, "hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, p_key=%x, key_len=%llu: Couldn't allocate memory for new item\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, p_key, key_len);
+        CX_LOG_FMT(ERROR, HASHTABLE,
+			"hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, "
+			"p_key=%x, key_len=%llu: Couldn't allocate memory for new item\n",
+			p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets,
+			p_key, key_len);
         return 0;
     }
 
@@ -94,7 +104,11 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
     if (p_table->_n_buckets == 0 || new_load_ratio > HASHTABLE_LOAD_THRESHOLD) {
         const size_t new_n_buckets = p_table->_n_elements ? p_table->_n_elements * 2 : HASHTABLE_MIN_BUCKETS;
         if (!hashtable_resize(p_table, new_n_buckets)) {
-            cx_log_fmt(CX_LOG_ERROR, LOG_CAT_HASHTABLE, "hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, p_key=%x, key_len=%llu: Couldn't resize hashtable for new item\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, p_key, key_len);
+            CX_LOG_FMT(ERROR, HASHTABLE,
+				"hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, "
+				"p_key=%x, key_len=%llu: Couldn't resize hashtable for new item\n",
+				p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets,
+				p_key, key_len);
             free(p_new_elem);
             return 0;
         }
@@ -103,8 +117,6 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
     hashtable_bucket_append(hashtable_find_bucket(p_table, p_key, key_len), p_new_elem);
     ++p_table->_n_elements;
     
-    //cx_log_fmt(LOG_LEVEL_TRACE, LOG_CAT_HASHTABLE, "hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, p_new_elem=(%x){ p_key=%x, key_len=%llu, p_value=%x }\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, p_new_elem, p_new_elem->p_key, key_len, p_new_elem->p_value);
-
     return p_new_elem->p_value;
 }
 
@@ -281,7 +293,11 @@ int hashtable_resize(struct hashtable* p_table, size_t n_buckets) {
 
     void* p_buckets = calloc(n_buckets, sizeof(struct hashtable_bucket));
     if (!p_buckets) {
-        cx_log_fmt(CX_LOG_ERROR, LOG_CAT_HASHTABLE, "hashtable_resize: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, new_n_buckets=%llu: Couldn't allocate memory\n", p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets, n_buckets);
+        CX_LOG_FMT(ERROR, HASHTABLE,
+			"hashtable_resize: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, "
+			"new_n_buckets=%llu: Couldn't allocate memory\n",
+			p_table, p_table->_element_size, p_table->_n_elements, p_table->_n_buckets, p_table->_p_buckets,
+			n_buckets);
         return 0;
     }
 

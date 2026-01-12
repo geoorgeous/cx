@@ -72,15 +72,9 @@ enum error cx_gfx_texture_create(
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	cx_log_fmt(
-		CX_LOG_INFO,
-		CX_LOG_CAT_TEXTURE,
+	CX_LOG_FMT(INFO, GFX_TEXTURE,
 		"Texture created: (%ux%u) internal_format=%x, pixel_format=0x%x, pixel_type=0x%x\n",
-		p_size[0],
-		p_size[1],
-		gl_internal_format,
-		gl_pixel_format,
-		gl_pixel_type);
+		p_size[0], p_size[1], gl_internal_format, gl_pixel_format, gl_pixel_type);
 
 	*p_texture = (struct cx_gfx_texture) {
 		._size = { p_size[0], p_size[1] },
@@ -91,7 +85,7 @@ enum error cx_gfx_texture_create(
 		.id = id
 	};
 
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 void cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture) {

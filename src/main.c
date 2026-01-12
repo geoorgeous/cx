@@ -80,11 +80,12 @@ int main(int argc, const char* argv[]) {
 
     printf("It's the 9th of September 2025 and I'm writing yet another game engine project.\n");
 
-	cx_log_cat_set(CX_LOG_ALL, CX_LOG_ALL);
-	cx_log_cat_set(CX_LOG_CAT_ASSET, CX_LOG_WARNING);
-	cx_log_cat_set(CX_LOG_CAT_GLTF, CX_LOG_WARNING);
-	cx_log_cat_set(CX_LOG_CAT_SCENE, CX_LOG_WARNING);
-	cx_log_cat_set(CX_LOG_CAT_TEXTURE, CX_LOG_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_ALL,         CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_ASSET,       CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_GFX_PROGRAM, CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE, CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_GLTF,        CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_SCENE,       CX_LOG_LEVEL_WARNING);
 
 	enum error err;
 
@@ -93,14 +94,14 @@ int main(int argc, const char* argv[]) {
     struct platform_window platform_window;
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
 
-	if (err != ERROR_OK) {
+	if (err != ERROR_none) {
 		return err;
 	}
 
     struct cx_gfx_context gl_context;
     err = cx_gfx_context_create(&platform_window, &gl_context);
 
-	if (err != ERROR_OK) {
+	if (err != ERROR_none) {
 		return err;
 	}
 

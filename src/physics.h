@@ -6,6 +6,8 @@
 #include "darr.h"
 #include "object_pool.h"
 
+#define CX_LOG_CAT_PHYSICS "physics"
+
 struct physics_object {
     struct physics_world*    _p_world;
     struct transform*        _p_transform;

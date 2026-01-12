@@ -6,7 +6,7 @@
 #include "errors.h"
 #include "cx_pixel_format.h"
 
-#define CX_LOG_CAT_TEXTURE "gfx:texture"
+#define CX_LOG_CAT_GFX_TEXTURE "gfx:texture"
 
 struct cx_gfx_texture {
 	uint32_t             _size[2];

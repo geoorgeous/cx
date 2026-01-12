@@ -26,7 +26,7 @@ void object_pool_init(struct object_pool* p_pool, size_t object_size, size_t cap
 void* object_pool_get(struct object_pool* p_pool) {
     void* p = p_pool->_p_next_free;
     if (!p) {
-        cx_log(CX_LOG_ERROR, 0, "Object pool exhausted!\n");
+        CX_LOG(ERROR, DONTCARE, "Object pool exhausted!\n");
         return 0;
     }
     p_pool->_p_next_free = *((void**)p);

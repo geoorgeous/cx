@@ -27,7 +27,11 @@ enum error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer) {
 
 	glGenFramebuffers(1, &p_internals->id);
 
-	return ERROR_OK;
+	if (!p_internals->id) {
+		return ERROR_allocation_failed;
+	}
+
+	return ERROR_none;
 }
 
 void cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer) {

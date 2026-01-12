@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "cx_gfx_program.h"
+#include "cx_dbg.h"
 #include "cx_gfx_texture.h"
 #include "cx_gfx_texture.gl.h"
 #include "errors.h"
@@ -32,7 +33,7 @@ enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer
 	glGenBuffers(1, &p_buffer_internals->id);
 
 	if (p_buffer_internals->id == 0) {
-		return ERROR_gl_generate_buffer;
+		return ERROR_allocation_failed;
 	}
 
 	glBindBuffer(GL_UNIFORM_BUFFER, p_buffer_internals->id);
@@ -40,13 +41,11 @@ enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer
 
 	p_buffer->size = size;
 
-	cx_log_fmt(
-		CX_LOG_TRACE,
-		CX_LOG_CAT_PROGRAM,
+	CX_DBG(CX_LOG_FMT(TRACE, GFX_PROGRAM,
 		"Program param buffer created: opengl_buffer_id=%d, size=%u\n",
-		p_buffer_internals->id, p_buffer->size);
+		p_buffer_internals->id, p_buffer->size));
 
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 void cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer) {
@@ -102,7 +101,7 @@ void cx_gfx_program_opaque_param_bind_resource(
 		}
 
 		case CX_GFX_PROGRAM_OPAQUE_PARAM_TYPE_unknown: {
-			CX_DBG_LOG(CX_LOG_CAT_PROGRAM, "Trying to bind resource to parameter of unknown type\n");
+			CX_DBG(CX_LOG(ERROR, GFX_PROGRAM, "Trying to bind resource to parameter of unknown type\n"));
 			return;
 		}
 	}
@@ -126,9 +125,9 @@ enum error cx_gfx_program_create(struct cx_gfx_program* p_program) {
 	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->_bytes;
 	p_program_internals->id = glCreateProgram();
 	if (p_program_internals->id == 0) {
-		return ERROR_gl_create_resource;
+		return ERROR_allocation_failed;
 	}
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 void cx_gfx_program_destroy(struct cx_gfx_program* p_program) {
@@ -163,27 +162,27 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->_bytes;
 
 	if (p_program_internals->id == 0) {
-		return ERROR_gl_invalid_operation;
+		return ERROR_invalid_state;
 	}
 
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
 	if (vertex_shader == 0 || fragment_shader == 0) {
-		return ERROR_gl_create_resource;
+		return ERROR_allocation_failed;
 	}
 
 	enum error err;
 
 	err = compile_shader_source(vertex_shader, p_source->s_vertex_stage_source);
 	
-	if (err != ERROR_OK) {
+	if (err != ERROR_none) {
 		goto end;
 	}
 
 	err = compile_shader_source(fragment_shader, p_source->s_fragment_stage_source);
 
-	if (err != ERROR_OK) {
+	if (err != ERROR_none) {
 		goto end;
 	}
 
@@ -196,8 +195,8 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 	glGetProgramiv(p_program_internals->id, GL_LINK_STATUS, &param);
 
 	if (param == GL_FALSE) {
-		log_program_info_log(p_program_internals->id, CX_LOG_ERROR, "Program linking failed");
-		err = ERROR_gl_link_program;
+		log_program_info_log(p_program_internals->id, CX_LOG_LEVEL_ERROR, "Program linking failed");
+		err = ERROR_gfx_program_build_failure;
 		goto end;
 	}
 
@@ -205,37 +204,38 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 	glGetProgramiv(p_program_internals->id, GL_VALIDATE_STATUS, &param);
 
 	if (param == GL_FALSE) {
-		log_program_info_log(p_program_internals->id, CX_LOG_ERROR, "Program validation failed");
-		err = ERROR_gl_validate_program;
+		log_program_info_log(p_program_internals->id, CX_LOG_LEVEL_ERROR, "Program validation failed");
+		err = ERROR_gfx_program_build_failure;
 		goto end;
 	}
 
 	glUseProgram(p_program_internals->id);
 
-	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_PROGRAM, "Program compiled: gl_id=%u\n", p_program_internals->id);
+	CX_LOG_FMT(TRACE, GFX_PROGRAM, "Program compiled: gl_id=%u\n", p_program_internals->id);
 
 	GLint count;
 	char string_buf[UNIFORM_NAME_MAX_LEN];
 
 	glGetProgramiv(p_program_internals->id, GL_ACTIVE_ATTRIBUTES, &count);
 
-	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_PROGRAM, "Active input attributes: %d\n", count);
+	
+	CX_DBG(
+		CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active input attributes: %d\n", count);
 
-	for (GLint i = 0; i < count; ++i) {
-		GLint  attrib_size;
-		GLenum attrib_type;
-		glGetActiveAttrib(p_program_internals->id, i, sizeof(string_buf), 0, &attrib_size, &attrib_type, string_buf);
+		for (GLint i = 0; i < count; ++i) {
+			GLint  attrib_size;
+			GLenum attrib_type;
+			glGetActiveAttrib(p_program_internals->id, i, sizeof(string_buf), 0, &attrib_size, &attrib_type, string_buf);
 
-		cx_log_fmt(
-			CX_LOG_TRACE, 
-			CX_LOG_CAT_PROGRAM,
-			"  %d: name=%s, size=%d, type=%d\n",
-			i, string_buf, attrib_size, attrib_type);
-	}
+			CX_LOG_FMT(TRACE, GFX_PROGRAM,
+				"  %d: name=%s, size=%d, type=%d\n",
+				i, string_buf, attrib_size, attrib_type);
+		}
+	);
 
 	glGetProgramiv(p_program_internals->id, GL_ACTIVE_UNIFORMS, &count);
 
-	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_PROGRAM, "Active params: %d\n", count);
+	CX_DBG(CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active params: %d\n", count));
 
 	GLint texture_unit = 0;
 
@@ -251,66 +251,64 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 			&uniform_type,
 			string_buf);
 
-		cx_log_fmt(
-			CX_LOG_TRACE,
-			CX_LOG_CAT_PROGRAM,
+		CX_DBG(CX_LOG_FMT(TRACE, GFX_PROGRAM,
 			"  %d: name='%s', size=%d, type=%d\n",
-			i, string_buf, uniform_size, uniform_type);
+			i, string_buf, uniform_size, uniform_type));
 
 		switch (uniform_type) {
 			case GL_SAMPLER_2D: {
 				glUniform1i(glGetUniformLocation(p_program_internals->id, string_buf), texture_unit);
-				cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_PROGRAM, "    slot=%d\n", texture_unit);
+				CX_DBG(CX_LOG_FMT(TRACE, GFX_PROGRAM, "    slot=%d\n", texture_unit));
 				++texture_unit;
 				break;
 			}
 		}
 	}
 
-	glGetProgramiv(p_program_internals->id, GL_ACTIVE_UNIFORM_BLOCKS, &count);
+	CX_DBG(
+		glGetProgramiv(p_program_internals->id, GL_ACTIVE_UNIFORM_BLOCKS, &count);
 
-	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_PROGRAM, "Active param blocks: %d\n", count);
-	
-	for (GLint i = 0; i < count; ++i) {
-		GLint ublock_size;
-		GLint ublock_active_uniforms;
-		GLint ublock_active_uniform_indices[UNIFORM_BLOCK_MAX_UNIFORMS];
-		GLint ublock_bind_point;
+		CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active param blocks: %d\n", count);
 		
-		glUniformBlockBinding(p_program_internals->id, i, i);
-		
-		glGetActiveUniformBlockName(p_program_internals->id, i, UNIFORM_NAME_MAX_LEN, 0, string_buf);
-		
-		glGetActiveUniformBlockiv(p_program_internals->id, i, GL_UNIFORM_BLOCK_DATA_SIZE, &ublock_size);
-		
-		glGetActiveUniformBlockiv(
-			p_program_internals->id,
-			i,
-			GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS,
-			&ublock_active_uniforms);
-		
-		glGetActiveUniformBlockiv(
-			p_program_internals->id,
-			i,
-			GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES,
-			ublock_active_uniform_indices);
-		
-		glGetActiveUniformBlockiv(
-			p_program_internals->id,
-			i,
-			GL_UNIFORM_BLOCK_BINDING,
-			&ublock_bind_point);
+		for (GLint i = 0; i < count; ++i) {
+			GLint ublock_size;
+			GLint ublock_active_uniforms;
+			GLint ublock_active_uniform_indices[UNIFORM_BLOCK_MAX_UNIFORMS];
+			GLint ublock_bind_point;
+			
+			glUniformBlockBinding(p_program_internals->id, i, i);
+			
+			glGetActiveUniformBlockName(p_program_internals->id, i, UNIFORM_NAME_MAX_LEN, 0, string_buf);
+			
+			glGetActiveUniformBlockiv(p_program_internals->id, i, GL_UNIFORM_BLOCK_DATA_SIZE, &ublock_size);
+			
+			glGetActiveUniformBlockiv(
+				p_program_internals->id,
+				i,
+				GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS,
+				&ublock_active_uniforms);
+			
+			glGetActiveUniformBlockiv(
+				p_program_internals->id,
+				i,
+				GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES,
+				ublock_active_uniform_indices);
+			
+			glGetActiveUniformBlockiv(
+				p_program_internals->id,
+				i,
+				GL_UNIFORM_BLOCK_BINDING,
+				&ublock_bind_point);
 
-		cx_log_fmt(
-			CX_LOG_TRACE,
-			CX_LOG_CAT_PROGRAM,
-			"  %d: name='%s', size=%d, bind_point=%d, active_uniforms=%d\n",
-			i, string_buf, ublock_size, ublock_bind_point, ublock_active_uniforms);
+			CX_LOG_FMT(TRACE, GFX_PROGRAM,
+				"  %d: name='%s', size=%d, bind_point=%d, active_uniforms=%d\n",
+				i, string_buf, ublock_size, ublock_bind_point, ublock_active_uniforms);
 
-		for (GLint j = 0; j < ublock_active_uniforms; ++j) {
-			cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_PROGRAM, "    %d: index=%d\n", j, ublock_active_uniform_indices[j]);
+			for (GLint j = 0; j < ublock_active_uniforms; ++j) {
+				CX_LOG_FMT(TRACE, GFX_PROGRAM, "    %d: index=%d\n", j, ublock_active_uniform_indices[j]);
+			}
 		}
-	}
+	);
 
 end:
 	glDeleteShader(vertex_shader);
@@ -329,7 +327,7 @@ void cx_gfx_program_refl_opaque_param(
 	const GLint uniform_location = glGetUniformLocation(p_program_internals->id, s_name);
 
 	if (uniform_location == -1) {
-		cx_log_fmt(CX_LOG_WARNING, CX_LOG_CAT_PROGRAM, "Could not find program parameter '%s'\n", s_name);
+		CX_LOG_FMT(WARNING, GFX_PROGRAM, "Could not find program parameter '%s'\n", s_name);
 		*p_out_opaque_param = (struct cx_gfx_program_opaque_param){0};
 		return;
 	}
@@ -378,7 +376,7 @@ void cx_gfx_program_refl_param_block(
 	const GLuint index = glGetUniformBlockIndex(p_program_internals->id, s_name);
 
 	if (index == GL_INVALID_INDEX) {
-		cx_log_fmt(CX_LOG_WARNING, CX_LOG_CAT_PROGRAM, "Could not find program parameter block '%s'\n", s_name);
+		CX_LOG_FMT(WARNING, GFX_PROGRAM, "Could not find program parameter block '%s'\n", s_name);
 		*p_out_param_block = (struct cx_gfx_program_param_block){0};
 		return;
 	}
@@ -409,15 +407,15 @@ enum error compile_shader_source(GLuint shader, const char* s_source) {
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &b_is_compiled);
 
 	if (b_is_compiled) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
 	char log[1024];
 	glGetShaderInfoLog(shader, sizeof(log), 0, log);
 
-	cx_log_fmt(CX_LOG_ERROR, 0, "Shader compilation failed. Reason: %s\n", log);
+	CX_LOG_FMT(ERROR, GFX_PROGRAM, "Shader compilation failed. Reason: %s\n", log);
 
-	return ERROR_gl_compile_shader;
+	return ERROR_gfx_program_build_failure;
 }
 
 void log_program_info_log(GLuint program, int level, const char* s_message) {
@@ -425,7 +423,7 @@ void log_program_info_log(GLuint program, int level, const char* s_message) {
 	glGetProgramInfoLog(program, sizeof(info_log_buf), 0, info_log_buf);
 	cx_log_fmt(
 		level,
-		CX_LOG_CAT_PROGRAM,
+		CX_LOG_CAT_GFX_PROGRAM,
 		"%s: id=%d, info_log=\"%s\"\n",
 		s_message, program, info_log_buf);
 }

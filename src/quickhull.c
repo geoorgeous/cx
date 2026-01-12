@@ -99,7 +99,7 @@ void qh_freelist_init(struct qh_freelist_node* p_head, size_t node_size, size_t 
 
 struct qh_freelist_node* qh_freelist_get(struct qh_freelist_node** pp_list) {
 	if (!*pp_list) {
-		cx_log(CX_LOG_ERROR, CX_LOG_CAT_QH, "Freelist empty!\n");
+		CX_LOG(ERROR, QH, "Freelist empty!\n");
 		return 0;
 	}
 
@@ -897,7 +897,7 @@ void qh_purge_duplicate_input_points(float* p_point_cloud, size_t* p_num_points)
         }
     }
 
-	CX_DBG_LOG_FMT(CX_LOG_CAT_QH, "Purged %d point duplicates\n", *p_num_points - m);
+	CX_DBG(CX_LOG_FMT(TRACE, QH, "Purged %d point duplicates\n", *p_num_points - m));
 
     *p_num_points = m;
 }
@@ -911,7 +911,9 @@ void quickhull(float* p_point_cloud, size_t num_points, struct he_mesh* p_hull) 
 	const size_t size_chunk1 = sizeof(struct he_edge) * max_edges;
 	const size_t size_chunk2 = sizeof(struct he_face) * max_faces;
 	
-	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_QH, "Generating convex hull for point cloud: num_points=%d, max_edges=%d, max_faces=%d\n", num_points, max_edges, max_faces);
+	CX_LOG_FMT(TRACE, QH,
+		"Generating convex hull for point cloud: num_points=%d, max_edges=%d, max_faces=%d\n",
+		num_points, max_edges, max_faces);
 
 	*p_hull = (struct he_mesh){0};
 
@@ -981,7 +983,7 @@ void quickhull(float* p_point_cloud, size_t num_points, struct he_mesh* p_hull) 
 		// QH_DEBUG_LOG_HULL(p_hull, "Post-next-conflict-vertex");
 	}
 	
-	cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_QH, "Completed in %d steps. Epsilon=%f\n", i, threshold);
+	CX_LOG_FMT(TRACE, QH, "Completed in %d steps. Epsilon=%f\n", i, threshold);
 }
 
 void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_mesh* p_result) {

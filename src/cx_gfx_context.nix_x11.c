@@ -99,17 +99,15 @@ enum error cx_gfx_context_create(
 
 	glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
 	if (glx_version_major < GLX_MIN_VER_MAJOR || glx_version_minor < GLX_MIN_VER_MINOR) {
-		cx_log_fmt(
-			CX_LOG_ERROR,
-			CX_LOG_CAT_GFX_CORE,
+		CX_LOG_FMT(ERROR, GFX_CORE,
 			"glX %d.%d or greater is required (glX version = %d.%d)\n",
 			GLX_MIN_VER_MAJOR, GLX_MIN_VER_MINOR, glx_version_major, glx_version_minor);
-		return ERROR_gfx_core_create_context;
+		return ERROR_api_glx;
 	}
 
 	// const int screen = DefaultScreen(p_window_internals->p_display);
 	// const char* s_extension_list = glXQueryExtensionsString(p_window_internals->p_display, screen);
-	// cx_log_fmt(CX_LOG_TRACE, CX_LOG_CAT_GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
+	// CX_LOG_FMT(TRACE, GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
 
 	if (get_glx_proc("glXCreateContextAttribsARB", (void**)&glXCreateContextAttribsARB)) {
 		int glx_context_flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -145,7 +143,7 @@ enum error cx_gfx_context_create(
 	}
 
 	if (!p_context_internals->context) {
-		return ERROR_gfx_core_create_context;
+		return ERROR_api_glx;
 	}
 
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
@@ -168,20 +166,16 @@ enum error cx_gfx_context_create(
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
 	
-	cx_log_fmt(
-		CX_LOG_INFO,
-		CX_LOG_CAT_GFX_CORE,
+	CX_LOG_FMT(INFO, GFX_CORE,
 		"OpenGL %scontext created (v%s, GLSL v%s)\n",
 		context_flags & debug_context_flag ? "Debug " : "",
 		glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 	
-	cx_log_fmt(
-		CX_LOG_INFO,
-		CX_LOG_CAT_GFX_CORE,
+	CX_LOG_FMT(INFO, GFX_CORE,
 		"Graphics platform: %s, %s\n",
 		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
-    return ERROR_OK;
+    return ERROR_none;
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
@@ -196,7 +190,7 @@ enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->_bytes;
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
-    return ERROR_OK;
+    return ERROR_none;
 }
 
 enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
@@ -204,7 +198,7 @@ enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->_bytes;
     glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
-    return ERROR_OK;
+    return ERROR_none;
 }
 
 #ifndef NDEBUG
@@ -243,33 +237,30 @@ void gl_debug_message_callback(
 		default:                                    s_type = "???"; break;
 	}
 
-	int log_level = CX_LOG_TRACE;
+	int log_level = CX_LOG_LEVEL_TRACE;
 
 	if (severity == GL_DEBUG_SEVERITY_LOW_ARB) {
-		log_level = CX_LOG_INFO;
+		log_level = CX_LOG_LEVEL_INFO;
 	} else if (severity == GL_DEBUG_SEVERITY_MEDIUM_ARB || severity == GL_DEBUG_SEVERITY_HIGH_ARB) {
-		log_level = CX_LOG_WARNING;
+		log_level = CX_LOG_LEVEL_WARNING;
 	}
 	
 	if (type == GL_DEBUG_TYPE_ERROR_ARB) {
-		log_level = CX_LOG_ERROR;
+		log_level = CX_LOG_LEVEL_ERROR;
 	}
 
-	cx_log_fmt(
-		log_level,
-		CX_LOG_CAT_GFX_CORE,
+	cx_log_fmt(log_level, CX_LOG_CAT_GFX_CORE,
 		"Message: { id=%u, source='%s', type='%s' } %s\n",
 		id, s_source, s_type, s_message);
 }
+#endif
 
 int get_glx_proc(const char* s_proc_addr, void** pp_proc) {
 	*pp_proc = glXGetProcAddressARB((const GLubyte*)s_proc_addr);
 	
 	if (!(*pp_proc)) {
-		cx_log_fmt(CX_LOG_ERROR, CX_LOG_CAT_GFX_CORE, "Failed to get glX proc address: '%s'\n", s_proc_addr);
+		CX_LOG_FMT(ERROR, GFX_CORE, "Failed to get glX proc address: '%s'\n", s_proc_addr);
 	}
 
 	return !!(*pp_proc);
-}
-	
-#endif
+}	

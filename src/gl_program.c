@@ -4,6 +4,7 @@
 
 #include "gl_program.h"
 #include "cx_logging.h"
+#include "errors.h"
 
 static void set_uniform_int(GLint gl_location, size_t count, const int* p_data);
 static void set_uniform_uint(GLint gl_location, size_t count, const unsigned int* p_data);
@@ -19,15 +20,15 @@ enum error gl_shader_create(struct gl_shader* p_gl_shader, GLenum gl_shader_type
 	p_gl_shader->gl_handle = glCreateShader(gl_shader_type);
 	
 	if (p_gl_shader->gl_handle) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
-	return ERROR_OPENGL;
+	return ERROR_gfx_program_build_failure;
 }
 
 enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source) {
 	if (!glIsShader(p_gl_shader->gl_handle)) {
-		return ERROR_INVALID_VALUE;
+		return ERROR_invalid_argument;
 	}
 
 	glShaderSource(p_gl_shader->gl_handle, 1, &s_source, NULL);
@@ -38,7 +39,7 @@ enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source
 	glGetShaderiv(p_gl_shader->gl_handle, GL_COMPILE_STATUS, &b_is_compiled);
 
 	if (b_is_compiled) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
 	GLint log_len = 0;
@@ -47,11 +48,11 @@ enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source
 	char* s_log = malloc(log_len);
 	glGetShaderInfoLog(p_gl_shader->gl_handle, log_len, &log_len, s_log);
 
-	cx_log_fmt(CX_LOG_ERROR, 0, "Shader compilation failed: %s\n", s_log);
+	CX_LOG_FMT(ERROR, DONTCARE, "Shader compilation failed: %s\n", s_log);
 
 	free(s_log);
 
-	return ERROR_SHADER_COMPILATION;
+	return ERROR_gfx_program_build_failure;
 }
 
 void gl_shader_destroy(struct gl_shader* p_gl_shader) {
@@ -62,29 +63,29 @@ enum error gl_program_create(struct gl_program* p_gl_program) {
 	p_gl_program->gl_handle = glCreateProgram();
 
 	if (p_gl_program->gl_handle) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
-	return ERROR_OPENGL;
+	return ERROR_allocation_failed;
 }
 
 enum error gl_program_attach_shader(struct gl_program* p_gl_program, const struct gl_shader* p_gl_shader) {
 	if (!glIsProgram(p_gl_program->gl_handle)) {
-		return ERROR_INVALID_VALUE;
+		return ERROR_invalid_argument;
 	}
 
 	if (!glIsShader(p_gl_shader->gl_handle)) {
-		return ERROR_INVALID_VALUE;
+		return ERROR_invalid_argument;
 	}
 
 	glAttachShader(p_gl_program->gl_handle, p_gl_shader->gl_handle);
 
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 enum error gl_program_link(struct gl_program* p_gl_program) {
 	if (!glIsProgram(p_gl_program->gl_handle)) {
-		return ERROR_INVALID_VALUE;
+		return ERROR_invalid_argument;
 	}
 
 	glLinkProgram(p_gl_program->gl_handle);
@@ -93,10 +94,10 @@ enum error gl_program_link(struct gl_program* p_gl_program) {
 	glGetProgramiv(p_gl_program->gl_handle, GL_LINK_STATUS, &b_is_linked);
 	
 	if (b_is_linked) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
-	return ERROR_SHADER_PROGRAM_LINKAGE;
+	return ERROR_gfx_program_build_failure;
 }
 
 void gl_program_destroy(struct gl_program* p_gl_program) {
@@ -121,7 +122,7 @@ void gl_program_get_uniform(const struct gl_program* p_gl_program, const char* s
 	p_uniform->_gl_location = glGetUniformLocation(p_gl_program->gl_handle, s_uniform_name);
 
 	if (p_uniform->_gl_location == -1) {
-		cx_log_fmt(CX_LOG_WARNING, 0, "Program uniform \"%s\" not found\n", s_uniform_name);
+		CX_LOG_FMT(WARNING, DONTCARE, "Program uniform \"%s\" not found\n", s_uniform_name);
 		*p_uniform = (struct gl_program_uniform){0};
 		return;
 	}
@@ -174,7 +175,7 @@ void gl_program_uniform_set(const struct gl_program_uniform* p_uniform, size_t c
 	};
 
 	if (p_uniform->_type == GL_SHADER_UNIFORM_TYPE_none) {
-		cx_log(CX_LOG_ERROR, 0, "Cannot set uniforms of no type.\n");
+		CX_LOG(ERROR, DONTCARE, "Cannot set uniforms of no type.\n");
 		return;
 	}
 
