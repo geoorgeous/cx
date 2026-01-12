@@ -29,14 +29,14 @@ endif
 
 COBJFLAGS := $(CFLAGS) -c
 
-TARGET := $(BIN_DIR)/$(TARGET_NAME)
+TARGET     := $(BIN_DIR)/$(TARGET_NAME)
 TARGET_DBG := $(DBG_DIR)/$(TARGET_NAME)
 
-SRC_ALL := $(wildcard $(addprefix $(SRC_DIR)/*, .c*))
+SRC_ALL        := $(wildcard $(addprefix $(SRC_DIR)/*, .c*))
 SRC_FILTER_OUT := $(foreach x, $(SRC_IGNORE_WILDCARDS), $(wildcard $(SRC_DIR)/$(x)))
-SRC := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
+SRC            := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
 
-OBJ := $(addprefix $(BIN_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
+OBJ     := $(addprefix $(BIN_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 OBJ_DBG := $(addprefix $(DBG_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
 
 LIBS := $(foreach x,$(LIBS),$(addprefix -l,$(x)))
@@ -45,7 +45,7 @@ default: debug
 
 # release
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c* | $(OBJ_DIR)
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.c* | $(BIN_DIR)
 	@$(CC) $(COBJFLAGS) -DNDEBUG -o $@ $<
 
 $(BIN_DIR):
