@@ -64,7 +64,7 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
 
     p_internals->hwnd = hwnd;
 
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 void platform_window_destroy(struct platform_window* p_window) {

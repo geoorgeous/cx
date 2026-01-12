@@ -1,19 +1,17 @@
-#include "errors.h"
 #include "gl.h"
-#include <GL/glext.h>
 #include <GL/glx.h>
 
-#include <GL/glxext.h>
 #include <string.h>
 #include <X11/Xlib.h>
 
 #include "cx_gfx_context.h"
 #include "cx_logging.h"
+#include "errors.h"
 #include "platform_window.h"
 #include "platform_window.nix_x11.h"
 
-#define GLX_MIN_VER_MAJOR 1
-#define GLX_MIN_VER_MINOR 2
+#define GLX_MIN_VERSION_MAJOR 1
+#define GLX_MIN_VERSION_MINOR 2
 
 typedef GLXContext glXCreateContextAttribsARB_fn(
     Display *dpy, GLXFBConfig config,
@@ -34,6 +32,10 @@ glXCreateContextAttribsARB_fn* glXCreateContextAttribsARB;
 #endif
 #ifndef GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
 #define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB    0x0002
+
+#endif
+#ifndef GL_CONTEXT_FLAG_DEBUG_BIT
+#define GL_CONTEXT_FLAG_DEBUG_BIT             0x00000002
 #endif
 
 #ifndef NDEBUG
@@ -99,10 +101,10 @@ enum error cx_gfx_context_create(
 	GLint glx_version_minor = 0;
 
 	glXQueryVersion(p_window_internals->p_display, &glx_version_major, &glx_version_minor);
-	if (glx_version_major < GLX_MIN_VER_MAJOR || glx_version_minor < GLX_MIN_VER_MINOR) {
+	if (glx_version_major < GLX_MIN_VERSION_MAJOR || glx_version_minor < GLX_MIN_VERSION_MINOR) {
 		CX_LOG_FMT(ERROR, GFX_CORE,
 			"glX %d.%d or greater is required (glX version = %d.%d)\n",
-			GLX_MIN_VER_MAJOR, GLX_MIN_VER_MINOR, glx_version_major, glx_version_minor);
+			GLX_MIN_VERSION_MAJOR, GLX_MIN_VERSION_MINOR, glx_version_major, glx_version_minor);
 		return ERROR_api_glx;
 	}
 

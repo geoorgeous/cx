@@ -1,11 +1,12 @@
 #include "cx_gfx_context.h"
-#include "gl.h"
 #include "cx_logging.h"
+#include "errors.h"
+#include "gl.h"
 #include "platform_window.h"
 #include "platform_window.win32.h"
 
-#define MIN_GL_VER_MJR 3
-#define MIN_GL_VER_MIN 3
+#define GL_VERSION_MAJOR 3
+#define GL_VERSION_MINOR 3
 
 typedef const char* APIENTRY wglGetExtensionsStringARB_fn(HDC);
 wglGetExtensionsStringARB_fn* wglGetExtensionsStringARB;
@@ -89,7 +90,7 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
     const struct platform_window_win32_internals* p_window_win32_internals = (const void*)p_window->_bytes;
 
     enum error err = win32_load_gl_functions();
-	if (err != ERROR_OK) {
+	if (err != ERROR_none) {
 		return err;
 	}
 
@@ -109,32 +110,31 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 	int pixel_format;
 	UINT num_formats;
 	if (!wglChoosePixelFormatARB(p_window_win32_internals->hdc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats)) {
-		return ERROR_WGL_CHOOSE_PIXEL_FORMAT;
+		return ERROR_api_wgl;
 	}
 
 	if (num_formats == 0) {
-		return ERROR_WGL_NO_SUITABLE_PIXEL_FORMAT;
+		return ERROR_api_wgl;
 	}
 
 	PIXELFORMATDESCRIPTOR pfd;
 	if (DescribePixelFormat(p_window_win32_internals->hdc, pixel_format, sizeof(pfd), &pfd) == 0) {
-		return ERROR_WINGDI_DESCRIBE_PIXEL_FORMAT;
+		return ERROR_api_win32;
 	}
 
 	if (!SetPixelFormat(p_window_win32_internals->hdc, pixel_format, &pfd)) {
-		return ERROR_WINGDI_SET_PIXEL_FORMAT;
+		return ERROR_api_win32;
 	}
 
 	int gl_context_flags = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
-	
 #ifndef NDEBUG
 	gl_context_flags |= WGL_CONTEXT_DEBUG_BIT_ARB;
 #endif
 
 	// Specify that we want to create an OpenGL x.x core profile context
 	int gl_attribs[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, MIN_GL_VER_MJR,
-		WGL_CONTEXT_MINOR_VERSION_ARB, MIN_GL_VER_MIN,
+		WGL_CONTEXT_MAJOR_VERSION_ARB, GL_VERSION_MAJOR,
+		WGL_CONTEXT_MINOR_VERSION_ARB, GL_VERSION_MINOR,
 		WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		WGL_CONTEXT_FLAGS_ARB,         gl_context_flags,
 		0,
@@ -142,11 +142,11 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 
 	HGLRC hrc = wglCreateContextAttribsARB(p_window_win32_internals->hdc, 0, gl_attribs);
 	if (!hrc) {
-		return ERROR_gfx_core_create_context;
+		return ERROR_api_wgl;
 	}
 
 	if (!wglMakeCurrent(p_window_win32_internals->hdc, hrc)) {
-		return ERROR_WGL_MAKE_CURRENT;
+		return ERROR_api_wgl;
 	}
 
 #ifndef NDEBUG
@@ -164,10 +164,16 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 	            
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
-	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_GFX_CORE, "OpenGL %scontext created (v%s, GLSL v%s)\n", context_flags & 0x2 ? "Debug " : "", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
-	cx_log_fmt(CX_LOG_INFO, CX_LOG_CAT_GFX_CORE, "Graphics platform: %s, %s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
+	
+	CX_LOG_FMT(INFO, GFX_CORE,
+		"OpenGL %scontext created (v%s, GLSL v%s)\n",
+		context_flags & 0x2 ? "Debug " : "", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+	
+	CX_LOG_FMT(INFO, GFX_CORE,
+		"Graphics platform: %s, %s\n",
+		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
@@ -180,26 +186,26 @@ enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
     const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglMakeCurrent(p_internals->hdc, p_internals->hrc)) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
-	return ERROR_WGL_MAKE_CURRENT;
+	return ERROR_gl_make_current;
 }
 
 enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
     const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglSwapLayerBuffers(p_internals->hdc, WGL_SWAP_MAIN_PLANE)) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
-	return ERROR_WGL;
+	return ERROR_api_wgl;
 }
 
 enum error win32_load_gl_functions(void) {
     static int b_loaded = 0;
 
 	if (b_loaded) {
-		return ERROR_OK;
+		return ERROR_none;
 	}
 
 	// Before we can load extensions, we need a dummy OpenGL context, created using a dummy window.
@@ -233,7 +239,7 @@ enum error win32_load_gl_functions(void) {
 		0);
 
 	if (!hwnd) {
-		return ERROR_WIN32_CREATE_WINDOW;
+		return ERROR_api_win32;
 	}
 
 	HDC hdc = GetDC(hwnd);
@@ -252,20 +258,20 @@ enum error win32_load_gl_functions(void) {
 
 	int pixel_format = ChoosePixelFormat(hdc, &pfd);
 	if (!pixel_format) {
-		return ERROR_WINGDI_CHOOSE_PIXEL_FORMAT;
+		return ERROR_api_win32;
 	}
 	
 	if (!SetPixelFormat(hdc, pixel_format, &pfd)) {
-		return ERROR_WINGDI_SET_PIXEL_FORMAT;
+		return ERROR_api_win32;
 	}
 
 	HGLRC hglrc = wglCreateContext(hdc);
 	if (!hglrc) {
-		return ERROR_gfx_core_create_context;
+		return ERROR_api_wgl;
 	}
 
 	if (!wglMakeCurrent(hdc, hglrc)) {
-		return ERROR_WGL_MAKE_CURRENT;
+		return ERROR_api_wgl;
 	}
 
 	// GLint extensions_n = 0;
@@ -314,11 +320,19 @@ enum error win32_load_gl_functions(void) {
 
 	b_loaded = 1;
 
-	return ERROR_OK;
+	return ERROR_none;
 }
 
 #ifndef NDEBUG
-void gl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei, const char* message, const void*) {
+void gl_debug_message_callback(
+	GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei,
+	const char* message,
+	const void*) {
+
     const char* s_source = 0;
     const char* s_type = 0;
 
@@ -342,19 +356,21 @@ void gl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum sev
 		default:                                    s_type = "???"; break;
 	}
 
-	int log_level = CX_LOG_TRACE;
+	int log_level = CX_LOG_LEVEL_TRACE;
 
 	if (severity == GL_DEBUG_SEVERITY_LOW_ARB) {
-		log_level = CX_LOG_INFO;
+		log_level = CX_LOG_LEVEL_INFO;
 	} else if (severity == GL_DEBUG_SEVERITY_MEDIUM_ARB || severity == GL_DEBUG_SEVERITY_HIGH_ARB) {
-		log_level = CX_LOG_WARNING;
+		log_level = CX_LOG_LEVEL_WARNING;
 	}
 	
 	if (type == GL_DEBUG_TYPE_ERROR_ARB) {
-		log_level = CX_LOG_ERROR;
+		log_level = CX_LOG_LEVEL_ERROR;
 	}
 
-	cx_log_fmt(log_level, CX_LOG_CAT_GFX_CORE, "Message: { id=%u, source='%s', type='%s' } %s\n", id, s_source, s_type, message);
+	cx_log_fmt(log_level, CX_LOG_CAT_GFX_CORE,
+		"Message: { id=%u, source='%s', type='%s' } %s\n",
+		id, s_source, s_type, message);
 }
 #endif
 #endif
