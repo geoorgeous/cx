@@ -309,15 +309,17 @@ void read_gltf_extensions(struct gltf_reader* p_reader) {
     const size_t n_extensions_used = json_array_len(p_json_ext_used);
 
     if (n_extensions_used == 0) {
-        CX_LOG(TRACE, GLTF, "Extensions used: none\n");
+        CX_DBG(CX_LOG(TRACE, GLTF, "Extensions used: none\n"));
         return;
     }
 
-    CX_LOG(TRACE, GLTF, "Extensions used:\n");
-    for (size_t i = 0; i < json_array_len(p_json_ext_used); ++i) {
-        const struct json_value* p_json_ext_str = json_array_get(p_json_ext_used, i);
-        CX_LOG_FMT(TRACE, GLTF, "  '%s'\n", json_string(p_json_ext_str));
-    }
+	CX_DBG(
+    	CX_LOG(TRACE, GLTF, "Extensions used:\n");
+    	for (size_t i = 0; i < json_array_len(p_json_ext_used); ++i) {
+        	const struct json_value* p_json_ext_str = json_array_get(p_json_ext_used, i);
+        	CX_LOG_FMT(TRACE, GLTF, "  '%s'\n", json_string(p_json_ext_str));
+    	}
+	);
 
     const struct json_value* p_json_ext_required = json_object_get(p_reader->p_json_gltf, "extensionsRequired");
 
@@ -328,15 +330,17 @@ void read_gltf_extensions(struct gltf_reader* p_reader) {
     const size_t n_extensions_required = json_array_len(p_json_ext_required);
 
     if (n_extensions_required == 0) {
-        CX_LOG(TRACE, GLTF, "Extensions required: none\n");
+        CX_DBG(CX_LOG(TRACE, GLTF, "Extensions required: none\n"));
         return;
     }
 
-    CX_LOG(TRACE, GLTF, "Extensions required:\n");
-    for (size_t i = 0; i < json_array_len(p_json_ext_required); ++i) {
-        const struct json_value* p_json_ext_str = json_array_get(p_json_ext_required, i);
-        CX_LOG_FMT(TRACE, GLTF, "  '%s'\n", json_string(p_json_ext_str));
-    }
+	CX_DBG(
+    	CX_LOG(TRACE, GLTF, "Extensions required:\n");
+    	for (size_t i = 0; i < json_array_len(p_json_ext_required); ++i) {
+        	const struct json_value* p_json_ext_str = json_array_get(p_json_ext_required, i);
+        	CX_LOG_FMT(TRACE, GLTF, "  '%s'\n", json_string(p_json_ext_str));
+    	}
+	);
 }
 
 void read_gltf_object_array(struct gltf_reader* p_reader, const char* s_array_key, void** p_elements, size_t* n_elements, size_t element_size, read_element_proc read_element) {
@@ -379,7 +383,7 @@ void read_gltf_object_array(struct gltf_reader* p_reader, const char* s_array_ke
         }
     }
 
-    CX_LOG_FMT(TRACE, GLTF, "%s count: %llu\n", s_array_key, *n_elements);
+    CX_DBG(CX_LOG_FMT(TRACE, GLTF, "%s count: %llu\n", s_array_key, *n_elements));
 }
 
 void read_gltf_object_property(struct gltf_reader* p_reader, const struct json_value* p_json_gltf_object, const char* s_key, int b_required, int(*type_checker)(const struct json_value*), const struct json_value** p_result) {
