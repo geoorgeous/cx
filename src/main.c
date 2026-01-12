@@ -4,12 +4,12 @@
 #include "asset.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
+#include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
 #include "cx_logging.h"
 #include "dev.h"
 #include "errors.h"
-#include "gl_mesh.h"
 #include "gl.h"
 #include "gltf.h"
 #include "input.h"
@@ -460,7 +460,7 @@ int main(int argc, const char* argv[]) {
                     }
 					
 					cx_gfx_program_opaque_param_bind_resource(&program_opaque_texture_albedo, p_gfx_texture);
-                    gl_mesh_draw(&p_mesh->p_gl_meshes[j]);
+                    cx_gfx_mesh_draw(&p_mesh->p_gfx_meshes[j]);
                 }
             }
 

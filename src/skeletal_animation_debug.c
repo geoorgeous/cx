@@ -1,6 +1,5 @@
+#include "cx_gfx_mesh.h"
 #include "gl_program.h"
-#include "gl_mesh.h"
-#include "cx_logging.h"
 #include "matrix.h"
 #include "mesh_factory.h"
 #include "mesh.h"
@@ -10,8 +9,8 @@
 
 static struct {
     int b_initialized;
-    struct gl_mesh gl_joint_mesh;
-    struct gl_mesh gl_bone_mesh;
+    struct cx_gfx_mesh joint_mesh;
+    struct cx_gfx_mesh bone_mesh;
     struct gl_program gl_program;
 } g_rendering;
 
@@ -46,7 +45,7 @@ void debug_draw_skeleton(const struct skeleton* p_skeleton, const float* p_proje
 static void init_rendering(void) {
     struct mesh_primitive joint_mesh;
     mesh_factory_make_sphere(0.0175f, 8, &joint_mesh);
-    gl_mesh_create(&g_rendering.gl_joint_mesh, &joint_mesh);
+    cx_gfx_mesh_create(&g_rendering.joint_mesh, &joint_mesh);
 
     const float hw = 0.1f;
     const float zm = hw * 2;
@@ -100,7 +99,7 @@ static void init_rendering(void) {
         .draw_mode = MESH_PRIMITIVE_DRAW_MODE_line_strip
     };
     
-    gl_mesh_create(&g_rendering.gl_bone_mesh, &bone_mesh);
+    cx_gfx_mesh_create(&g_rendering.bone_mesh, &bone_mesh);
 
     struct gl_shader gl_vertex_shader;
     struct gl_shader gl_fragment_shader;
@@ -167,7 +166,7 @@ void debug_draw_skeleton_joint(const float* p_transform, const float* p_color) {
     gl_uniform_location = glGetUniformLocation(g_rendering.gl_program.gl_handle, "u_color");
     glUniform3fv(gl_uniform_location, 1, p_color);
 
-    gl_mesh_draw(&g_rendering.gl_joint_mesh);
+    cx_gfx_mesh_draw(&g_rendering.joint_mesh);
 }
 
 void debug_draw_skeleton_bone(const float* p_transform_a, const float* p_transform_b, const float* p_color) {
@@ -219,5 +218,5 @@ void debug_draw_skeleton_bone(const float* p_transform_a, const float* p_transfo
     gl_uniform_location = glGetUniformLocation(g_rendering.gl_program.gl_handle, "u_color");
     glUniform3fv(gl_uniform_location, 1, p_color);
 
-    gl_mesh_draw(&g_rendering.gl_bone_mesh);
+    cx_gfx_mesh_draw(&g_rendering.bone_mesh);
 }

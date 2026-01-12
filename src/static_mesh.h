@@ -7,14 +7,14 @@
 
 #define ASSET_TYPE_STATIC_MESH 4
 
-struct gl_mesh;
+struct cx_gfx_mesh;
 struct mesh_primitive;
 
 struct static_mesh {
     struct mesh_primitive* p_primitives;
     size_t                 num_primitives;
     asset_handle*          p_materials;
-    struct gl_mesh*        p_gl_meshes;
+    struct cx_gfx_mesh*    p_gfx_meshes;
     int                    b_loaded_device_meshes;
 };
 

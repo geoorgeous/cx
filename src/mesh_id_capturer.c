@@ -1,17 +1,12 @@
 #include "cx_gfx_framebuffer.h"
+#include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
 #include "cx_pixel_format.h"
-#include "gl_mesh.h"
+#include "gl.h"
 #include "matrix.h"
 #include <stdint.h>
 #include "mesh_id_capturer.h"
-
-struct mesh_id_capturer_item {
-    const struct gl_mesh* p_gl_mesh;
-    const float*          p_transform;
-    unsigned int          id;
-};
 
 static struct cx_gfx_program program;
 static struct cx_gfx_program_param_block program_pblk_camera;
@@ -110,7 +105,7 @@ void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const u
 	cx_gfx_program_param_buffer_set(&program_pbuf_camera, 0, 0, &camera);
 }
 
-void mesh_id_capturer_submit(const struct gl_mesh* p_gl_mesh, const float* p_transform, unsigned int id) {
+void mesh_id_capturer_submit(const struct cx_gfx_mesh* p_mesh, const float* p_transform, unsigned int id) {
 	struct {
 		float        vertex_matrix[16];
 		unsigned int id;
@@ -121,7 +116,7 @@ void mesh_id_capturer_submit(const struct gl_mesh* p_gl_mesh, const float* p_tra
 
 	cx_gfx_program_param_buffer_set(&program_pbuf_object, 0, 0, &object);
 
-    gl_mesh_draw(p_gl_mesh);
+    cx_gfx_mesh_draw(p_mesh);
 }
 
 unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, const float* p_normalized_coordinates) {

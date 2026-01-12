@@ -4,8 +4,8 @@
 
 #include "asset.h"
 #include "cx_gfx_framebuffer.h"
+#include "cx_gfx_mesh.h"
 #include "dev.h"
-#include "gl_mesh.h"
 #include "gl_program.h"
 #include "gltf.h"
 #include "half_edge.h"
@@ -53,7 +53,7 @@ enum gizmo_type {
 };
 
 struct gizmo_control {
-    struct gl_mesh gl_mesh;
+    struct cx_gfx_mesh gfx_mesh;
     unsigned int   mesh_id_capturer_id;
     float          color[3];
 };
@@ -217,13 +217,13 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_load_from_file("res/builtin/gizmo_translate.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
-    gl_mesh_create(&g_dev.gizmos.control_t_x.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_t_y.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_t_z.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_t_xy.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_t_xz.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_t_yz.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_t_center.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
     
     gltf_free(&gltf);
     import_gltf_free(&import_result);
@@ -231,10 +231,10 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_load_from_file("res/builtin/gizmo_rotate.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
-    gl_mesh_create(&g_dev.gizmos.control_r_x.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_r_y.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_r_z.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_r_center.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
     
     gltf_free(&gltf);
     import_gltf_free(&import_result);
@@ -242,13 +242,13 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_load_from_file("res/builtin/gizmo_scale.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
-    gl_mesh_create(&g_dev.gizmos.control_s_x.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_s_y.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_s_z.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_s_xy.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_s_xz.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_s_yz.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->_asset._p_data))->p_primitives[0]);
-    gl_mesh_create(&g_dev.gizmos.control_s_center.gl_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
     
     gltf_free(&gltf);
     import_gltf_free(&import_result);
@@ -302,24 +302,24 @@ void dev_shutdown(void) {
 
     gl_program_destroy(&g_dev.gl_program_flat);
 
-    gl_mesh_destroy(&g_dev.gizmos.control_t_x.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_t_y.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_t_z.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_t_xy.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_t_xz.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_t_yz.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_t_center.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_r_x.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_r_y.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_r_z.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_r_center.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_x.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_y.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_z.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_xy.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_xz.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_yz.gl_mesh);
-    gl_mesh_destroy(&g_dev.gizmos.control_s_center.gl_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_x.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_y.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_z.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_xy.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_xz.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_yz.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_center.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_r_x.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_r_y.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_r_z.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_r_center.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_x.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_y.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_z.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_xy.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_xz.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_yz.gfx_mesh);
+    cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_center.gfx_mesh);
 
     asset_package_free(&g_dev.asset_package);
 }
@@ -358,9 +358,9 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
             const struct static_mesh* p_mesh = g_dev.p_selected_entity->p_mesh->_asset._p_data;
 
             for (size_t i = 0; i < p_mesh->num_primitives; ++i) {
-                const struct gl_mesh* p_gl_mesh = &p_mesh->p_gl_meshes[i];
-                vec3_min(bounds_min, p_gl_mesh->_bounds_min, bounds_min);
-                vec3_max(bounds_max, p_gl_mesh->_bounds_max, bounds_max);
+                const struct cx_gfx_mesh* p_gfx_mesh = &p_mesh->p_gfx_meshes[i];
+                vec3_min(bounds_min, p_gfx_mesh->_bounds_min, bounds_min);
+                vec3_max(bounds_max, p_gfx_mesh->_bounds_max, bounds_max);
             }
 
             float mesh_bounds_box_vertices[] = {
@@ -413,17 +413,17 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
                 .draw_mode = MESH_PRIMITIVE_DRAW_MODE_lines
             };
 
-            struct gl_mesh gl_mesh_bounds_box_mesh;
-            gl_mesh_create(&gl_mesh_bounds_box_mesh, &mesh_bounds_box_mesh);
+            struct cx_gfx_mesh gfx_mesh_bounds_box_mesh;
+            cx_gfx_mesh_create(&gfx_mesh_bounds_box_mesh, &mesh_bounds_box_mesh);
             
             glUniformMatrix4fv(g_dev.gl_program_flat_u_model_matrix, 1, GL_FALSE, g_dev.p_selected_entity->transform.world_trs_matrix);
             
             float mesh_bounds_box_color[] = { 0.75, 0.6, 0 };
             glUniform3fv(g_dev.gl_program_flat_u_color, 1, mesh_bounds_box_color);
 
-            gl_mesh_draw(&gl_mesh_bounds_box_mesh);
+            cx_gfx_mesh_draw(&gfx_mesh_bounds_box_mesh);
 
-            gl_mesh_destroy(&gl_mesh_bounds_box_mesh);
+            cx_gfx_mesh_destroy(&gfx_mesh_bounds_box_mesh);
         }
     }
 
@@ -824,7 +824,7 @@ void draw_gizmo(void) {
 void draw_gizmo_control(const struct gizmo_control* p_control) {
     const int b_highlight = (g_dev.pressed_mesh_id == 0 && g_dev.target_mesh_id == p_control->mesh_id_capturer_id) || (g_dev.pressed_mesh_id == p_control->mesh_id_capturer_id);
     glUniform3fv(g_dev.gl_program_flat_u_color, 1, b_highlight ? g_dev.gizmos.hovered_control_color : p_control->color);
-    gl_mesh_draw(&p_control->gl_mesh);
+    cx_gfx_mesh_draw(&p_control->gfx_mesh);
 }
 
 int find_gizmo_control_plane_cursor_drag_intersection(const float* p_control_plane_normal, const float* p_cursor_ray_origin, const float* p_cursor_ray, float* p_cursor_world_pos) {
@@ -1003,8 +1003,8 @@ void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* 
             const struct static_mesh* p_mesh = p_entity->p_mesh->_asset._p_data;
 
             for (size_t j = 0; j < p_mesh->num_primitives; ++j) {
-                const struct gl_mesh* p_gl_mesh = &p_mesh->p_gl_meshes[j];
-                mesh_id_capturer_submit(p_gl_mesh, p_entity->transform.world_trs_matrix, mesh_id_capturer_entity_id);
+                const struct cx_gfx_mesh* p_gfx_mesh = &p_mesh->p_gfx_meshes[j];
+                mesh_id_capturer_submit(p_gfx_mesh, p_entity->transform.world_trs_matrix, mesh_id_capturer_entity_id);
             }
         }
 
@@ -1064,7 +1064,7 @@ void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* 
 }
 
 void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_control* p_control) {
-    mesh_id_capturer_submit(&p_control->gl_mesh, g_dev.gizmos.gizmo_transform, p_control->mesh_id_capturer_id);
+    mesh_id_capturer_submit(&p_control->gfx_mesh, g_dev.gizmos.gizmo_transform, p_control->mesh_id_capturer_id);
 } 
 
 void draw_hull_DEBUGDEBUGDEBUG(void) {
@@ -1077,8 +1077,8 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
     static struct mesh_primitive mesh_primitive;
     static struct mesh_primitive mesh_primitive_outline;
     
-    static struct gl_mesh gl_mesh;
-    static struct gl_mesh gl_mesh_outline;
+    static struct cx_gfx_mesh gfx_mesh;
+    static struct cx_gfx_mesh gfx_mesh_outline;
 
     static struct scene_entity* p_old_selected_entity;
 
@@ -1088,17 +1088,17 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
         if (he_mesh.p_buffer) {
             quickhull_free(&he_mesh);
             mesh_factory_free_primitive(&mesh_primitive);
-            gl_mesh_destroy(&gl_mesh);
-            gl_mesh_destroy(&gl_mesh_outline);
+            cx_gfx_mesh_destroy(&gfx_mesh);
+            cx_gfx_mesh_destroy(&gfx_mesh_outline);
         }
 
         quickhull_static_mesh((const struct static_mesh*)g_dev.p_selected_entity->p_mesh->_asset._p_data, &he_mesh);
         
-        mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive, 0);
-        gl_mesh_create(&gl_mesh, &mesh_primitive);
+        mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive);
+        cx_gfx_mesh_create(&gfx_mesh, &mesh_primitive);
     
-        mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive_outline, 1);
-        gl_mesh_create(&gl_mesh_outline, &mesh_primitive_outline);
+        mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive_outline);
+        cx_gfx_mesh_create(&gfx_mesh_outline, &mesh_primitive_outline);
     }
 
     float matrix[16];
@@ -1107,9 +1107,9 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
     
     float color[] = { 1, 1, 1 };
     glUniform3fv(g_dev.gl_program_flat_u_color, 1, color);
-    gl_mesh_draw(&gl_mesh);
+    cx_gfx_mesh_draw(&gfx_mesh);
     
     float color_wf[] = { 1, 0, 0 };
     glUniform3fv(g_dev.gl_program_flat_u_color, 1, color_wf);
-    gl_mesh_draw(&gl_mesh_outline);
+    cx_gfx_mesh_draw(&gfx_mesh_outline);
 }
