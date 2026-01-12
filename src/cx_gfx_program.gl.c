@@ -216,10 +216,9 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 	GLint count;
 	char string_buf[UNIFORM_NAME_MAX_LEN];
 
-	glGetProgramiv(p_program_internals->id, GL_ACTIVE_ATTRIBUTES, &count);
-
-	
 	CX_DBG(
+		glGetProgramiv(p_program_internals->id, GL_ACTIVE_ATTRIBUTES, &count);
+		
 		CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active input attributes: %d\n", count);
 
 		for (GLint i = 0; i < count; ++i) {
@@ -265,19 +264,19 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 		}
 	}
 
-	CX_DBG(
-		glGetProgramiv(p_program_internals->id, GL_ACTIVE_UNIFORM_BLOCKS, &count);
+	glGetProgramiv(p_program_internals->id, GL_ACTIVE_UNIFORM_BLOCKS, &count);
 
-		CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active param blocks: %d\n", count);
+	CX_DBG(CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active param blocks: %d\n", count));
+	
+	for (GLint i = 0; i < count; ++i) {
+		glUniformBlockBinding(p_program_internals->id, i, i);
 		
-		for (GLint i = 0; i < count; ++i) {
+		CX_DBG(
 			GLint ublock_size;
 			GLint ublock_active_uniforms;
 			GLint ublock_active_uniform_indices[UNIFORM_BLOCK_MAX_UNIFORMS];
 			GLint ublock_bind_point;
-			
-			glUniformBlockBinding(p_program_internals->id, i, i);
-			
+
 			glGetActiveUniformBlockName(p_program_internals->id, i, UNIFORM_NAME_MAX_LEN, 0, string_buf);
 			
 			glGetActiveUniformBlockiv(p_program_internals->id, i, GL_UNIFORM_BLOCK_DATA_SIZE, &ublock_size);
@@ -307,8 +306,8 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 			for (GLint j = 0; j < ublock_active_uniforms; ++j) {
 				CX_LOG_FMT(TRACE, GFX_PROGRAM, "    %d: index=%d\n", j, ublock_active_uniform_indices[j]);
 			}
-		}
-	);
+		);
+	}
 
 end:
 	glDeleteShader(vertex_shader);
