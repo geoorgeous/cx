@@ -19,7 +19,7 @@ struct input_frame_state {
 };
 
 static struct input {
-    struct event             events[4];
+    struct event             events[INPUT_EVENT__MAX];
     struct input_frame_state frame;
     struct input_frame_state frame_old;
 } input;

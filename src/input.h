@@ -10,7 +10,9 @@ enum input_event {
     INPUT_EVENT_key,
     INPUT_EVENT_mouse_button,
     INPUT_EVENT_mouse_move,
-    INPUT_EVENT_scroll
+    INPUT_EVENT_scroll,
+	INPUT_EVENT_char,
+	INPUT_EVENT__MAX
 };
 
 struct input_event_data_key {
@@ -32,6 +34,10 @@ struct input_event_data_mouse_move {
 struct input_event_data_scroll {
     int delta_x;
     int delta_y;
+};
+
+struct input_event_data_char {
+	unsigned int code;
 };
 
 void input_init(void);
