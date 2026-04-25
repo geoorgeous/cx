@@ -4,6 +4,7 @@
 
 #include "asset.h"
 #include "cx_logging.h"
+#include "hashtable.h"
 #include "serialization.h"
 
 static struct asset_type_table {
@@ -286,24 +287,31 @@ void asset_package_save_as(struct asset_package* p_package, const char* s_filena
 
 asset_handle asset_package_find_record(const struct asset_package* p_package, asset_id id) {
     const uint8_t asset_type = GET_ASSET_TYPE(id);
-    struct hashtable* p_records = hashtable_find(&p_package->_asset_type_record_tables, &asset_type, sizeof(asset_type));
-    
-    if (!p_records) {
-        return 0;
-    }
 
-    return hashtable_find(p_records, &id, sizeof(id));
+	struct hashtable_itr itr;
+    
+	if (!hashtable_find(&p_package->_asset_type_record_tables, &asset_type, sizeof(asset_type), &itr)) {
+		return 0;
+	}
+
+	struct hashtable* p_records = itr.p_value;
+	hashtable_i_find(p_records, id, &itr);
+	return itr.p_value;
 }
 
 asset_handle asset_package_new_record(struct asset_package* p_package, uint8_t type) {
     const asset_id new_asset_id = ASSET_ID(type, rand_idn());
 
-    struct hashtable* p_records = hashtable_find(&p_package->_asset_type_record_tables, &type, sizeof(type));
+	struct hashtable_itr itr;
+	
+	struct hashtable* p_records;
 
-    if (!p_records) {
+    if (!hashtable_find(&p_package->_asset_type_record_tables, &type, sizeof(type), &itr)) {
         p_records = hashtable_add(&p_package->_asset_type_record_tables, &type, sizeof(type));
         hashtable_init(p_records, sizeof(struct asset_package_record));
-    }
+    } else {
+		p_records = itr.p_value;
+	}
     
     struct asset_package_record* p_asset_record = hashtable_add(p_records, &new_asset_id, sizeof(new_asset_id));
     *p_asset_record = (struct asset_package_record) {
@@ -321,12 +329,14 @@ asset_handle asset_package_new_record(struct asset_package* p_package, uint8_t t
 
 void asset_package_delete_record(struct asset_package* p_package, asset_id id) {
     const uint8_t asset_type = GET_ASSET_TYPE(id);
-    struct hashtable* p_records = hashtable_find(&p_package->_asset_type_record_tables, &asset_type, sizeof(asset_type));
-    
-    if (!p_records) {
+
+	struct hashtable_itr itr;
+
+    if (!hashtable_find(&p_package->_asset_type_record_tables, &asset_type, sizeof(asset_type), &itr)) {
         return;
     }
 
+	struct hashtable* p_records = itr.p_value;
     hashtable_remove(p_records, &id, sizeof(id));
 }
 
@@ -337,23 +347,23 @@ void asset_directory_register_package(const struct asset_package* p_package) {
 }
 
 struct asset_package_record* asset_directory_find(asset_id id) {
+	struct hashtable_itr itr;
+
     for (size_t i = g_directory.n_packages; i-- > 0;) {
         const struct asset_package* p_package = g_directory.pp_packages[i];
 
         const uint8_t asset_type = GET_ASSET_TYPE(id);
-        const struct hashtable* p_asset_records = hashtable_find(&p_package->_asset_type_record_tables, &asset_type, sizeof(asset_type));
-
-        if (!p_asset_records) {
+        if (!hashtable_find(&p_package->_asset_type_record_tables, &asset_type, sizeof(asset_type), &itr)) {
             continue;
         }
         
-        struct asset_package_record* p_record = hashtable_find(p_asset_records, &id, sizeof(id));
+		struct hashtable* p_asset_records = itr.p_value;
 
-        if (!p_record) {
+        if (!hashtable_find(p_asset_records, &id, sizeof(id), &itr)) {
             continue;
         }
 
-        return p_record;
+        return (struct asset_package_record*)itr.p_value;
     }
 
     return 0;

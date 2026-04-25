@@ -28,7 +28,8 @@ static void                     hashtable_bucket_append(
 static struct hashtable_bucket* hashtable_find_bucket(
 	const struct hashtable* p_table,
 	const void* p_key,
-	size_t key_len);
+	size_t key_len,
+	size_t* p_out_index);
 
 static int                      key_cmp(const void* p_key0, size_t key0_len, const void* p_key1, size_t key1_len);
 
@@ -53,17 +54,33 @@ void hashtable_free(struct hashtable* p_table) {
     *p_table = (struct hashtable){0};
 }
 
-void* hashtable_find(const struct hashtable* p_table, const void* p_key, size_t key_len) {
+int hashtable_find(const struct hashtable* p_table, const void* p_key, size_t key_len, struct hashtable_itr* p_out_itr) {
+	if (p_out_itr) {
+		*p_out_itr = (struct hashtable_itr){0};
+	}
+
     if (p_table->_n_elements == 0) {
         return 0;
     }
 
-    const struct hashtable_bucket* p_bucket = hashtable_find_bucket(p_table, p_key, key_len);
+	size_t bucket_index;
+
+    const struct hashtable_bucket* p_bucket = hashtable_find_bucket(p_table, p_key, key_len, &bucket_index);
     const struct hashtable_element* p_elem = p_bucket->p_first;
 
     while (p_elem) {
         if (key_cmp(p_elem->p_key, p_elem->key_len, p_key, key_len)) {
-            return p_elem->p_value;
+			if (p_out_itr) {
+				*p_out_itr = (struct hashtable_itr) {
+					.p_key = p_elem->p_key,
+					.key_len = p_elem->key_len,
+					.p_value = p_elem->p_value,
+					._p_table = p_table,
+					._bucket_index = bucket_index,
+					._p_element = p_elem
+				};
+			}
+			return 1;
         }
         p_elem = p_elem->p_next;
     }
@@ -72,7 +89,7 @@ void* hashtable_find(const struct hashtable* p_table, const void* p_key, size_t 
 }
 
 void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len) {
-    if (hashtable_find(p_table, p_key, key_len) != 0) {
+    if (hashtable_find(p_table, p_key, key_len, 0)) {
         CX_LOG_FMT(ERROR, HASHTABLE,
 			"hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x },"
 			"p_key=%x, key_len=%llu: Couldn't add new item. An item with the specified key already exists\n",
@@ -116,24 +133,23 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
         }
     }
 
-    hashtable_bucket_append(hashtable_find_bucket(p_table, p_key, key_len), p_new_elem);
+    hashtable_bucket_append(hashtable_find_bucket(p_table, p_key, key_len, 0), p_new_elem);
     ++p_table->_n_elements;
     
     return p_new_elem->p_value;
 }
 
 void* hashtable_get(struct hashtable* p_table, const void* p_key, size_t key_len) {
-    void* p_value = hashtable_find(p_table, p_key, key_len);
-
-    if (!p_value) {
-        p_value = hashtable_add(p_table, p_key, key_len);
-    }
-
-    return p_value;
+	struct hashtable_itr itr;
+	if (!hashtable_find(p_table, p_key, key_len, &itr)) {
+		return hashtable_add(p_table, p_key, key_len);
+	}
+	
+	return itr.p_value;
 }
 
 void hashtable_remove(struct hashtable* p_table, const void* p_key, size_t key_len) {
-    struct hashtable_bucket* p_bucket = hashtable_find_bucket(p_table, p_key, key_len);
+    struct hashtable_bucket* p_bucket = hashtable_find_bucket(p_table, p_key, key_len, 0);
     struct hashtable_element* p_elem = p_bucket->p_first;
     struct hashtable_element* p_prev = 0;
 
@@ -161,8 +177,8 @@ void hashtable_remove(struct hashtable* p_table, const void* p_key, size_t key_l
     }
 }
 
-void* hashtable_s_find(const struct hashtable* p_table, const char* s_key) {
-    return hashtable_find(p_table, s_key, strlen(s_key) + 1);
+int hashtable_s_find(const struct hashtable* p_table, const char* s_key, struct hashtable_itr* p_out_itr) {
+    return hashtable_find(p_table, s_key, strlen(s_key) + 1, p_out_itr);
 }
 
 void* hashtable_s_add(struct hashtable* p_table, const char* s_key) {
@@ -182,7 +198,7 @@ CX_DBG(
 
 	while (hashtable_itr_is_valid(&itr)) {
 		CX_LOG_FMT(TRACE, HASHTABLE, "  [%s] -> 0x%p\n", itr.p_key, itr.p_value);
-		hashtable_itr_next(&itr);
+			hashtable_itr_next(&itr);
 	}
 );
 
@@ -197,8 +213,8 @@ void hashtable_s_remove(struct hashtable* p_table, const char* s_key) {
     hashtable_remove(p_table, s_key, strlen(s_key) + 1);
 }
 
-void* hashtable_i_find(const struct hashtable* p_table, uint32_t key) {
-    return hashtable_find(p_table, &key, sizeof(key));
+int hashtable_i_find(const struct hashtable* p_table, uint32_t key, struct hashtable_itr* p_out_itr) {
+    return hashtable_find(p_table, &key, sizeof(key), p_out_itr);
 }
 
 void* hashtable_i_add(struct hashtable* p_table, uint32_t key) {
@@ -224,10 +240,10 @@ void hashtable_itr(const struct hashtable* p_table, struct hashtable_itr* p_itr)
     const struct hashtable_element* p_elem = p_buckets[0].p_first;
 
     while (!p_elem) {
-        ++(p_itr->_p_bucket_index);
+        ++(p_itr->_bucket_index);
 
-        if (p_itr->_p_bucket_index < p_table->_n_buckets) {
-            p_elem = p_buckets[p_itr->_p_bucket_index].p_first;
+        if (p_itr->_bucket_index < p_table->_n_buckets) {
+            p_elem = p_buckets[p_itr->_bucket_index].p_first;
         } else {
             *p_itr = (struct hashtable_itr){0};
             return;
@@ -247,10 +263,10 @@ void hashtable_itr_next(struct hashtable_itr* p_itr) {
 
     const struct hashtable_bucket* p_buckets = p_itr->_p_table->_p_buckets;
     while (!p_elem) {
-        ++(p_itr->_p_bucket_index);
+        ++(p_itr->_bucket_index);
 
-        if (p_itr->_p_bucket_index < p_itr->_p_table->_n_buckets) {
-            p_elem = p_buckets[p_itr->_p_bucket_index].p_first;
+        if (p_itr->_bucket_index < p_itr->_p_table->_n_buckets) {
+            p_elem = p_buckets[p_itr->_bucket_index].p_first;
         } else {
             *p_itr = (struct hashtable_itr){0};
             return;
@@ -287,8 +303,18 @@ void hashtable_bucket_append(struct hashtable_bucket* p_bucket, struct hashtable
     p_bucket->p_last->p_next = 0;
 }
 
-struct hashtable_bucket* hashtable_find_bucket(const struct hashtable* p_table, const void* p_key, size_t key_len) {
+struct hashtable_bucket* hashtable_find_bucket(
+	const struct hashtable* p_table,
+	const void* p_key,
+	size_t key_len,
+	size_t* p_out_index) {
+
     const size_t index = hash_key(p_key, key_len) % p_table->_n_buckets;
+
+	if (p_out_index) {
+		*p_out_index = index;
+	}
+
     return (struct hashtable_bucket*)p_table->_p_buckets + index;
 }
 
@@ -330,7 +356,7 @@ int hashtable_resize(struct hashtable* p_table, size_t n_buckets) {
         struct hashtable_element* p_elem = p_buckets_old[i].p_first;
         while (p_elem) {
             struct hashtable_element* p_next = p_elem->p_next;
-            struct hashtable_bucket* p_new_bucket = hashtable_find_bucket(p_table, p_elem->p_key, p_elem->key_len);
+            struct hashtable_bucket* p_new_bucket = hashtable_find_bucket(p_table, p_elem->p_key, p_elem->key_len, 0);
             hashtable_bucket_append(p_new_bucket, p_elem);
             p_elem = p_next;
         }
