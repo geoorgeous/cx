@@ -3,11 +3,13 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysymdef.h>
+#include <ctype.h>
 
 #include "cx_dbg.h"
 #include "cx_logging.h"
 #include "platform_window.h"
 #include "errors.h"
+#include "keys.h"
 #include "platform_window.nix_x11.h"
 
 static enum error x11_init_connection(void);
@@ -255,7 +257,7 @@ void platform_window_poll_events(struct platform_window* p_window) {
                     p_window->_p_callback_on_char(
                         p_window,
                         p_window->_p_callback_on_char_user_ptr,
-                        c);
+                        (unsigned int)c);
                     }
                 }
 
@@ -437,46 +439,53 @@ enum key x11_keycode_to_key(unsigned int keycode) {
     CX_DBG(CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "keycode=%u\n", keycode));
 
     switch (keycode) {
-        case 10: return KEY_1;
-        case 11: return KEY_2;
-        case 12: return KEY_3;
-        case 13: return KEY_4;
-        case 14: return KEY_5;
-        case 15: return KEY_6;
-        case 16: return KEY_7;
-        case 17: return KEY_8;
-        case 18: return KEY_9;
-        case 19: return KEY_0;
-        case 24: return KEY_q;
-        case 25: return KEY_w;
-        case 26: return KEY_e;
-        case 27: return KEY_r;
-        case 28: return KEY_t;
-        case 29: return KEY_y;
-        case 30: return KEY_u;
-        case 31: return KEY_i;
-        case 32: return KEY_o;
-        case 33: return KEY_p;
-        case 37: return KEY_ctrl_left;
-        case 38: return KEY_a;
-        case 39: return KEY_s;
-        case 40: return KEY_d;
-        case 41: return KEY_f;
-        case 42: return KEY_g;
-        case 43: return KEY_h;
-        case 44: return KEY_j;
-        case 45: return KEY_k;
-        case 46: return KEY_l;
-        case 50: return KEY_shift_left;
-        case 52: return KEY_z;
-        case 53: return KEY_x;
-        case 54: return KEY_c;
-        case 55: return KEY_v;
-        case 56: return KEY_b;
-        case 57: return KEY_n;
-        case 58: return KEY_m;
-        case 65: return KEY_space;
-        default: return KEY_unknown;
+        case 10:  return KEY_1;
+        case 11:  return KEY_2;
+        case 12:  return KEY_3;
+        case 13:  return KEY_4;
+        case 14:  return KEY_5;
+        case 15:  return KEY_6;
+        case 16:  return KEY_7;
+        case 17:  return KEY_8;
+        case 18:  return KEY_9;
+        case 19:  return KEY_0;
+		case 22:  return KEY_backspace;
+        case 24:  return KEY_q;
+        case 25:  return KEY_w;
+        case 26:  return KEY_e;
+        case 27:  return KEY_r;
+        case 28:  return KEY_t;
+        case 29:  return KEY_y;
+        case 30:  return KEY_u;
+        case 31:  return KEY_i;
+        case 32:  return KEY_o;
+        case 33:  return KEY_p;
+		case 36:  return KEY_enter;
+        case 37:  return KEY_ctrl_left;
+        case 38:  return KEY_a;
+        case 39:  return KEY_s;
+        case 40:  return KEY_d;
+        case 41:  return KEY_f;
+        case 42:  return KEY_g;
+        case 43:  return KEY_h;
+        case 44:  return KEY_j;
+        case 45:  return KEY_k;
+        case 46:  return KEY_l;
+        case 50:  return KEY_shift_left;
+        case 52:  return KEY_z;
+        case 53:  return KEY_x;
+        case 54:  return KEY_c;
+        case 55:  return KEY_v;
+        case 56:  return KEY_b;
+        case 57:  return KEY_n;
+        case 58:  return KEY_m;
+        case 65:  return KEY_space;
+		case 111: return KEY_up;
+		case 113: return KEY_left;
+		case 114: return KEY_right;
+		case 116: return KEY_down;
+		case 119: return KEY_delete;
+        default:  return KEY_unknown;
     }
 }
 
@@ -494,7 +503,11 @@ char x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event)
         return 0;
     }
 
-    CX_DBG(CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "character='%c'\n", sym_buf[0]));
+CX_DBG(
+	if (!iscntrl(sym_buf[0])) {
+		CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "character='%c'\n", sym_buf[0]);
+	}
+);
 
     return sym_buf[0];
 }
