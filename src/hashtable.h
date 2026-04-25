@@ -1,7 +1,10 @@
 #ifndef _H__HASHTABLE
 #define _H__HASHTABLE
 
+#include <stddef.h>
 #include <stdint.h>
+
+#define CX_LOG_CAT_HASHTABLE "hashtable"
 
 struct hashtable {
     size_t _element_size;
