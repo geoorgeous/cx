@@ -30,7 +30,7 @@ static const char* k_log_level_strings[] = {
 static char              log_cat_str_buf[CX_LOG_CAT_STR_BUF_LEN];
 static char*             p_log_cat_str_buf_next = log_cat_str_buf;
 static struct cx_log_cat log_cats[CX_MAX_LOG_CATS];
-static int               log_cat_global_min_level = CX_LOG_LEVEL_INFO;
+static int               log_cat_global_min_level = CX_LOG_LEVEL_TRACE;
 static size_t            log_cat_count;
 
 void cx_log(int level, const char* s_cat, const char* s_msg) {
@@ -156,7 +156,7 @@ int is_log_visible(const char* s_cat, int level) {
 			continue;
 		}
 		struct cx_log_cat* p_cat;
-		const int cat_min_level = get_log_cat(s_cat, len, &p_cat) ? p_cat->min_level : 0;
+		const int cat_min_level = get_log_cat(s_cat, len, &p_cat) ? p_cat->min_level : CX_LOG_LEVEL_INFO;
 		const int b_visible = cat_min_level <= level && cat_min_level > CX_LOG_LEVEL_SILENT;  
 		if (!b_visible || *p == '\0') {
 			return b_visible;
