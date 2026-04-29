@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "asset.h"
-#include "cx_cli.h"
 #include "cx_commands.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
@@ -124,6 +123,7 @@ static void on_mouse_move(const void* p_event_data, void* p_user_ptr);
 
 static void set_selected_entity(struct scene_entity* p_entity);
 
+static void toggle_draw_physics_colliders(void);
 static void draw_physics(void);
 
 static void  draw_gizmo(void);
@@ -454,7 +454,7 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
 
     switch (p_e->key) {
         case KEY_1: {
-            g_dev.b_draw_physics = !g_dev.b_draw_physics;
+			toggle_draw_physics_colliders();
             break;
         }
         
@@ -761,6 +761,11 @@ void on_mouse_move(const void* p_event_data, void* p_user_ptr) {
 void set_selected_entity(struct scene_entity* p_entity) {
     g_dev.p_selected_entity = p_entity;
     g_dev.gizmos.p_target_transform = p_entity ? &p_entity->transform : 0;
+}
+
+void toggle_draw_physics_colliders(void) {
+	g_dev.b_draw_physics = !g_dev.b_draw_physics;
+	CX_LOG(INFO, DEV, g_dev.b_draw_physics ? "Physics collider drawing enabled\n" : "Physics collider drawing disabled\n");
 }
 
 void draw_physics(void) {
@@ -1126,5 +1131,5 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
 
 void cmd_toggle_draw_physics_colliders(const struct cx_command_context* p_context){
 	(void)p_context;
-	g_dev.b_draw_physics = !g_dev.b_draw_physics;
+	toggle_draw_physics_colliders();
 }
