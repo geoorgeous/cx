@@ -117,12 +117,13 @@ void on_key(const void* p_e, void* p_user_ptr) {
 
 	switch (p_key_event->key) {
 		case KEY_grave: {
-			if (p_key_event->mods & INPUT_MOD_ctrl) {
-				(dev_mode_is_enabled() ? dev_mode_disable : dev_mode_enable)();
-			} else {
-				(cx_cli_is_enabled() ? cx_cli_disable : cx_cli_enable)();
-			}
+			(cx_cli_is_enabled() ? cx_cli_disable : cx_cli_enable)();
 			break;
+		}
+
+		case KEY_f10: {
+			(dev_mode_is_enabled() ? dev_mode_disable : dev_mode_enable)();
+			break;			  
 		}
 
 		default: break;
