@@ -3,15 +3,17 @@
 #include <stdlib.h>
 
 #include "asset.h"
+#include "cx_cli.h"
+#include "cx_commands.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
+#include "cx_logging.h"
 #include "dev.h"
 #include "gl_program.h"
 #include "gltf.h"
 #include "half_edge.h"
 #include "import_gltf.h"
 #include "input.h"
-#include "cx_logging.h"
 #include "math_utils.h"
 #include "matrix.h"
 #include "mesh_factory.h"
@@ -143,6 +145,8 @@ static void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const 
 static void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_control* p_control);
 
 static void draw_hull_DEBUGDEBUGDEBUG(void);
+
+static void cmd_toggle_draw_physics_colliders(const struct cx_command_context* p_context);
 
 void dev_mode_enable(void) {
     g_dev.b_dev_mode_enabled = 1;
@@ -291,6 +295,11 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     g_dev.gizmos.hovered_control_color[0] = 0.9f;
     g_dev.gizmos.hovered_control_color[1] = 0.8f;
     g_dev.gizmos.hovered_control_color[2] = 0.3f;
+
+	cx_commands_register(&(struct cx_command_info){
+		.s_id = "physics.tgl_draw_dbg",
+		.s_description = "Toggle debug rendering of physics colliders."
+	}, cmd_toggle_draw_physics_colliders);
 }
 
 void dev_shutdown(void) {
@@ -1112,4 +1121,9 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
     float color_wf[] = { 1, 0, 0 };
     glUniform3fv(g_dev.gl_program_flat_u_color, 1, color_wf);
     cx_gfx_mesh_draw(&gfx_mesh_outline);
+}
+
+void cmd_toggle_draw_physics_colliders(const struct cx_command_context* p_context){
+	(void)p_context;
+	g_dev.b_draw_physics = !g_dev.b_draw_physics;
 }
