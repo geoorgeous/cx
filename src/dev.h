@@ -5,6 +5,8 @@
 
 #include "gl.h"
 
+#define CX_LOG_CAT_DEV "dev"
+
 #define ENSURE_DEV_MODE() if (!dev_mode_is_enabled()) { return; }
 
 void dev_mode_enable(void);
