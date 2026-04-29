@@ -149,10 +149,12 @@ static void draw_hull_DEBUGDEBUGDEBUG(void);
 static void cmd_toggle_draw_physics_colliders(const struct cx_command_context* p_context);
 
 void dev_mode_enable(void) {
+	CX_DBG(CX_LOG(INFO, DEV, "Dev mode enabled\n"));
     g_dev.b_dev_mode_enabled = 1;
 }
 
 void dev_mode_disable(void) {
+	CX_DBG(CX_LOG(INFO, DEV, "Dev mode disabled\n"));
     g_dev.b_dev_mode_enabled = 0;
 }
 
@@ -770,7 +772,6 @@ void draw_physics(void) {
         if (!p_entity->p_physics_object || !p_entity->p_physics_object->_p_collider) {
             continue;
         }
-
     }
 }
 
