@@ -2,7 +2,19 @@
 #define _H__KEYS
 
 enum key {
-	KEY_unknown = -1,	
+	KEY_unknown = -1,
+	KEY_f1,
+	KEY_f2,
+	KEY_f3,
+	KEY_f4,
+	KEY_f5,
+	KEY_f6,
+	KEY_f7,
+	KEY_f8,
+	KEY_f9,
+	KEY_f10,
+	KEY_f11,
+	KEY_f12,
 	KEY_0,
 	KEY_1,
 	KEY_2,
