@@ -5,7 +5,6 @@
 #include "input.h"
 #include "keys.h"
 #include <ctype.h>
-#include <stdio.h>
 
 #define CX_CLI_BUFFER_LEN 1024
 
@@ -29,6 +28,8 @@ void cx_cli_enable(void) {
 
 	input_event_subscribe(INPUT_EVENT_key, cx_cli_on_key, 0);
 	input_event_subscribe(INPUT_EVENT_char, cx_cli_on_char, 0);
+
+	cx_text_input_clear(&text_input);
 }
 
 void cx_cli_disable(void) {
