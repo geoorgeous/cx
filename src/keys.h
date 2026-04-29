@@ -51,6 +51,7 @@ enum key {
 	KEY_up,
 	KEY_down,
 	KEY_delete,
+	KEY_grave,
 	KEY_escape,
 	KEY__MAX
 

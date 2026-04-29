@@ -2,6 +2,8 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/XKB.h>
+#include <X11/extensions/XKBstr.h>
 #include <X11/keysymdef.h>
 #include <ctype.h>
 
@@ -9,20 +11,28 @@
 #include "cx_logging.h"
 #include "platform_window.h"
 #include "errors.h"
+#include "input.h"
 #include "keys.h"
 #include "platform_window.nix_x11.h"
 
-static enum error x11_init_connection(void);
-static void       x11_close_connection(void);
-static enum key   x11_keycode_to_key(unsigned int keycode);
-static char       x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
-static int        x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
+static enum error   x11_init_connection(void);
+static void         x11_close_connection(void);
+static enum key     x11_keycode_to_key(unsigned int keycode);
+static unsigned int x11_mods_to_input_mods(unsigned int mods);
+static char         x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
+static int          x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
 
 static Display* p_x11_display;
 static XIM      x11_input_method;
 static int      num_x11_windows;
 
-enum error platform_window_create(int width, int height, const char* s_title, void(*p_callback_on_created)(struct platform_window*, void*), void* p_callback_on_created_user_ptr, struct platform_window* p_out_window) {
+enum error platform_window_create(
+	int width, int height,
+	const char* s_title,
+	void(*p_callback_on_created)(struct platform_window*, void*),
+	void* p_callback_on_created_user_ptr,
+	struct platform_window* p_out_window) {
+
     enum error err = x11_init_connection();
     if (err != ERROR_none) {
         return err;
@@ -248,11 +258,12 @@ void platform_window_poll_events(struct platform_window* p_window) {
                         p_window,
                         p_window->_p_callback_on_key_user_ptr,
                         x11_keycode_to_key(event.xkey.keycode),
-                        1);
+                        1,
+						x11_mods_to_input_mods(event.xkey.state));
                 }
 
                 if (p_window->_p_callback_on_char) {
-                    char c = x11_keypressed_to_utf8(p_internals->input_ctx, &event.xkey);
+                    const char c = x11_keypressed_to_utf8(p_internals->input_ctx, &event.xkey);
                     if (c) {
                     p_window->_p_callback_on_char(
                         p_window,
@@ -270,13 +281,16 @@ void platform_window_poll_events(struct platform_window* p_window) {
                         p_window,
                         p_window->_p_callback_on_key_user_ptr,
                         x11_keycode_to_key(event.xkey.keycode),
-                        0);
+                        0,
+						x11_mods_to_input_mods(event.xkey.state));
                 }
                 break;
             }
 
             case ButtonPress:
             case ButtonRelease: {
+				const unsigned int input_mods = x11_mods_to_input_mods(event.xbutton.state);
+
                 if (p_window->_p_callback_on_mouse_button) {
                     enum mouse_button btn = MOUSE_BUTTON__MAX;
 
@@ -294,7 +308,8 @@ void platform_window_poll_events(struct platform_window* p_window) {
                         p_window, 
                         p_window->_p_callback_on_mouse_button_user_ptr, 
                         btn, 
-                        event.type == ButtonPress);
+                        event.type == ButtonPress,
+						input_mods);
                     }
                 }
 
@@ -304,7 +319,8 @@ void platform_window_poll_events(struct platform_window* p_window) {
                             p_window->_p_callback_on_scroll(
                                 p_window,
                                 p_window->_p_callback_on_scroll_user_ptr,
-                                -1);
+                                -1,
+								input_mods);
                             break;
                         }
                         
@@ -312,7 +328,8 @@ void platform_window_poll_events(struct platform_window* p_window) {
                             p_window->_p_callback_on_scroll(
                                 p_window,
                                 p_window->_p_callback_on_scroll_user_ptr,
-                                1);
+                                1,
+								input_mods);
                             break;
                         }
 
@@ -334,7 +351,8 @@ void platform_window_poll_events(struct platform_window* p_window) {
                     p_window->_p_callback_on_mouse_move(
                         p_window,
                         p_window->_p_callback_on_mouse_move_user_ptr,
-                        delta_x, delta_y);
+                        delta_x, delta_y,
+						x11_mods_to_input_mods(event.xmotion.state));
                 }
                 break;                
             }
@@ -369,8 +387,11 @@ int platform_window_is_open(const struct platform_window* p_window) {
     return XGetWindowAttributes(p_internals->p_display, p_internals->window, &window_attribs) != BadWindow;
 }
 
-void platform_window_size(const struct platform_window* p_window, unsigned int* p_out_width, unsigned int* p_out_height) {
-    const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->_bytes;
+void platform_window_size(
+	const struct platform_window* p_window,
+	unsigned int* p_out_width, unsigned int* p_out_height) {
+    
+	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->_bytes;
 
     *p_out_width =
     *p_out_height = 0;
@@ -471,6 +492,7 @@ enum key x11_keycode_to_key(unsigned int keycode) {
         case 44:  return KEY_j;
         case 45:  return KEY_k;
         case 46:  return KEY_l;
+		case 49:  return KEY_grave;
         case 50:  return KEY_shift_left;
         case 52:  return KEY_z;
         case 53:  return KEY_x;
@@ -487,6 +509,17 @@ enum key x11_keycode_to_key(unsigned int keycode) {
 		case 119: return KEY_delete;
         default:  return KEY_unknown;
     }
+}
+
+unsigned int x11_mods_to_input_mods(unsigned int mods) {
+	return
+		(!!(mods & ControlMask) * INPUT_MOD_ctrl) |
+		(!!(mods & ShiftMask) * INPUT_MOD_shift) |
+		(!!(mods & Mod1Mask) * INPUT_MOD_1) |
+		(!!(mods & Mod2Mask) * INPUT_MOD_2) |
+		(!!(mods & Mod3Mask) * INPUT_MOD_3) |
+		(!!(mods & Mod4Mask) * INPUT_MOD_4) |
+		(!!(mods & Mod5Mask) * INPUT_MOD_5);
 }
 
 char x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event) {

@@ -2,6 +2,7 @@
 #include <time.h>
 
 #include "asset.h"
+#include "cx_cli.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
@@ -27,10 +28,28 @@
 #include "transform.h"
 #include "vector.h"
 
+// Need to conceptualise clear boundaries between:
+// - Dev tools
+// - Debug tools
+// - Editor tools
+// - Tools available with non-dev builds
+//
+// Dev tools: kind of a mixture beteen debug and editor? I think really this should just be a command line interface,
+// with some auxillary features like the ability to target things in the world, i.e click them etc.
+//
+// Debug tools: tools that help debug the engine/game. Things like logging, visualisation stuff, etc
+//
+// Editor tools: tools that help edit; save and load; and package the game, assets, scenes etc.
+//
+// DEV CLI COMMANDS
+
 static void platform_window_on_created(struct platform_window*, void*);
-static void platform_window_on_key(struct platform_window*, void*, enum key, int);
-static void platform_window_on_mouse_button(struct platform_window*, void*, enum mouse_button, int);
-static void platform_window_on_mouse_move(struct platform_window*, void*, int, int);
+static void platform_window_on_key(struct platform_window*, void*, enum key, int, unsigned int);
+static void platform_window_on_mouse_button(struct platform_window*, void*, enum mouse_button, int, unsigned int);
+static void platform_window_on_mouse_move(struct platform_window*, void*, int, int, unsigned int);
+static void platform_window_on_char(struct platform_window*, void*, unsigned int);
+
+static void on_key(const void* p_e, void* p_user_ptr);
 
 void platform_window_on_created(struct platform_window* p_window, void* p_user_ptr) {
 	(void)p_user_ptr;
@@ -38,39 +57,76 @@ void platform_window_on_created(struct platform_window* p_window, void* p_user_p
     platform_window_set_on_key_callback(p_window, platform_window_on_key, 0);
     platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, 0);
     platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, 0);
+	platform_window_set_on_char_callback(p_window, platform_window_on_char, 0);
 }
 
-void platform_window_on_key(struct platform_window* p_window, void* p_user_ptr, enum key key, int b_is_down) {
+void platform_window_on_key(struct platform_window* p_window, void* p_user_ptr, enum key key, int b_is_down, unsigned int mods) {
 	(void)p_window;
 	(void)p_user_ptr;
 
     struct input_event_data_key event_data = {
         .key = key,
-        .b_is_down = b_is_down
-    };
+        .b_is_down = b_is_down,
+		.mods = mods
+	};
     input_event_broadcast(INPUT_EVENT_key, &event_data);
 }
 
-void platform_window_on_mouse_button(struct platform_window* p_window, void* p_user_ptr, enum mouse_button button, int b_is_down) {
+void platform_window_on_mouse_button(struct platform_window* p_window, void* p_user_ptr, enum mouse_button button, int b_is_down, unsigned int mods) {
 	(void)p_user_ptr;
 
     struct input_event_data_mouse_button event_data = {
         .button = button,
-        .b_is_down = b_is_down
+        .b_is_down = b_is_down,
+		.mods = mods
     };
     platform_window_get_mouse_client_coords(p_window, &event_data.client_pos[0], &event_data.client_pos[1]);
     input_event_broadcast(INPUT_EVENT_mouse_button, &event_data);
 }
 
-void platform_window_on_mouse_move(struct platform_window* p_window, void* p_user_ptr, int delta_x, int delta_y) {
+void platform_window_on_mouse_move(struct platform_window* p_window, void* p_user_ptr, int delta_x, int delta_y, unsigned int mods) {
 	(void)p_window;
 	(void)p_user_ptr;
 
     struct input_event_data_mouse_move event_data = {
         .delta_x = delta_x,
-        .delta_y = delta_y
+        .delta_y = delta_y,
+		.mods = mods
     };
     input_event_broadcast(INPUT_EVENT_mouse_move, &event_data);
+}
+
+void platform_window_on_char(struct platform_window* p_window, void* p_user_ptr, unsigned int code) {
+	(void)p_window;
+	(void)p_user_ptr;
+
+	struct input_event_data_char event_data = {
+		.code = code
+	};
+	input_event_broadcast(INPUT_EVENT_char, &event_data);
+}
+
+void on_key(const void* p_e, void* p_user_ptr) {
+	(void)p_user_ptr;
+
+	const struct input_event_data_key* p_key_event = p_e;
+
+	if (p_key_event->b_is_down) {
+		return;
+	}
+
+	switch (p_key_event->key) {
+		case KEY_grave: {
+			if (p_key_event->mods & INPUT_MOD_ctrl) {
+				(dev_mode_is_enabled() ? dev_mode_disable : dev_mode_enable)();
+			} else {
+				(cx_cli_is_enabled() ? cx_cli_disable : cx_cli_enable)();
+			}
+			break;
+		}
+
+		default: break;
+	}
 }
 
 int main(int argc, const char* argv[]) {
@@ -79,7 +135,10 @@ int main(int argc, const char* argv[]) {
 
     // printf("It's the 9th of September 2025 and I'm writing yet another game engine project.\n");
 
-	cx_log_cat_set(CX_LOG_CAT_ALL,         CX_LOG_LEVEL_WARNING);
+	//cx_log_cat_set("platform", CX_LOG_LEVEL_TRACE);
+	//cx_log_cat_set(CX_LOG_CAT_PLATFORM_WINDOW, CX_LOG_LEVEL_TRACE);
+	//cx_log_cat_set(CX_LOG_CAT_HASHTABLE, CX_LOG_LEVEL_TRACE);
+	//cx_log_cat_set(CX_LOG_CAT_ALL,         CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_ASSET,       CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_GFX_PROGRAM, CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE, CX_LOG_LEVEL_WARNING);
@@ -260,6 +319,8 @@ int main(int argc, const char* argv[]) {
 
     input_init();
 
+	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
+
     struct physics_world physics_world;
     physics_world_init(&physics_world);
     physics_world_add_solver(&physics_world, physics_collision_solver_impulse);
@@ -306,7 +367,6 @@ int main(int argc, const char* argv[]) {
     }
     
     dev_init(&platform_window, p_scene, &physics_world);
-    dev_mode_enable();
 
     clock_t old_frame_start = clock();
 

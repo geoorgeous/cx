@@ -6,6 +6,16 @@
 #include "keys.h"
 #include "mouse_buttons.h"
 
+enum input_mod {
+	INPUT_MOD_ctrl  = (0x1 << 0),
+	INPUT_MOD_shift = (0x1 << 1),
+	INPUT_MOD_1     = (0x1 << 2),
+	INPUT_MOD_2     = (0x1 << 3),
+	INPUT_MOD_3     = (0x1 << 4),
+	INPUT_MOD_4     = (0x1 << 5),
+	INPUT_MOD_5     = (0x1 << 6),
+};
+
 enum input_event {
     INPUT_EVENT_key,
     INPUT_EVENT_mouse_button,
@@ -16,19 +26,22 @@ enum input_event {
 };
 
 struct input_event_data_key {
-    enum key key;
-    int      b_is_down;
+    enum key     key;
+    int          b_is_down;
+	unsigned int mods;
 };
 
 struct input_event_data_mouse_button {
     enum mouse_button button;
     int               b_is_down;
     int               client_pos[2];
+	unsigned int      mods;
 };
 
 struct input_event_data_mouse_move {
-    int delta_x;
-    int delta_y;
+    int          delta_x;
+    int          delta_y;
+	unsigned int mods;
 };
 
 struct input_event_data_scroll {
