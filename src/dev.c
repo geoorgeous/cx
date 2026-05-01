@@ -6,9 +6,9 @@
 #include "cx_commands.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
+#include "cx_gfx_program.h"
 #include "cx_logging.h"
 #include "dev.h"
-#include "gl_program.h"
 #include "gltf.h"
 #include "half_edge.h"
 #include "import_gltf.h"
@@ -71,11 +71,13 @@ static struct dev_state {
 
     int                           b_is_dragging;
 
-    struct gl_program             gl_program_flat;
-    GLuint                        gl_program_flat_u_projection_matrix;
-    GLuint                        gl_program_flat_u_view_matrix;
-    GLuint                        gl_program_flat_u_model_matrix;
-    GLuint                        gl_program_flat_u_color;
+    struct cx_gfx_program              program_flat;
+	struct cx_gfx_program_param_block  program_pblock_camera;
+	struct cx_gfx_program_param_block  program_pblock_object;
+	struct cx_gfx_program_param_block  program_pblock_material;
+	struct cx_gfx_program_param_buffer program_pbuffer_camera;
+	struct cx_gfx_program_param_buffer program_pbuffer_object;
+	struct cx_gfx_program_param_buffer program_pbuffer_material;
     
     struct asset_package          asset_package;
 
@@ -83,10 +85,14 @@ static struct dev_state {
     float                         perspective_scale;
     float                         camera_position[3];
 
-    struct physics_world*         p_physics_world;
-    int                           b_draw_physics;
-    float*                        p_hull_points;
-    size_t                        num_hull_points;
+    struct physics_world* p_physics_world;
+    int                   b_draw_physics;
+	struct cx_gfx_mesh    physics_collider_mesh_sphere;
+	struct cx_gfx_mesh    physics_collider_mesh_capsule_cap;
+	struct cx_gfx_mesh    physics_collider_mesh_capsule_mid;
+	struct cx_gfx_mesh    physics_collider_mesh_plane;
+    float*                p_hull_points;
+    size_t                num_hull_points;
 
     struct gizmos_state {
         enum gizmo_type      active_type;
@@ -141,8 +147,9 @@ static void  gizmo_drag_scale_axis(const float* p_control_axis, const float* p_c
 static void  gizmo_drag_scale_plane(const float* p_control_plane_normal, const float* p_cursor_ray_origin, const float* p_cursor_ray);
 static void  gizmo_drag_scale_uniformly(const float* p_control_plane_normal, const float* p_cursor_ray_origin, const float* p_cursor_ray);
 
-static void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix);
-static void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_control* p_control);
+static void send_scene_to_mesh_id_capturer(void);
+static void send_gizmo_to_mesh_id_capturer(void);
+static void send_gizmo_control_to_mesh_id_capturer(const struct gizmo_control* p_control);
 
 static void draw_hull_DEBUGDEBUGDEBUG(void);
 
@@ -175,41 +182,39 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     input_event_subscribe(INPUT_EVENT_mouse_button, on_mouse_button, 0);
     input_event_subscribe(INPUT_EVENT_mouse_move, on_mouse_move, 0);
 
-    struct gl_shader gl_vertex_shader;
-    struct gl_shader gl_fragment_shader;
+	struct cx_gfx_program_source program_source = {
+		.s_vertex_stage_source = "#version 330 core\n"
+			"layout(std140) uniform blk_camera {"
+				"mat4 u_projection_matrix;"
+				"mat4 u_view_matrix;"
+			"};"
+			"layout(std140) uniform blk_object {"
+				"mat4 u_vertex_matrix;"
+			"};"
+			"layout (location=0) in vec3 a_pos;"
+			"void main() {"
+				"gl_Position = u_projection_matrix * u_view_matrix * u_vertex_matrix * vec4(a_pos, 1.0);"
+			"}",
+		.s_fragment_stage_source = "#version 330 core\n"
+			"layout(std140) uniform blk_material_properties {"
+				"vec3 u_color;"
+			"};"
+			"out vec4 f_color;"
+			"void main() {"
+				"f_color = vec4(u_color, 1);"
+			"}"
+	};
 
-    gl_shader_create(&gl_vertex_shader, GL_VERTEX_SHADER);
-    gl_shader_compile(&gl_vertex_shader,
-        "#version 330 core\n"
-        "uniform mat4 u_projection_matrix;"
-        "uniform mat4 u_view_matrix;"
-        "uniform mat4 u_model_matrix;"
-        "layout (location=0) in vec3 a_pos;"
-        "void main() {"
-            "gl_Position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(a_pos, 1.0);"
-        "}");
+	cx_gfx_program_create(&g_dev.program_flat);
+	cx_gfx_program_build(&g_dev.program_flat, &program_source);
 
-    gl_shader_create(&gl_fragment_shader, GL_FRAGMENT_SHADER);
-    gl_shader_compile(&gl_fragment_shader,
-        "#version 330 core\n"
-        "uniform vec3 u_color;"
-        "out vec4 f_color;"
-        "void main() {"
-            "f_color = vec4(u_color, 1.0);"
-        "}");
+	cx_gfx_program_refl_param_block(&g_dev.program_flat, "blk_camera", &g_dev.program_pblock_camera);
+	cx_gfx_program_refl_param_block(&g_dev.program_flat, "blk_object", &g_dev.program_pblock_object);
+	cx_gfx_program_refl_param_block(&g_dev.program_flat, "blk_material_properties", &g_dev.program_pblock_material);
 
-    gl_program_create(&g_dev.gl_program_flat);
-    gl_program_attach_shader(&g_dev.gl_program_flat, &gl_vertex_shader);
-    gl_program_attach_shader(&g_dev.gl_program_flat, &gl_fragment_shader);
-    gl_program_link(&g_dev.gl_program_flat);
-
-    gl_shader_destroy(&gl_vertex_shader);
-    gl_shader_destroy(&gl_fragment_shader);
-
-    g_dev.gl_program_flat_u_projection_matrix = glGetUniformLocation(g_dev.gl_program_flat.gl_handle, "u_projection_matrix");
-    g_dev.gl_program_flat_u_view_matrix = glGetUniformLocation(g_dev.gl_program_flat.gl_handle, "u_view_matrix");
-    g_dev.gl_program_flat_u_model_matrix = glGetUniformLocation(g_dev.gl_program_flat.gl_handle, "u_model_matrix");
-    g_dev.gl_program_flat_u_color = glGetUniformLocation(g_dev.gl_program_flat.gl_handle, "u_color");
+	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_camera, g_dev.program_pblock_camera._size);
+	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_object, g_dev.program_pblock_object._size);
+	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_material, g_dev.program_pblock_material._size);
 
     asset_package_init(&g_dev.asset_package);
 
@@ -305,13 +310,16 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 }
 
 void dev_shutdown(void) {
-    mesh_id_capturer_free_resources(&g_dev.mesh_id_capturer);
+	mesh_id_capturer_free(&g_dev.mesh_id_capturer);
 
     input_event_unsubscribe(INPUT_EVENT_key, on_key);
     input_event_unsubscribe(INPUT_EVENT_mouse_button, on_mouse_button);
     input_event_unsubscribe(INPUT_EVENT_mouse_move, on_mouse_move);
 
-    gl_program_destroy(&g_dev.gl_program_flat);
+	cx_gfx_program_destroy(&g_dev.program_flat);
+	cx_gfx_program_param_buffer_destroy(&g_dev.program_pbuffer_camera);
+	cx_gfx_program_param_buffer_destroy(&g_dev.program_pbuffer_object);
+	cx_gfx_program_param_buffer_destroy(&g_dev.program_pbuffer_material);
 
     cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_x.gfx_mesh);
     cx_gfx_mesh_destroy(&g_dev.gizmos.control_t_y.gfx_mesh);
@@ -348,10 +356,21 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
 
 	cx_gfx_framebuffer_bind(p_framebuffer);
 
-    glUseProgram(g_dev.gl_program_flat.gl_handle);
-                
-    glUniformMatrix4fv(g_dev.gl_program_flat_u_projection_matrix, 1, GL_FALSE, p_projection_matrix);
-    glUniformMatrix4fv(g_dev.gl_program_flat_u_view_matrix, 1, GL_FALSE, p_view_matrix);
+	cx_gfx_program_bind(&g_dev.program_flat);
+
+    cx_gfx_program_param_block_bind_buffer(&g_dev.program_pblock_camera, &g_dev.program_pbuffer_camera, 0, 0);
+    cx_gfx_program_param_block_bind_buffer(&g_dev.program_pblock_object, &g_dev.program_pbuffer_object, 0, 0);
+    cx_gfx_program_param_block_bind_buffer(&g_dev.program_pblock_material, &g_dev.program_pbuffer_material, 0, 0);
+
+	struct {
+		float projection_matrix[16];
+		float view_matrix[16];
+	} camera;
+
+	matrix_copy(p_projection_matrix, camera.projection_matrix);
+	matrix_copy(p_view_matrix, camera.view_matrix);
+
+	cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_camera, 0, 0, &camera);
 
     draw_hull_DEBUGDEBUGDEBUG();
 
@@ -427,10 +446,10 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
             struct cx_gfx_mesh gfx_mesh_bounds_box_mesh;
             cx_gfx_mesh_create(&gfx_mesh_bounds_box_mesh, &mesh_bounds_box_mesh);
             
-            glUniformMatrix4fv(g_dev.gl_program_flat_u_model_matrix, 1, GL_FALSE, g_dev.p_selected_entity->transform.world_trs_matrix);
+			cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, g_dev.p_selected_entity->transform.world_trs_matrix);
             
             float mesh_bounds_box_color[] = { 0.75, 0.6, 0 };
-            glUniform3fv(g_dev.gl_program_flat_u_color, 1, mesh_bounds_box_color);
+			cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, mesh_bounds_box_color);
 
             cx_gfx_mesh_draw(&gfx_mesh_bounds_box_mesh);
 
@@ -438,7 +457,23 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
         }
     }
 
-    mesh_selector_render_pass(p_framebuffer_size, p_projection_matrix, p_view_matrix);
+	{
+		mesh_id_capturer_begin(&g_dev.mesh_id_capturer, p_framebuffer_size, p_projection_matrix, p_view_matrix);
+
+		send_scene_to_mesh_id_capturer();
+		
+		if (g_dev.p_selected_entity) {
+			send_gizmo_to_mesh_id_capturer();
+		}
+		
+		int mouse_client_coords[2];
+		platform_window_get_mouse_client_coords(g_dev.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+
+		float mouse_position_normalized[2];
+		platform_window_normalize_client_coords(g_dev.p_window, mouse_client_coords[0], mouse_client_coords[1], &mouse_position_normalized[0], &mouse_position_normalized[1]);
+
+		g_dev.target_mesh_id = mesh_id_capturer_query(&g_dev.mesh_id_capturer, mouse_position_normalized);
+	}
 }
 
 void on_key(const void* p_event_data, void* p_user_ptr) {
@@ -769,6 +804,26 @@ void toggle_draw_physics_colliders(void) {
 }
 
 void draw_physics(void) {
+	if (g_dev.physics_collider_mesh_sphere._elements_count == 0) {
+		struct mesh_primitive mesh_primitive;
+
+		mesh_factory_make_sphere(0.5f, 16, &mesh_primitive);
+		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_sphere, &mesh_primitive);
+		mesh_factory_free_primitive(&mesh_primitive);
+
+		mesh_factory_make_cylinder(0.5f, 0.5f, 0.5f, 16, 0, 0, &mesh_primitive);
+		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_mid, &mesh_primitive);
+		mesh_factory_free_primitive(&mesh_primitive);
+
+		mesh_factory_make_hemisphere(0.5f, 16, &mesh_primitive);
+		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_cap, &mesh_primitive);
+		mesh_factory_free_primitive(&mesh_primitive);
+
+		mesh_factory_make_quad((const float[]){ 0.5f, 0.5f }, &mesh_primitive);
+		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_plane, &mesh_primitive);
+		mesh_factory_free_primitive(&mesh_primitive);
+	}
+
     srand(117);
 
     for (size_t i = 0; i < g_dev.p_scene->_entities._length; ++i) {
@@ -777,6 +832,39 @@ void draw_physics(void) {
         if (!p_entity->p_physics_object || !p_entity->p_physics_object->_p_collider) {
             continue;
         }
+
+		float color[] = { 1.0f, 1.0f, 1.0f };
+		cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color);
+
+		switch (p_entity->p_physics_object->_p_collider->type) {
+			case PHYSICS_COLLIDER_TYPE_sphere: {
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_sphere);
+				break;
+			}
+
+			case PHYSICS_COLLIDER_TYPE_capsule: {
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_capsule_mid);
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_capsule_cap);
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_capsule_cap);
+				break;
+			}
+
+			case PHYSICS_COLLIDER_TYPE_hull: {
+				// todo:
+			}
+
+			case PHYSICS_COLLIDER_TYPE_plane: {
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_plane);
+				break;
+			}
+
+			default: break;
+		}
     }
 }
 
@@ -801,7 +889,7 @@ void draw_gizmo(void) {
     matrix_make_translation(g_dev.gizmos.p_target_transform->world_position[0], g_dev.gizmos.p_target_transform->world_position[1], g_dev.gizmos.p_target_transform->world_position[2], translation);
     matrix_multiply(translation, g_dev.gizmos.gizmo_transform, g_dev.gizmos.gizmo_transform);
     
-    glUniformMatrix4fv(g_dev.gl_program_flat_u_model_matrix, 1, GL_FALSE, g_dev.gizmos.gizmo_transform);
+	cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, g_dev.gizmos.gizmo_transform);
 
     switch (g_dev.gizmos.active_type) {
         case GIZMO_TYPE_translate: {
@@ -837,9 +925,15 @@ void draw_gizmo(void) {
 }
 
 void draw_gizmo_control(const struct gizmo_control* p_control) {
-    const int b_highlight = (g_dev.pressed_mesh_id == 0 && g_dev.target_mesh_id == p_control->mesh_id_capturer_id) || (g_dev.pressed_mesh_id == p_control->mesh_id_capturer_id);
-    glUniform3fv(g_dev.gl_program_flat_u_color, 1, b_highlight ? g_dev.gizmos.hovered_control_color : p_control->color);
-    cx_gfx_mesh_draw(&p_control->gfx_mesh);
+    const int b_highlight =
+		(g_dev.pressed_mesh_id == 0 && g_dev.target_mesh_id == p_control->mesh_id_capturer_id) ||
+		(g_dev.pressed_mesh_id == p_control->mesh_id_capturer_id);
+	
+	cx_gfx_program_param_buffer_set(
+		&g_dev.program_pbuffer_material, 0, 0,
+		b_highlight ? g_dev.gizmos.hovered_control_color : p_control->color);
+    
+	cx_gfx_mesh_draw(&p_control->gfx_mesh);
 }
 
 int find_gizmo_control_plane_cursor_drag_intersection(const float* p_control_plane_normal, const float* p_cursor_ray_origin, const float* p_cursor_ray, float* p_cursor_world_pos) {
@@ -1006,9 +1100,7 @@ void gizmo_drag_scale_uniformly(const float* p_control_plane_normal, const float
     transform_set_world_scale(g_dev.gizmos.p_target_transform, new_world_scale);
 }
 
-void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix) {
-    mesh_id_capturer_begin(&g_dev.mesh_id_capturer, p_framebuffer_size, p_projection_matrix, p_view_matrix);
-
+void send_scene_to_mesh_id_capturer(void) {
     for (size_t i = 0; i < g_dev.p_scene->_entities._length; ++i) {
         struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&g_dev.p_scene->_entities, i);
 
@@ -1019,68 +1111,102 @@ void mesh_selector_render_pass(const uint32_t* p_framebuffer_size, const float* 
 
             for (size_t j = 0; j < p_mesh->num_primitives; ++j) {
                 const struct cx_gfx_mesh* p_gfx_mesh = &p_mesh->p_gfx_meshes[j];
-                mesh_id_capturer_submit(p_gfx_mesh, p_entity->transform.world_trs_matrix, mesh_id_capturer_entity_id);
+
+                mesh_id_capturer_draw_item(&(struct mesh_id_capturer_item) {
+					.p_mesh = p_gfx_mesh,
+					.p_transform = p_entity->transform.world_trs_matrix,
+					.id = mesh_id_capturer_entity_id
+				});
             }
         }
 
-        if (!g_dev.b_draw_physics || !p_entity->p_physics_object || !p_entity->p_physics_object->_p_collider) {
-            continue;
-        }
+		if (!g_dev.b_draw_physics || !p_entity->p_physics_object || !p_entity->p_physics_object->_p_collider) {
+			continue;
+		}
 
-        //float physics_collider_trs_matrix[16];
-        //compute_physics_collider_transform_matrix(p_entity->p_physics_object->_p_collider, p_entity->p_physics_object->_p_transform, physics_collider_trs_matrix);
+		float color[] = { 1.0f, 1.0f, 1.0f };
+		cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color);
 
-        //mesh_id_capturer_submit(&g_dev.mesh_id_capturer, &g_dev.gl_physics_collider_meshes[p_entity->p_physics_object->_p_collider->type], physics_collider_trs_matrix, mesh_id_capturer_entity_id);
+		struct mesh_id_capturer_item item = {
+			.p_transform = p_entity->transform.world_trs_matrix,
+			.id = mesh_id_capturer_entity_id
+		};
+
+		switch (p_entity->p_physics_object->_p_collider->type) {
+			case PHYSICS_COLLIDER_TYPE_sphere: {
+				item.p_mesh = &g_dev.physics_collider_mesh_sphere;
+				mesh_id_capturer_draw_item(&item);
+				break;
+			}
+
+			case PHYSICS_COLLIDER_TYPE_capsule: {
+				item.p_mesh = &g_dev.physics_collider_mesh_capsule_mid;
+				mesh_id_capturer_draw_item(&item);
+				item.p_mesh = &g_dev.physics_collider_mesh_capsule_cap;
+				mesh_id_capturer_draw_item(&item);
+				item.p_mesh = &g_dev.physics_collider_mesh_capsule_cap;
+				mesh_id_capturer_draw_item(&item);
+				break;
+			}
+
+			case PHYSICS_COLLIDER_TYPE_hull: {
+				// todo:
+			}
+
+			case PHYSICS_COLLIDER_TYPE_plane: {
+				item.p_mesh = &g_dev.physics_collider_mesh_plane;
+				mesh_id_capturer_draw_item(&item);
+				break;
+			}
+
+			default: break;
+		}
     }
-    
-    if (g_dev.gizmos.p_target_transform) {
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        switch (g_dev.gizmos.active_type) {
-            case GIZMO_TYPE_translate: {
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_x);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_y);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_z);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_xy);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_xz);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_yz);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_t_center);
-                break;
-            }
-            
-            case GIZMO_TYPE_rotate: {
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_r_x);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_r_y);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_r_z);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_r_center);
-                break;
-            }
-            
-            case GIZMO_TYPE_scale: {
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_x);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_y);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_z);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_xy);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_xz);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_yz);
-                    mesh_selector_render_pass_submit_gizmo_control(&g_dev.gizmos.control_s_center);
-                break;
-            }
-        }
-    }
-    
-    int mouse_client_coords[2];
-    platform_window_get_mouse_client_coords(g_dev.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
-
-    float mouse_position_normalized[2];
-    platform_window_normalize_client_coords(g_dev.p_window, mouse_client_coords[0], mouse_client_coords[1], &mouse_position_normalized[0], &mouse_position_normalized[1]);
-
-    g_dev.target_mesh_id = mesh_id_capturer_query(&g_dev.mesh_id_capturer, mouse_position_normalized);
 }
 
-void mesh_selector_render_pass_submit_gizmo_control(const struct gizmo_control* p_control) {
-    mesh_id_capturer_submit(&p_control->gfx_mesh, g_dev.gizmos.gizmo_transform, p_control->mesh_id_capturer_id);
-} 
+void send_gizmo_to_mesh_id_capturer(void) {
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+    switch (g_dev.gizmos.active_type) {
+        case GIZMO_TYPE_translate: {
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_x);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_y);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_z);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_xy);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_xz);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_yz);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_t_center);
+            break;
+        }
+        
+        case GIZMO_TYPE_rotate: {
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_r_x);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_r_y);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_r_z);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_r_center);
+            break;
+        }
+        
+        case GIZMO_TYPE_scale: {
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_x);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_y);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_z);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_xy);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_xz);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_yz);
+            send_gizmo_control_to_mesh_id_capturer(&g_dev.gizmos.control_s_center);
+            break;
+        }
+    }
+}
+
+void send_gizmo_control_to_mesh_id_capturer(const struct gizmo_control* p_control) {
+	mesh_id_capturer_draw_item(&(struct mesh_id_capturer_item) {
+		.p_mesh = &p_control->gfx_mesh,
+		.p_transform = g_dev.gizmos.gizmo_transform,
+		.id = p_control->mesh_id_capturer_id
+	});
+}
 
 void draw_hull_DEBUGDEBUGDEBUG(void) {
     if (!g_dev.p_selected_entity || !g_dev.p_selected_entity->p_mesh) {
@@ -1118,14 +1244,14 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
 
     float matrix[16];
     matrix_make_identity(matrix);
-    glUniformMatrix4fv(g_dev.gl_program_flat_u_model_matrix, 1, GL_FALSE, matrix);
+	cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, matrix);
     
     float color[] = { 1, 1, 1 };
-    glUniform3fv(g_dev.gl_program_flat_u_color, 1, color);
+	cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color);
     cx_gfx_mesh_draw(&gfx_mesh);
     
     float color_wf[] = { 1, 0, 0 };
-    glUniform3fv(g_dev.gl_program_flat_u_color, 1, color_wf);
+	cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color_wf);
     cx_gfx_mesh_draw(&gfx_mesh_outline);
 }
 
