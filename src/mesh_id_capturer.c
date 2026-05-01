@@ -14,14 +14,19 @@ static struct cx_gfx_program_param_block program_pblk_object;
 static struct cx_gfx_program_param_buffer program_pbuf_camera;
 static struct cx_gfx_program_param_buffer program_pbuf_object;
 
-void mesh_id_capturer_free_resources(struct mesh_id_capturer* p_mesh_id_capturer) {
-	cx_gfx_framebuffer_destroy(&p_mesh_id_capturer->framebuffer);
-	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_color);
-	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_depth_stencil);
+static void mesh_id_capturer_destroy_framebuffer(struct mesh_id_capturer* p_mesh_id_capturer);
+
+void mesh_id_capturer_free(struct mesh_id_capturer* p_mesh_id_capturer) {
+	mesh_id_capturer_destroy_framebuffer(p_mesh_id_capturer);
 	*p_mesh_id_capturer = (struct mesh_id_capturer){0};
 }
 
-void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix) {
+void mesh_id_capturer_begin(
+	struct mesh_id_capturer* p_mesh_id_capturer,
+	const uint32_t* p_framebuffer_size,
+	const float* p_projection_matrix,
+	const float* p_view_matrix) {
+
     if (!cx_gfx_program_is_built(&program)) {
 		struct cx_gfx_program_source program_source = {
 			.s_vertex_stage_source = "#version 330 core\n"
@@ -52,6 +57,10 @@ void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const u
 
 		cx_gfx_program_create(&program);
 		cx_gfx_program_build(&program, &program_source);
+
+		if (!cx_gfx_program_is_built(&program)) {
+			return;
+		}
 		
 		cx_gfx_program_refl_param_block(&program, "blk_camera", &program_pblk_camera);
 		cx_gfx_program_refl_param_block(&program, "blk_object", &program_pblk_object);
@@ -60,14 +69,10 @@ void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const u
 		cx_gfx_program_param_buffer_create(&program_pbuf_object, program_pblk_object._size);
     }
 
-	if (!cx_gfx_program_is_built(&program)) {
-		return;
-	}
-
     if (p_mesh_id_capturer->framebuffer_size[0] != p_framebuffer_size[0] ||
 		p_mesh_id_capturer->framebuffer_size[1] != p_framebuffer_size[1]) {
 
-		mesh_id_capturer_free_resources(p_mesh_id_capturer);	
+		mesh_id_capturer_destroy_framebuffer(p_mesh_id_capturer);	
         
 		cx_gfx_texture_create(&p_mesh_id_capturer->framebuffer_color, p_framebuffer_size, CX_PIXEL_FORMAT_red_u32); // GL_RED_INTEGER, GL_UNSIGNED_INT
 
@@ -105,18 +110,19 @@ void mesh_id_capturer_begin(struct mesh_id_capturer* p_mesh_id_capturer, const u
 	cx_gfx_program_param_buffer_set(&program_pbuf_camera, 0, 0, &camera);
 }
 
-void mesh_id_capturer_submit(const struct cx_gfx_mesh* p_mesh, const float* p_transform, unsigned int id) {
+void mesh_id_capturer_draw_item(const struct mesh_id_capturer_item* p_item) {
 	struct {
 		float        vertex_matrix[16];
 		unsigned int id;
-	} object;
+	} object = {
+		.id = p_item->id
+	};
 
-	matrix_copy(p_transform, object.vertex_matrix);
-	object.id = id;
+	matrix_copy(p_item->p_transform, object.vertex_matrix);
 
 	cx_gfx_program_param_buffer_set(&program_pbuf_object, 0, 0, &object);
 
-    cx_gfx_mesh_draw(p_mesh);
+	cx_gfx_mesh_draw(p_item->p_mesh);
 }
 
 unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, const float* p_normalized_coordinates) {
@@ -142,4 +148,12 @@ unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_cap
 		&pixel_value);
 
 	return pixel_value;
+}
+
+void mesh_id_capturer_destroy_framebuffer(struct mesh_id_capturer* p_mesh_id_capturer) {
+	cx_gfx_framebuffer_destroy(&p_mesh_id_capturer->framebuffer);
+	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_color);
+	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_depth_stencil);
+	p_mesh_id_capturer->framebuffer_size[0] =
+	p_mesh_id_capturer->framebuffer_size[1] = 0;
 }

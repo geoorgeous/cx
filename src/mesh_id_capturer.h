@@ -15,15 +15,21 @@ struct mesh_id_capturer {
 	struct cx_gfx_texture     framebuffer_depth_stencil;
 };
 
-void         mesh_id_capturer_free_resources(struct mesh_id_capturer* p_mesh_id_capturer);
+struct mesh_id_capturer_item {
+	const struct cx_gfx_mesh* p_mesh;
+	const float*              p_transform;
+	unsigned int              id;
+};
 
-void         mesh_id_capturer_begin(
+void mesh_id_capturer_free(struct mesh_id_capturer* p_mesh_id_capturer);
+
+void mesh_id_capturer_begin(
 	struct mesh_id_capturer* p_mesh_id_capturer,
 	const uint32_t* p_framebuffer_size,
 	const float* p_projection_matrix,
 	const float* p_view_matrix);
 
-void         mesh_id_capturer_submit(const struct cx_gfx_mesh* p_mesh, const float* p_transform, unsigned int id);
+void mesh_id_capturer_draw_item(const struct mesh_id_capturer_item* p_item);
 
 unsigned int mesh_id_capturer_query(
 	const struct mesh_id_capturer* p_mesh_id_capturer,
