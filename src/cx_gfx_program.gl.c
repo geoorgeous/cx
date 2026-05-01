@@ -316,7 +316,7 @@ end:
 	return err;
 }
 
-void cx_gfx_program_refl_opaque_param(
+int cx_gfx_program_refl_opaque_param(
 	const struct cx_gfx_program* p_program,
 	const char* s_name,
 	struct cx_gfx_program_opaque_param* p_out_opaque_param) {
@@ -328,7 +328,7 @@ void cx_gfx_program_refl_opaque_param(
 	if (uniform_location == -1) {
 		CX_LOG_FMT(WARNING, GFX_PROGRAM, "Could not find program parameter '%s'\n", s_name);
 		*p_out_opaque_param = (struct cx_gfx_program_opaque_param){0};
-		return;
+		return 0;
 	}
 
 	const GLint uniform_index = get_uniform_index(p_program_internals->id, s_name);
@@ -362,9 +362,10 @@ void cx_gfx_program_refl_opaque_param(
 
 	p_out_opaque_param->slot = opaque_slot;
 
+	return 1;
 }
 
-void cx_gfx_program_refl_param_block(
+int cx_gfx_program_refl_param_block(
 	const struct cx_gfx_program* p_program,
 	const char* s_name,
 	struct cx_gfx_program_param_block* p_out_param_block) {
@@ -377,7 +378,7 @@ void cx_gfx_program_refl_param_block(
 	if (index == GL_INVALID_INDEX) {
 		CX_LOG_FMT(WARNING, GFX_PROGRAM, "Could not find program parameter block '%s'\n", s_name);
 		*p_out_param_block = (struct cx_gfx_program_param_block){0};
-		return;
+		return 0;
 	}
 
 	glGetActiveUniformBlockiv(
@@ -390,6 +391,8 @@ void cx_gfx_program_refl_param_block(
 	glGetActiveUniformBlockiv(p_program_internals->id, index, GL_UNIFORM_BLOCK_DATA_SIZE, &block_data_size);
 
 	p_out_param_block->_size = (size_t)block_data_size;
+
+	return 1;
 }
 
 void cx_gfx_program_bind(const struct cx_gfx_program* p_program) {

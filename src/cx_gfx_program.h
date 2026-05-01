@@ -47,8 +47,6 @@ enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer
 
 void       cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer);
 
-
-
 void       cx_gfx_program_param_buffer_bind(const struct cx_gfx_program_param_buffer* p_buffer, unsigned int index);
 
 void       cx_gfx_program_param_buffer_bind_range(
@@ -102,12 +100,12 @@ int        cx_gfx_program_is_built(struct cx_gfx_program* p_program);
 
 enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source);
 
-void       cx_gfx_program_refl_opaque_param(
+int        cx_gfx_program_refl_opaque_param(
 	const struct cx_gfx_program* p_program,
 	const char* s_name,
 	struct cx_gfx_program_opaque_param* p_out_opque_param);
 
-void       cx_gfx_program_refl_param_block(
+int        cx_gfx_program_refl_param_block(
 	const struct cx_gfx_program* p_program,
 	const char* s_name,
 	struct cx_gfx_program_param_block* p_out_param_block);
