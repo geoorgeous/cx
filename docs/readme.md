@@ -22,6 +22,10 @@ Since this project should have few dependencies, the list of systems involved in
 
 This project uses source code from the [stb repository](https://github.com/nothings/stb) to load image files ([`stb_image.h`](https://github.com/nothings/stb/blob/master/stb_image.h])).
 
+## Project coding conventions
+
+This project maintains a set of coding conventions which can be found here: [conventions.md](./conventions.md)
+
 ## Bibliography
 
 A list of resources I've used throughout this project which I've found very useful.
