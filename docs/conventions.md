@@ -97,7 +97,8 @@ enum error validate(int* p_out_b_success);
 ## read-only members
 
 Some structs may have members that should only be modified by the implimentation, and not the user.
-It is often useful to expose a struct's definition to make stack-allocation of said structs more convenient, but this will then expose members that shouldn't be modified by the user.
+It is often useful to expose a struct's definition to make stack-allocation of said structs more convenient,
+but this will then expose members that shouldn't be modified by the user.
 In these cases, read-only members should be prefixed with a single underscore (`_`):
 
 ```C
@@ -109,7 +110,8 @@ struct foo_bar {
 
 ## line length
 
-Lines of code that exceed 120 characters should be split in to multiple lines. To assist with this, most editors have a way of visualising document columns. For example in Neovim: `vim.o.colorcolumn = "120"
+Lines of code that exceed 120 characters should be split in to multiple lines. To assist with this, most editors have
+a way of visualising document columns. For example in Neovim: `vim.o.colorcolumn = "120"
 `
 
 ```C
