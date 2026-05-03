@@ -559,15 +559,15 @@ int physics_test_collision_sphere_capsule(
 	
 	const float s0 = vec3_dot(v0, v1);
 	const float s1 = vec3_dot(v1, v1);
-	const float s2 = FLT_CMP(s1, 0) ? -1 : s0 / s1;
+	const float s2 = FLT_ISZERO(s1) ? -1 : s0 / s1;
 
 	if (s2 < 0) {
-		vec3_sub(p_a->shape.as_sphere.center, p_b->shape.as_capsule.p0, v0);
+		vec3_set(p_b->shape.as_capsule.p0, v0);
 	} else if (s2 > 1) {
-		vec3_sub(p_a->shape.as_sphere.center, p_b->shape.as_capsule.p1, v0);
+		vec3_set(p_b->shape.as_capsule.p1, v0);
 	} else {
 		vec3_mul_s(v1, s2, v1);
-		vec3_add(v0, v1, v0);
+		vec3_add(p_b->shape.as_capsule.p0, v1, v0);
 	}
 	
 	return physics_test_sphere_sphere_internal(p_a->shape.as_sphere.center, p_a->shape.as_sphere.radius, v0, p_b->shape.as_capsule.radius, p_result);
