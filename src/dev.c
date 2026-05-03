@@ -331,15 +331,15 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	
 	struct mesh_primitive mesh_primitive;
 
-	mesh_factory_make_sphere(0.5f, 24, &mesh_primitive);
+	mesh_factory_make_sphere(0.5f, 8, 16, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_sphere, &mesh_primitive);
 	mesh_factory_free_primitive(&mesh_primitive);
 
-	mesh_factory_make_cylinder(0.5f, 0.5f, 0.5f, 24, 0, 0, &mesh_primitive);
+	mesh_factory_make_cylinder(0.5f, 0.5f, 0.5f, 16, 0, 0, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_mid, &mesh_primitive);
 	mesh_factory_free_primitive(&mesh_primitive);
 
-	mesh_factory_make_hemisphere(0.5f, 6, 24, &mesh_primitive);
+	mesh_factory_make_hemisphere(0.5f, 4, 16, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_cap, &mesh_primitive);
 	mesh_factory_free_primitive(&mesh_primitive);
 

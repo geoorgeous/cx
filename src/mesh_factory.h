@@ -10,7 +10,7 @@ void mesh_factory_make_box(const float p_hald_size[3], struct mesh_primitive* p_
 
 void mesh_factory_make_sphere(
 	const float radius,
-	const unsigned int n,
+	const unsigned int rings, const unsigned int segments,
 	struct mesh_primitive* p_out_mesh_primitive);
 
 void mesh_factory_make_hemisphere(
