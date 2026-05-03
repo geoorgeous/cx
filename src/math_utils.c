@@ -63,3 +63,8 @@ float segment_point_dist_sq(const float* p_p0, const float* p_p1, const float* p
 int signf(float x) {
     return (x > 0) - (x < 0);
 }
+
+float clampf(const float x, const float min, const float max) {
+	const float t = x < min ? min : x;
+	return t > max ? max : t;
+}
