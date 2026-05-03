@@ -11,6 +11,7 @@
 #include "dev.h"
 #include "gltf.h"
 #include "half_edge.h"
+#include "hashtable.h"
 #include "import_gltf.h"
 #include "input.h"
 #include "math_utils.h"
@@ -56,7 +57,7 @@ enum gizmo_type {
 struct gizmo_control {
     struct cx_gfx_mesh gfx_mesh;
     unsigned int   mesh_id_capturer_id;
-    float          color[3];
+    float          color_ka[4];
 };
 
 static struct dev_state {
@@ -91,6 +92,7 @@ static struct dev_state {
 	struct cx_gfx_mesh    physics_collider_mesh_capsule_cap;
 	struct cx_gfx_mesh    physics_collider_mesh_capsule_mid;
 	struct cx_gfx_mesh    physics_collider_mesh_plane;
+	struct hashtable      physics_hull_meshes;
     float*                p_hull_points;
     size_t                num_hull_points;
 
@@ -100,7 +102,7 @@ static struct dev_state {
         float                gizmo_transform[16];
         struct transform*    p_target_transform;
         float                cursor_drag_last_world_pos[3];
-        float                hovered_control_color[3];
+        float                hovered_control_color_ka[4];
         struct gizmo_control control_t_x;
         struct gizmo_control control_t_y;
         struct gizmo_control control_t_z;
@@ -131,6 +133,12 @@ static void set_selected_entity(struct scene_entity* p_entity);
 
 static void toggle_draw_physics_colliders(void);
 static void draw_physics(void);
+static void compute_physics_collider_mesh_trs_sphere(const struct scene_entity* p_entity, float* p_out_trs);
+static void compute_physics_collider_mesh_trs_capsule(
+	const struct scene_entity* p_entity,
+	float* p_out_trs_mid, float* p_out_trs_cap_p0, float* p_out_trs_cap_p1);
+static void compute_physics_collider_mesh_trs_plane(const struct scene_entity* p_entity, float* p_out_trs);
+
 
 static void  draw_gizmo(void);
 static void  draw_gizmo_control(const struct gizmo_control* p_control);
@@ -192,16 +200,23 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 				"mat4 u_vertex_matrix;"
 			"};"
 			"layout (location=0) in vec3 a_pos;"
+			"layout (location=1) in vec3 a_normal;"
+			"out vec3 v_normal;"
 			"void main() {"
+				"v_normal = normalize(mat3(transpose(inverse(u_vertex_matrix))) * a_normal);"
 				"gl_Position = u_projection_matrix * u_view_matrix * u_vertex_matrix * vec4(a_pos, 1.0);"
 			"}",
 		.s_fragment_stage_source = "#version 330 core\n"
 			"layout(std140) uniform blk_material_properties {"
-				"vec3 u_color;"
+				"vec3  u_color;"
+				"float u_ka;"
 			"};"
+			"in vec3 v_normal;"
 			"out vec4 f_color;"
 			"void main() {"
-				"f_color = vec4(u_color, 1);"
+				"const vec3 light_dir = normalize(-vec3(1, 2, 1));"
+				"float kd = max(dot(v_normal, -light_dir), 0);"
+				"f_color = vec4(min((u_ka + kd), 1) * u_color, 1);"
 			"}"
 	};
 
@@ -283,25 +298,56 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     g_dev.gizmos.control_s_yz.mesh_id_capturer_id = DEV_MESH_ID_CAPTURER_ID_GIZMO_S_YZ;
     g_dev.gizmos.control_s_center.mesh_id_capturer_id = DEV_MESH_ID_CAPTURER_ID_GIZMO_S_CENTER;
 
-    g_dev.gizmos.control_t_x.color[0] = g_dev.gizmos.control_r_x.color[0] = g_dev.gizmos.control_s_x.color[0] = g_dev.gizmos.control_t_yz.color[0] = g_dev.gizmos.control_s_yz.color[0] = 0.961;
-    g_dev.gizmos.control_t_x.color[1] = g_dev.gizmos.control_r_x.color[1] = g_dev.gizmos.control_s_x.color[1] = g_dev.gizmos.control_t_yz.color[1] = g_dev.gizmos.control_s_yz.color[1] = 0.306f;
-    g_dev.gizmos.control_t_x.color[2] = g_dev.gizmos.control_r_x.color[2] = g_dev.gizmos.control_s_x.color[2] = g_dev.gizmos.control_t_yz.color[2] = g_dev.gizmos.control_s_yz.color[2] = 0.306f;
+
+	g_dev.gizmos.control_t_x.color_ka[3] =
+	g_dev.gizmos.control_t_y.color_ka[3] =
+	g_dev.gizmos.control_t_z.color_ka[3] =
+	g_dev.gizmos.control_t_center.color_ka[3] =
+	g_dev.gizmos.hovered_control_color_ka[3] = 1.0f;
+
+	vec3_set_ijk(.961f, .306f, .306f, g_dev.gizmos.control_t_x.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_r_x.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_s_x.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_t_yz.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_s_yz.color_ka);
+
+	vec3_set_ijk(.525f, .941f, .090f, g_dev.gizmos.control_t_y.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_r_y.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_s_y.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_t_xz.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_s_xz.color_ka);
     
-    g_dev.gizmos.control_t_y.color[0] = g_dev.gizmos.control_r_y.color[0] = g_dev.gizmos.control_s_y.color[0] = g_dev.gizmos.control_t_xz.color[0] = g_dev.gizmos.control_s_xz.color[0] = 0.525f;
-    g_dev.gizmos.control_t_y.color[1] = g_dev.gizmos.control_r_y.color[1] = g_dev.gizmos.control_s_y.color[1] = g_dev.gizmos.control_t_xz.color[1] = g_dev.gizmos.control_s_xz.color[1] = 0.941;
-    g_dev.gizmos.control_t_y.color[2] = g_dev.gizmos.control_r_y.color[2] = g_dev.gizmos.control_s_y.color[2] = g_dev.gizmos.control_t_xz.color[2] = g_dev.gizmos.control_s_xz.color[2] = 0.09f;
+	vec3_set_ijk(.243f, .478f,  1.0f, g_dev.gizmos.control_t_z.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_r_z.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_s_z.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_t_xy.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_s_xy.color_ka);
     
-    g_dev.gizmos.control_t_z.color[0] = g_dev.gizmos.control_r_z.color[0] = g_dev.gizmos.control_s_z.color[0] = g_dev.gizmos.control_t_xy.color[0] = g_dev.gizmos.control_s_xy.color[0] = 0.243f;
-    g_dev.gizmos.control_t_z.color[1] = g_dev.gizmos.control_r_z.color[1] = g_dev.gizmos.control_s_z.color[1] = g_dev.gizmos.control_t_xy.color[1] = g_dev.gizmos.control_s_xy.color[1] = 0.478f;
-    g_dev.gizmos.control_t_z.color[2] = g_dev.gizmos.control_r_z.color[2] = g_dev.gizmos.control_s_z.color[2] = g_dev.gizmos.control_t_xy.color[2] = g_dev.gizmos.control_s_xy.color[2] = 1;
+    vec3_set_s(.8f, g_dev.gizmos.control_t_center.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_center.color_ka, g_dev.gizmos.control_r_center.color_ka);
+	vec_set(4, g_dev.gizmos.control_t_center.color_ka, g_dev.gizmos.control_s_center.color_ka);
     
-    g_dev.gizmos.control_t_center.color[0] = g_dev.gizmos.control_r_center.color[0] = g_dev.gizmos.control_s_center.color[0] = 0.8;
-    g_dev.gizmos.control_t_center.color[1] = g_dev.gizmos.control_r_center.color[1] = g_dev.gizmos.control_s_center.color[1] = 0.8;
-    g_dev.gizmos.control_t_center.color[2] = g_dev.gizmos.control_r_center.color[2] = g_dev.gizmos.control_s_center.color[2] = 0.8;
-    
-    g_dev.gizmos.hovered_control_color[0] = 0.9f;
-    g_dev.gizmos.hovered_control_color[1] = 0.8f;
-    g_dev.gizmos.hovered_control_color[2] = 0.3f;
+	vec3_set_ijk(.9f, .8f, .3f, g_dev.gizmos.hovered_control_color_ka);
+	
+	struct mesh_primitive mesh_primitive;
+
+	mesh_factory_make_sphere(0.5f, 24, &mesh_primitive);
+	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_sphere, &mesh_primitive);
+	mesh_factory_free_primitive(&mesh_primitive);
+
+	mesh_factory_make_cylinder(0.5f, 0.5f, 0.5f, 24, 0, 0, &mesh_primitive);
+	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_mid, &mesh_primitive);
+	mesh_factory_free_primitive(&mesh_primitive);
+
+	mesh_factory_make_hemisphere(0.5f, 6, 24, &mesh_primitive);
+	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_cap, &mesh_primitive);
+	mesh_factory_free_primitive(&mesh_primitive);
+
+	mesh_factory_make_quad((const float[]){ 0.5f, 0.5f }, &mesh_primitive);
+	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_plane, &mesh_primitive);
+	mesh_factory_free_primitive(&mesh_primitive);
+
+	hashtable_init(&g_dev.physics_hull_meshes, sizeof(struct cx_gfx_mesh));
 
 	cx_commands_register(&(struct cx_command_info){
 		.s_id = "physics.tgl_draw_dbg",
@@ -557,9 +603,9 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
                 physics_collider_init(g_dev.p_selected_entity->p_physics_object->_p_collider, g_dev.p_selected_entity->p_physics_object->_p_collider->type + 1);
 
                 if (g_dev.p_selected_entity->p_physics_object->_p_collider->type == PHYSICS_COLLIDER_TYPE_hull) {
-                    darr_set_length(&g_dev.p_selected_entity->p_physics_object->_p_collider->as_hull.verts, g_dev.num_hull_points);
+                    darr_set_length(&g_dev.p_selected_entity->p_physics_object->_p_collider->shape.as_hull.verts, g_dev.num_hull_points);
                     for (size_t i = 0; i < g_dev.num_hull_points; ++i) {
-                        float* p_v = darr_get(&g_dev.p_selected_entity->p_physics_object->_p_collider->as_hull.verts, i);
+                        float* p_v = darr_get(&g_dev.p_selected_entity->p_physics_object->_p_collider->shape.as_hull.verts, i);
                         vec3_set(&g_dev.p_hull_points[i * 3], p_v);
                     }
                 }
@@ -804,28 +850,6 @@ void toggle_draw_physics_colliders(void) {
 }
 
 void draw_physics(void) {
-	if (g_dev.physics_collider_mesh_sphere._elements_count == 0) {
-		struct mesh_primitive mesh_primitive;
-
-		mesh_factory_make_sphere(0.5f, 16, &mesh_primitive);
-		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_sphere, &mesh_primitive);
-		mesh_factory_free_primitive(&mesh_primitive);
-
-		mesh_factory_make_cylinder(0.5f, 0.5f, 0.5f, 16, 0, 0, &mesh_primitive);
-		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_mid, &mesh_primitive);
-		mesh_factory_free_primitive(&mesh_primitive);
-
-		mesh_factory_make_hemisphere(0.5f, 16, &mesh_primitive);
-		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_cap, &mesh_primitive);
-		mesh_factory_free_primitive(&mesh_primitive);
-
-		mesh_factory_make_quad((const float[]){ 0.5f, 0.5f }, &mesh_primitive);
-		cx_gfx_mesh_create(&g_dev.physics_collider_mesh_plane, &mesh_primitive);
-		mesh_factory_free_primitive(&mesh_primitive);
-	}
-
-    srand(117);
-
     for (size_t i = 0; i < g_dev.p_scene->_entities._length; ++i) {
         struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&g_dev.p_scene->_entities, i);
 
@@ -833,32 +857,74 @@ void draw_physics(void) {
             continue;
         }
 
-		float color[] = { 1.0f, 1.0f, 1.0f };
-		cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color);
+		float color_ka[] = { 1.0f, 0.85f, 0.4f, 0.3f };
+		cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color_ka);
 
 		switch (p_entity->p_physics_object->_p_collider->type) {
 			case PHYSICS_COLLIDER_TYPE_sphere: {
-				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				float p_trs[16];
+
+				compute_physics_collider_mesh_trs_sphere(p_entity, p_trs);
+
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_trs);
 				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_sphere);
+				
 				break;
 			}
 
 			case PHYSICS_COLLIDER_TYPE_capsule: {
-				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				float p_trs_mid[16];
+				float p_trs_cap_p0[16];
+				float p_trs_cap_p1[16];
+
+				compute_physics_collider_mesh_trs_capsule(p_entity, p_trs_mid, p_trs_cap_p0, p_trs_cap_p1);
+
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_trs_mid);
 				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_capsule_mid);
-				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_trs_cap_p0);
 				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_capsule_cap);
-				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_trs_cap_p1);
 				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_capsule_cap);
 				break;
 			}
 
 			case PHYSICS_COLLIDER_TYPE_hull: {
-				// todo:
+				const struct physics_hull* p_hull = &p_entity->p_physics_object->_p_collider->shape.as_hull;
+
+				struct cx_gfx_mesh* p_hull_mesh;
+
+				struct hashtable_itr itr;
+				if (!hashtable_find(&g_dev.physics_hull_meshes, &p_entity->_id, sizeof(p_entity->_id), &itr)) {
+					p_hull_mesh = hashtable_add(&g_dev.physics_hull_meshes, &p_entity->_id, sizeof(p_entity->_id));
+					
+					struct he_mesh he_mesh;
+					quickhull(p_hull->verts._p_buffer, p_hull->verts._length, &he_mesh);
+
+					struct mesh_primitive mesh_primitive;
+					mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive);
+
+					cx_gfx_mesh_create(p_hull_mesh, &mesh_primitive);
+
+					quickhull_free(&he_mesh);
+					mesh_factory_free_primitive(&mesh_primitive);
+				} else {
+					p_hull_mesh = itr.p_value;
+				}
+
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				cx_gfx_mesh_draw(p_hull_mesh);
+
+				break;
 			}
 
 			case PHYSICS_COLLIDER_TYPE_plane: {
-				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_entity->transform.world_trs_matrix);
+				float p_trs[16];
+
+				compute_physics_collider_mesh_trs_plane(p_entity, p_trs);
+
+				cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, p_trs);
 				cx_gfx_mesh_draw(&g_dev.physics_collider_mesh_plane);
 				break;
 			}
@@ -866,6 +932,74 @@ void draw_physics(void) {
 			default: break;
 		}
     }
+}
+
+void compute_physics_collider_mesh_trs_sphere(const struct scene_entity* p_entity, float* p_out_trs) {
+	physics_collider_apply_transform(p_entity->p_physics_object->_p_collider, &p_entity->transform);
+	
+	const struct physics_sphere* p_sphere = &p_entity->p_physics_object->_p_collider->shape.as_sphere;
+	
+	float s[3];
+	float r[4];
+
+	vec3_set_s(p_sphere->radius * 2, s);
+
+	quaternion_identity(r);
+
+	matrix_make_trs(p_sphere->center, r, s, p_out_trs);
+	
+	physics_collider_undo_transform(p_entity->p_physics_object->_p_collider);
+}
+
+void compute_physics_collider_mesh_trs_capsule(
+	const struct scene_entity* p_entity,
+	float* p_out_trs_mid, float* p_out_trs_cap_p0, float* p_out_trs_cap_p1) {
+
+	physics_collider_apply_transform(p_entity->p_physics_object->_p_collider, &p_entity->transform);
+	
+	const struct physics_capsule* p_capsule = &p_entity->p_physics_object->_p_collider->shape.as_capsule;
+
+	float s[3];
+	float r[4];
+	float t[3];
+
+	// Capsule mid section
+	
+	float p0_p1[3];
+
+	vec3_sub(p_capsule->p1, p_capsule->p0, p0_p1);
+
+	vec3_add(p_capsule->p0, p_capsule->p1, t);
+	vec3_mul_s(t, 0.5f, t);
+
+	quaternion_find_rotation_between((const float[]){ 0, 1, 0 }, p0_p1, r);
+
+	s[0] = s[2] = p_capsule->radius * 2;
+	s[1] = vec3_len(p0_p1);
+	
+	matrix_make_trs(t, r, s, p_out_trs_mid);
+	
+	// Capsule p1 cap
+
+	vec3_set(p_capsule->p1, t);
+	s[1] = s[0];
+	matrix_make_trs(t, r, s, p_out_trs_cap_p1);
+
+	// Capsule p0 cap
+
+	float q[4];
+
+	vec3_set(p_capsule->p0, t);
+	quaternion_from_axis_angle((const float[]){ 1, 0, 0 }, M_PI, q);
+	quaternion_multiply(r, q, r);
+
+	matrix_make_trs(t, r, s, p_out_trs_cap_p0);
+
+	physics_collider_undo_transform(p_entity->p_physics_object->_p_collider);
+}
+
+void compute_physics_collider_mesh_trs_plane(const struct scene_entity* p_entity, float* p_out_trs) {
+	matrix_copy(p_entity->transform.world_trs_matrix, p_out_trs);
 }
 
 void draw_gizmo(void) {
@@ -931,7 +1065,7 @@ void draw_gizmo_control(const struct gizmo_control* p_control) {
 	
 	cx_gfx_program_param_buffer_set(
 		&g_dev.program_pbuffer_material, 0, 0,
-		b_highlight ? g_dev.gizmos.hovered_control_color : p_control->color);
+		b_highlight ? g_dev.gizmos.hovered_control_color_ka : p_control->color_ka);
     
 	cx_gfx_mesh_draw(&p_control->gfx_mesh);
 }
@@ -1134,26 +1268,56 @@ void send_scene_to_mesh_id_capturer(void) {
 
 		switch (p_entity->p_physics_object->_p_collider->type) {
 			case PHYSICS_COLLIDER_TYPE_sphere: {
+				float p_trs[16];
+
+				compute_physics_collider_mesh_trs_sphere(p_entity, p_trs);
+				
+				item.p_transform = p_trs;
 				item.p_mesh = &g_dev.physics_collider_mesh_sphere;
 				mesh_id_capturer_draw_item(&item);
+				
 				break;
 			}
 
 			case PHYSICS_COLLIDER_TYPE_capsule: {
+				float p_trs_mid[16];
+				float p_trs_cap_p0[16];
+				float p_trs_cap_p1[16];
+
+				compute_physics_collider_mesh_trs_capsule(p_entity, p_trs_mid, p_trs_cap_p0, p_trs_cap_p1);
+				
+				item.p_transform = p_trs_mid;
 				item.p_mesh = &g_dev.physics_collider_mesh_capsule_mid;
 				mesh_id_capturer_draw_item(&item);
+				
+				item.p_transform = p_trs_cap_p0;
 				item.p_mesh = &g_dev.physics_collider_mesh_capsule_cap;
 				mesh_id_capturer_draw_item(&item);
+				
+				item.p_transform = p_trs_cap_p1;
 				item.p_mesh = &g_dev.physics_collider_mesh_capsule_cap;
 				mesh_id_capturer_draw_item(&item);
+
 				break;
 			}
 
 			case PHYSICS_COLLIDER_TYPE_hull: {
-				// todo:
+				struct hashtable_itr itr;
+				if (!hashtable_find(&g_dev.physics_hull_meshes, &p_entity->_id, sizeof(p_entity->_id), &itr)) {
+					break;
+				}
+
+				item.p_mesh = itr.p_value;
+				mesh_id_capturer_draw_item(&item);
+				break;
 			}
 
 			case PHYSICS_COLLIDER_TYPE_plane: {
+				float p_trs[16];
+
+				compute_physics_collider_mesh_trs_plane(p_entity, p_trs);
+
+				item.p_transform = p_trs;
 				item.p_mesh = &g_dev.physics_collider_mesh_plane;
 				mesh_id_capturer_draw_item(&item);
 				break;
