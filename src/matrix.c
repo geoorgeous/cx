@@ -424,3 +424,20 @@ void quaternion_rotate_vec3(const float* p_q, const float* p_v, float* p_result)
     
     vec3_add(temp, p_result, p_result);
 }
+
+void quaternion_find_rotation_between(const float* p_u, const float* p_v, float* p_out) {
+	const float k_cos_theta = vec3_dot(p_u, p_v);
+	const float len_u = vec3_len(p_u);
+	const float len_v = vec3_len(p_v);
+	const float k = sqrtf(len_u * len_u * len_v * len_v);
+
+	if (FLT_CMP(k_cos_theta / k, -1)) {
+		quaternion_identity(p_out);
+		return;
+	}
+
+	vec3_cross(p_u, p_v, p_out);
+	p_out[3] = k_cos_theta + k;
+
+	vec_norm(4, p_out, p_out);
+}
