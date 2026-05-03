@@ -7,7 +7,9 @@
 #include "mesh_factory.h"
 #include "mesh.h"
 
-void mesh_factory_make_quad(const float* p_half_size, struct mesh_primitive* p_out_mesh_primitive) {
+#define CX_M_TAU 6.28318531
+
+void mesh_factory_make_quad(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
     const float vertices[] = {
         -p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
          p_half_size[0], 0,  p_half_size[1], 0, 1, 0,
@@ -63,7 +65,7 @@ void mesh_factory_make_quad(const float* p_half_size, struct mesh_primitive* p_o
     };
 }
 
-void mesh_factory_make_box(const float* p_half_size, struct mesh_primitive* p_out_mesh_primitive) {
+void mesh_factory_make_box(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
     const float vertices[] = {
         -p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
         -p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
@@ -159,7 +161,7 @@ void mesh_factory_make_box(const float* p_half_size, struct mesh_primitive* p_ou
     };
 }
 
-void mesh_factory_make_sphere(float radius, unsigned int n, struct mesh_primitive* p_out_mesh_primitive) {
+void mesh_factory_make_sphere(const float radius, const unsigned int n, struct mesh_primitive* p_out_mesh_primitive) {
     const size_t num_vertices = (n - 1) * n + 2;
     const size_t vertex_size = sizeof(float) * 6;
     const size_t vertices_size = num_vertices * vertex_size;
@@ -174,7 +176,7 @@ void mesh_factory_make_sphere(float radius, unsigned int n, struct mesh_primitiv
     *p_v++ = 1;
     *p_v++ = 0;
 
-    const float s = 6.283185 / n;
+    const float s = CX_M_TAU / n;
     const float t = s * 0.5f;
 
     for (size_t i = 1; i < n; ++i) {
