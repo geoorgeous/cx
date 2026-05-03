@@ -287,23 +287,280 @@ void mesh_factory_make_sphere(const float radius, const unsigned int n, struct m
     };
 }
 
-void mesh_factory_make_hemisphere(float radius, unsigned int n, struct mesh_primitive* p_out_mesh_primitive) {
-	mesh_factory_make_sphere(radius, n, p_out_mesh_primitive);
+void mesh_factory_make_hemisphere(
+	const float radius,
+	const unsigned int rings, const unsigned int segments,
+	struct mesh_primitive* p_out_mesh_primitive) {
+
+	const size_t num_vertices = segments * rings + 1;
+    const size_t vertex_size = sizeof(float) * 6;
+    const size_t vertices_size = num_vertices * vertex_size;
+    float*       p_vertices = malloc(vertices_size);
+    float*       p_v = p_vertices;
+
+    *p_v++ = 0;
+    *p_v++ = radius;
+    *p_v++ = 0;
+
+    *p_v++ = 0;
+    *p_v++ = 1;
+    *p_v++ = 0;
+
+    const float ring_theta = CX_M_TAU / rings;
+    const float sgmt_theta = CX_M_TAU / segments;
+
+	for (unsigned int i_ring = 1; i_ring <= rings; ++i_ring) {
+		const float i_ring_half_theta = i_ring * ring_theta * 0.25f;
+		const float c = cosf(i_ring_half_theta);
+		const float s = sinf(i_ring_half_theta);
+		for (unsigned int i_sgmt = 0; i_sgmt < segments; ++i_sgmt) {
+			const float i_sgmt_theta = i_sgmt * sgmt_theta;
+			
+			const float x = cosf(i_sgmt_theta) * s;
+			const float z = sinf(i_sgmt_theta) * s;
+
+			*p_v++ = radius * x;
+			*p_v++ = radius * c;
+			*p_v++ = radius * z;
+
+			*p_v++ = x;
+			*p_v++ = c;
+			*p_v++ = z;
+		}
+	}
+
+    const size_t num_indices = segments * 3 + (rings - 1) * segments * 6;
+	const size_t indices_size = num_indices * sizeof(unsigned short);
+    unsigned short* p_indices = malloc(indices_size);
+    unsigned short* p_i = p_indices;
+
+    // polar cap faces
+    for (unsigned int i = 0; i < segments - 1; ++i) {
+        *p_i++ = 0;
+        *p_i++ = i + 2;
+        *p_i++ = i + 1;
+    }
+
+	*p_i++ = 0;
+	*p_i++ = 1;
+	*p_i++ = segments;
+
+    // ring quad strip faces
+    for (size_t i_ring = 0; i_ring < rings - 1; ++i_ring) {
+        for (size_t i_sgmt = 0; i_sgmt < segments - 1; ++i_sgmt) {
+			const unsigned short i_vert = (segments * i_ring) + i_sgmt + 1;
+            
+			*p_i++ = i_vert;
+            *p_i++ = i_vert + 1;
+            *p_i++ = i_vert + segments;
+            
+            *p_i++ = i_vert + segments;
+            *p_i++ = i_vert + 1;
+            *p_i++ = i_vert + segments + 1;
+        }
+
+		*p_i++ = segments * (i_ring + 1);
+		*p_i++ = segments * i_ring + 1;
+		*p_i++ = segments * (i_ring + 2);
+
+		*p_i++ = segments * (i_ring + 2);
+		*p_i++ = segments * i_ring + 1;
+		*p_i++ = segments * (i_ring + 1) + 1;
+    }
+    
+    *p_out_mesh_primitive = (struct mesh_primitive) {
+        .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
+        .num_vertex_buffers = 1,
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
+        .num_attributes = 2,
+        .vertex_count = num_vertices,
+        .index_buffer = {
+            .p_bytes = p_indices,
+            .count = num_indices,
+            .type = VERTEX_INDEX_TYPE_u16
+        },
+        .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
+        .bounds_min = { -radius, -radius, -radius },
+        .bounds_max = {  radius,  radius,  radius }
+    };
+
+    *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
+        .p_bytes = p_vertices,
+        .size = vertices_size
+    };
+
+    p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
+        .index = 0,
+        .vertex_buffer_index = 0,
+        .layout = {
+            .stride = vertex_size,
+            .component_count = 3,
+            .component_type = VERTEX_ATTRIBUTE_TYPE_f32
+        }
+    };
+
+    p_out_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
+        .index = 1,
+        .vertex_buffer_index = 0,
+        .layout = {
+            .offset = sizeof(float) * 3,
+            .stride = vertex_size,
+            .component_count = 3,
+            .component_type = VERTEX_ATTRIBUTE_TYPE_f32
+        }
+    };
 }
 
 void mesh_factory_make_cylinder(
-	float radius_a, float radius_b, float half_length,
-	unsigned int n,
-	int b_cap_a, int b_cap_b,
+	const float radius_a, const float radius_b, const float half_length,
+	const unsigned int segments,
+	const int b_cap_a, const int b_cap_b,
 	struct mesh_primitive* p_out_mesh_primitive) {
 	
-	// todo:
-	(void)radius_b;
-	(void)half_length;
-	(void)b_cap_a;
-	(void)b_cap_b;
+	const size_t sleeve_num_vertices = segments * 2;
+	const size_t cap_num_vertices = segments + 1;
+	const size_t num_vertices = sleeve_num_vertices + (!!b_cap_a) * cap_num_vertices + (!!b_cap_b) * cap_num_vertices;
+	const size_t vertex_size = sizeof(float) * 6;
+	const size_t vertices_size = vertex_size * num_vertices;
+	float*       p_vertices = malloc(vertices_size);
+	float*       p_v = p_vertices;
 
-	mesh_factory_make_sphere(radius_a, n, p_out_mesh_primitive);
+	const float ymin = -half_length;
+	const float ymax = half_length;
+	const float theta = CX_M_TAU / segments;
+
+	for (unsigned int i = 0; i < segments; ++i) {
+		const float x = cosf(theta * i);
+		const float z = sinf(theta * i);
+
+		*p_v++ = x * radius_a;
+		*p_v++ = ymax;
+		*p_v++ = z * radius_a;
+
+		*p_v++ = x;
+		*p_v++ = 0;
+		*p_v++ = z;
+
+		*p_v++ = x * radius_b;
+		*p_v++ = ymin;
+		*p_v++ = z * radius_b;
+
+		*p_v++ = x;
+		*p_v++ = 0;
+		*p_v++ = z;
+	}
+
+#define GENERATE_CAP_VERTICES(P_V, Y, R, NY, N, T)\
+	*P_V++ = 0;\
+	*P_V++ = Y;\
+	*P_V++ = 0;\
+	for (unsigned int i = 0; i < N; ++i) {\
+		*P_V++ = cosf(T * i) * R;\
+		*P_V++ = Y;\
+		*P_V++ = sinf(T * i) * R;\
+		*P_V++ = 0;\
+		*P_V++ = NY;\
+		*P_V++ = 0;\
+	}
+
+	if (b_cap_a) {
+		GENERATE_CAP_VERTICES(p_v, ymax, radius_a,  1, segments, theta);
+	}
+
+	if (b_cap_b) {
+		GENERATE_CAP_VERTICES(p_v, ymin, radius_b, -1, segments, theta);
+	}
+
+#undef GENERATE_CAP
+
+	const size_t    cap_num_indices = segments * 3;
+	const size_t    sleeve_num_indices = 6 * segments;
+	const size_t    num_indices = sleeve_num_indices + (!!b_cap_a) * cap_num_indices + (!!b_cap_b) * cap_num_indices;
+	const size_t    indices_size = sizeof(unsigned short) * num_indices;
+	unsigned short* p_indices = malloc(indices_size);
+	unsigned short* p_i = p_indices;
+
+	for (unsigned int i = 0; i < segments - 1; ++i) {
+		*p_i++ = i * 2;
+		*p_i++ = i * 2 + 2;
+		*p_i++ = i * 2 + 1;
+
+		*p_i++ = i * 2 + 1;
+		*p_i++ = i * 2 + 2;
+		*p_i++ = i * 2 + 3;
+	}
+
+	*p_i++ = segments * 2 - 2;
+	*p_i++ = 0;
+	*p_i++ = segments * 2 - 1;
+
+	*p_i++ = segments * 2 - 1;
+	*p_i++ = 0;
+	*p_i++ = 1;
+
+#define GENERATE_CAP_INDICES(P_I, N, OFFSET)\
+		for (unsigned int i = 0; i < N - 1; ++i) {\
+			*P_I++ = OFFSET + 0;\
+			*P_I++ = OFFSET + i + 1;\
+			*P_I++ = OFFSET + i + 2;\
+		}\
+		*P_I++ = OFFSET + 0;\
+		*P_I++ = OFFSET + N + 1;\
+		*P_I++ = OFFSET + 1;
+
+	if (b_cap_a) {
+		GENERATE_CAP_INDICES(p_i, segments, segments * 2);
+	}
+
+	if (b_cap_b) {
+		GENERATE_CAP_INDICES(p_i, segments, segments * 2 + (!!b_cap_a) * (segments + 1));
+	}
+
+#undef GENERATE_CAP_INDICES
+
+	const float radius_max = radius_a > radius_b ? radius_a : radius_b;
+
+    *p_out_mesh_primitive = (struct mesh_primitive) {
+        .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
+        .num_vertex_buffers = 1,
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
+        .num_attributes = 2,
+        .vertex_count = num_vertices,
+        .index_buffer = {
+            .p_bytes = p_indices,
+            .count = num_indices,
+            .type = VERTEX_INDEX_TYPE_u16
+        },
+        .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
+        .bounds_min = { -radius_max, ymin, -radius_max },
+        .bounds_max = {  radius_max, ymax,  radius_max }
+    };
+
+    *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
+        .p_bytes = p_vertices,
+        .size = vertices_size
+    };
+
+    p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
+        .index = 0,
+        .vertex_buffer_index = 0,
+        .layout = {
+            .stride = vertex_size,
+            .component_count = 3,
+            .component_type = VERTEX_ATTRIBUTE_TYPE_f32
+        }
+    };
+
+    p_out_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
+        .index = 1,
+        .vertex_buffer_index = 0,
+        .layout = {
+            .offset = sizeof(float) * 3,
+            .stride = vertex_size,
+            .component_count = 3,
+            .component_type = VERTEX_ATTRIBUTE_TYPE_f32
+        }
+    };
 }
 
 void mesh_factory_make_from_halfedge_mesh(

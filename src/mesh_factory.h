@@ -13,7 +13,10 @@ void mesh_factory_make_sphere(
 	const unsigned int n,
 	struct mesh_primitive* p_out_mesh_primitive);
 
-void mesh_factory_make_hemisphere(float radius, unsigned int n, struct mesh_primitive* p_out_mesh_primitive);
+void mesh_factory_make_hemisphere(
+	const float radius,
+	const unsigned int rings, const unsigned int segments,
+	struct mesh_primitive* p_out_mesh_primitive);
 
 void mesh_factory_make_cylinder(
 	const float radius_a, const float radius_b, const float half_length,
