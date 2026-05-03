@@ -66,23 +66,27 @@ struct physics_plane {
     float distance;
 };
 
+union physics_collider_shape {
+    struct physics_sphere  as_sphere;
+    struct physics_capsule as_capsule;
+    struct physics_hull    as_hull;
+    struct physics_plane   as_plane;
+};
+
+void physics_collider_shape_transform(
+	union physics_collider_shape* p_shape,
+	enum physics_collider_type type,
+	const struct transform* p_t);
+
 struct physics_collider {
-    enum physics_collider_type type;
-    union {
-        struct physics_sphere  as_sphere;
-        struct physics_capsule as_capsule;
-        struct physics_hull    as_hull;
-        struct physics_plane   as_plane;
-    };
-    union {
-        struct physics_sphere  as_sphere;
-        struct physics_capsule as_capsule;
-        struct physics_hull    as_hull;
-        struct physics_plane   as_plane;
-    } _cached;
+    enum physics_collider_type   type;
+	union physics_collider_shape shape;
+	union physics_collider_shape _shape_cached;
 };
 
 void physics_collider_init(struct physics_collider* p_collider, enum physics_collider_type collider_type);
+void physics_collider_apply_transform(struct physics_collider* p_collider, const struct transform* p_t);
+void physics_collider_undo_transform(struct physics_collider* p_collider);
 
 typedef void(*physics_collision_solver_func)(const struct physics_collision* p_collisions, size_t n, float delta_time);
 
