@@ -409,20 +409,21 @@ void quaternion_multiply(const float* p_q1, const float* p_q2, float* p_result) 
 }
 
 void quaternion_rotate_vec3(const float* p_q, const float* p_v, float* p_result) {
-	// todo: optimize. should be able to do this in fewer ops
+	float p_temp[3];
 
-    float temp[3];
-    
-    vec3_mul_s(p_v, p_q[3] * p_q[3] - vec3_dot(p_q, p_q), temp);
+	const float qv = vec3_dot(p_q, p_v);
+	const float qq = vec3_dot(p_q, p_q);
 
-    vec3_cross(p_q, p_v, p_result);
-    vec3_mul_s(p_result, 2 * p_q[3], p_result);
+	vec3_cross(p_q, p_v, p_temp);
+	vec3_mul_s(p_temp, 2 * p_q[3], p_temp);
 
-    vec3_add(temp, p_result, p_result);
-    
-    vec3_mul_s(p_q, 2 * vec3_dot(p_q, p_v), temp);
-    
-    vec3_add(temp, p_result, p_result);
+	vec3_mul_s(p_v, p_q[3] * p_q[3] - qq, p_result);
+
+	vec3_add(p_temp, p_result, p_result);
+
+	vec3_mul_s(p_q, 2 * qv, p_temp);
+
+	vec3_add(p_temp, p_result, p_result);
 }
 
 void quaternion_find_rotation_between(const float* p_u, const float* p_v, float* p_out) {
