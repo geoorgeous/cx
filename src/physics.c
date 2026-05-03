@@ -623,13 +623,52 @@ int physics_test_collision_capsule_capsule(
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	
-	(void)p_a;
-	(void)p_b;
+	float p_u[3]; // a.p0->a.p1
+	float p_v[3]; // b.p0->b.p1
+	float p_w[3]; // a.p0->b.p0
 
-	*p_result = (struct physics_collision_result){0};
-	return 0;
+	vec3_sub(p_a->shape.as_capsule.p1, p_a->shape.as_capsule.p0, p_u);
+	vec3_sub(p_b->shape.as_capsule.p1, p_b->shape.as_capsule.p0, p_v);
+	vec3_sub(p_a->shape.as_capsule.p0, p_b->shape.as_capsule.p0, p_w);
 
-	// todo: capsule-capsule collision
+	const float uu = vec3_len_sq(p_u);
+	const float vv = vec3_len_sq(p_v);
+	const float uv = vec3_dot(p_u, p_v);
+	const float uw = vec3_dot(p_u, p_w);
+	const float vw = vec3_dot(p_v, p_w);
+	const float dist = uu * vv - uv * uv;
+
+	float s;
+	float t;
+
+	if (FLT_ISZERO(dist)) {
+		// parallel lines
+		s = 0;
+		t = vv > 0 ? (vw / vv) : 0;
+	} else {
+		s = (uv * vw - vv * uw) / dist;
+		t = (uu * vw - uv * uw) / dist;
+	}
+
+	s = clampf(s, 0, 1);
+	t = clampf(t, 0, 1);
+
+	if (dist >= 0) {
+		if (FLT_ISZERO(s) || FLT_CMP(s, 1)) {
+			t = clampf((uv * s + vw) / vv, 0, 1);
+		}
+		if (FLT_ISZERO(t) || FLT_CMP(t, 1)) {
+			s = clampf((uv * t - uw) / uu, 0, 1);
+		}
+	}
+
+	vec3_mul_s(p_u, s, p_u);
+	vec3_add(p_a->shape.as_capsule.p0, p_u, p_u);
+
+	vec3_mul_s(p_v, t, p_v);
+	vec3_add(p_b->shape.as_capsule.p0, p_v, p_v);
+	
+	return physics_test_sphere_sphere_internal(p_u, p_a->shape.as_capsule.radius, p_v, p_b->shape.as_capsule.radius, p_result);
 }
 
 int physics_test_collision_capsule_hull(
