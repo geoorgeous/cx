@@ -6,6 +6,7 @@
 #include "half_edge.h"
 #include "mesh_factory.h"
 #include "mesh.h"
+#include "vector.h"
 
 #define CX_M_TAU 6.28318531
 
@@ -568,7 +569,7 @@ void mesh_factory_make_from_halfedge_mesh(
 	struct mesh_primitive* p_out_mesh_primitive) {
     
 	struct darr vertices;
-    darr_init(&vertices, sizeof(float) * 3);
+    darr_init(&vertices, sizeof(float) * 6);
 
     struct he_face* p_face = p_he_mesh->p_faces;
 
@@ -576,24 +577,31 @@ void mesh_factory_make_from_halfedge_mesh(
 		size_t num_vertices = 0;
 
 		struct he_edge* p_edge = p_face->p_edges;
+
+		float p_ab[3];
+		float p_ca[3];
+
+		vec3_sub(p_edge->p_next->p_tail->position, p_edge->p_tail->position, p_ab);
+		vec3_sub(p_edge->p_tail->position, p_edge->p_prev->p_tail->position, p_ca);
+
+		float p_normal[3];
+		vec3_cross(p_ca, p_ab, p_normal);
+
 		do {
 			float* p_vertex = darr_push(&vertices);
-			p_vertex[0] = p_edge->p_tail->position[0];
-			p_vertex[1] = p_edge->p_tail->position[1];
-			p_vertex[2] = p_edge->p_tail->position[2];
+			vec3_set(p_edge->p_tail->position, p_vertex);
+			vec3_set(p_normal, &p_vertex[3]);
 
 			++num_vertices;
 
 			if (num_vertices > 3) {
 				p_vertex = darr_push(&vertices);
-				p_vertex[0] = p_face->p_edges->p_tail->position[0];
-				p_vertex[1] = p_face->p_edges->p_tail->position[1];
-				p_vertex[2] = p_face->p_edges->p_tail->position[2];
+				vec3_set(p_face->p_edges->p_tail->position, p_vertex);
+				vec3_set(p_normal, &p_vertex[3]);
 				
 				p_vertex = darr_push(&vertices);
-				p_vertex[0] = p_edge->p_prev->p_tail->position[0];
-				p_vertex[1] = p_edge->p_prev->p_tail->position[1];
-				p_vertex[2] = p_edge->p_prev->p_tail->position[2];
+				vec3_set(p_edge->p_prev->p_tail->position, p_vertex);
+				vec3_set(p_normal, &p_vertex[3]);
 			}
 
 			p_edge = p_edge->p_next;
@@ -607,10 +615,10 @@ void mesh_factory_make_from_halfedge_mesh(
     *p_out_mesh_primitive = (struct mesh_primitive) {
         .p_vertex_buffers = malloc(sizeof(*p_out_mesh_primitive->p_vertex_buffers)),
         .num_vertex_buffers = 1,
-        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 1),
-        .num_attributes = 1,
+        .p_attributes = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
+        .num_attributes = 2,
         .vertex_count = vertices._length,
-        .draw_mode = MESH_PRIMITIVE_DRAW_MODE_lines
+        .draw_mode = MESH_PRIMITIVE_DRAW_MODE_triangles,
     };
 
     *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
@@ -622,6 +630,17 @@ void mesh_factory_make_from_halfedge_mesh(
         .index = 0,
         .vertex_buffer_index = 0,
         .layout = {
+            .stride = vertices._element_size,
+            .component_count = 3,
+            .component_type = VERTEX_ATTRIBUTE_TYPE_f32
+        }
+    };
+
+    p_out_mesh_primitive->p_attributes[1] = (struct vertex_attribute) {
+        .index = 1,
+        .vertex_buffer_index = 0,
+        .layout = {
+            .offset = sizeof(float) * 3,
             .stride = vertices._element_size,
             .component_count = 3,
             .component_type = VERTEX_ATTRIBUTE_TYPE_f32
