@@ -7,48 +7,108 @@
 #include "transform.h"
 #include "vector.h"
 
-// https://github.com/IainWinter/IwEngine/blob/3e2052855fea85718b7a499a7b1a3befd49d812b/IwEngine/include/iw/physics/impl/TestCollision.h
+
+/* referece: https://github.com/IainWinter/IwEngine/
+       blob/3e2052855fea85718b7a499a7b1a3befd49d812b/IwEngine/include/iw/physics/impl/TestCollision.h */
 
 #define PHYSICS_MAX_COLLIDERS      1024
 #define PHYSICS_MAX_STATIC_OBJECTS 1024
 #define PHYSICS_MAX_RIGIDBODIES    512
 
-static void physics_collider_shape_transform_sphere(union physics_collider_shape* p_shape, const struct transform* p_t);
-static void physics_collider_shape_transform_capsule(union physics_collider_shape* p_shape, const struct transform* p_t);
+static void physics_collider_shape_transform_sphere(
+	union physics_collider_shape* p_shape,
+	const struct transform* p_t);
+
+static void physics_collider_shape_transform_capsule(
+	union physics_collider_shape* p_shape,
+	const struct transform* p_t);
+
 static void physics_collider_shape_transform_hull(union physics_collider_shape* p_shape, const struct transform* p_t);
+
 static void physics_collider_shape_transform_plane(union physics_collider_shape* p_shape, const struct transform* p_t);
 
+
 static void physics_collider_apply_transform_sphere(struct physics_collider* p_collider, const struct transform* p_t);
+
 static void physics_collider_apply_transform_capsule(struct physics_collider* p_collider, const struct transform* p_t);
+
 static void physics_collider_apply_transform_hull(struct physics_collider* p_collider, const struct transform* p_t);
+
 static void physics_collider_apply_transform_plane(struct physics_collider* p_collider, const struct transform* p_t);
 
+
 static void physics_collider_undo_transform_sphere(struct physics_collider* p_collider);
+
 static void physics_collider_undo_transform_capsule(struct physics_collider* p_collider);
+
 static void physics_collider_undo_transform_hull(struct physics_collider* p_collider);
+
 static void physics_collider_undo_transform_plane(struct physics_collider* p_collider);
 
+
 static void physics_world_step_rigidbodies(struct physics_world* p_world, float delta_time);
+
 static void physics_world_detect_collisions(struct physics_world* p_world);
+
 static void physics_world_detect_collisions_broadphase(struct physics_world* p_world);
+
 static void physics_world_detect_collisions_narrowphase(struct physics_world* p_world);
-static void physics_world_resolve_collisions(struct physics_world* p_world, const struct physics_collision* p_collisions, size_t n, float delta_time);
 
-static int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a, const float* p_center_b, float radius_b, struct physics_collision_result* p_result);
-static int physics_test_convex_hulls(const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
+static void physics_world_resolve_collisions(
+	struct physics_world* p_world,
+	const struct physics_collision* p_collisions,
+	size_t n,
+	float delta_time);
 
-static int  gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]);
+
+static int physics_test_sphere_sphere_internal(
+	const float* p_center_a, float radius_a,
+	const float* p_center_b, float radius_b,
+	struct physics_collision_result* p_result);
+
+static int physics_test_convex_hulls(
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
+
+static int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]);
+
 static void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme);
+
 static void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const float* p_dir, float* p_extreme);
+
 static void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const float* p_dir, float* p_extreme);
+
 static void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_dir, float* p_extreme);
-static void gjk_find_support(const struct physics_collider* p_a, const struct physics_collider* p_b, const float* p_dir, float* p_support);
-static int  gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
+
+static void gjk_find_support(
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	const float* p_dir,
+	float* p_support);
+
+static int gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
+
 static void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir);
+
 static void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir);
-static void gjk_process_simplex_triangle_test_ab(const float* p_ab, const float* p_ao, const float* p_a, const float* p_b, float simplex[4][3], int* p_simplex_d, float* p_dir);
+
+static void gjk_process_simplex_triangle_test_ab(
+	const float* p_ab,
+	const float* p_ao,
+	const float* p_a,
+	const float* p_b,
+	float simplex[4][3],
+	int* p_simplex_d,
+	float* p_dir);
+
 static int  gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
-static void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result);
+
+static void epa(
+	float simplex[4][3],
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 void physics_collider_shape_transform(
 	union physics_collider_shape* p_shape,
@@ -132,7 +192,11 @@ void physics_world_destroy(struct physics_world* p_world) {
 	object_pool_free(&p_world->_physics_object_pools[1]);
 }
 
-struct physics_object* physics_world_new_object(struct physics_world* p_world, struct transform* p_transform, int b_is_rigidbody) {
+struct physics_object* physics_world_new_object(
+	struct physics_world* p_world,
+	struct transform* p_transform,
+	int b_is_rigidbody) {
+
 	struct physics_object* p_object = object_pool_get(&p_world->_physics_object_pools[b_is_rigidbody]);
 	*p_object = (struct physics_object) {
 		._p_world = p_world,
@@ -177,8 +241,11 @@ void physics_world_destroy_object(struct physics_world* p_world, struct physics_
 	object_pool_return(&p_world->_physics_object_pools[p_object->_b_is_rigidbody], p_object);
 }
 
+void physics_world_new_object_collider(
+	struct physics_world* p_world,
+	struct physics_object* p_object,
+	enum physics_collider_type type) {
 
-void physics_world_new_object_collider(struct physics_world* p_world, struct physics_object* p_object, enum physics_collider_type type) {
 	if (p_object->_p_collider) {
 		return;
 	}
@@ -186,7 +253,9 @@ void physics_world_new_object_collider(struct physics_world* p_world, struct phy
 	p_object->_p_collider = object_pool_get(&p_world->_collider_pool);
 	physics_collider_init(p_object->_p_collider, type);
 
-	CX_LOG_FMT(TRACE, PHYSICS, "Collider added to %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", type);
+	CX_LOG_FMT(TRACE, PHYSICS, "Collider added to %s (type=%d)\n",
+		p_object->_b_is_rigidbody ? "rigidbody" : "static body",
+		type);
 }
 
 void physics_world_destroy_object_collider(struct physics_world* p_world, struct physics_object* p_object) {
@@ -194,7 +263,9 @@ void physics_world_destroy_object_collider(struct physics_world* p_world, struct
 		return;
 	}
 
-	CX_LOG_FMT(TRACE, PHYSICS, "Collider removed from %s (type=%d)\n", p_object->_b_is_rigidbody ? "rigidbody" : "static body", p_object->_p_collider->type);
+	CX_LOG_FMT(TRACE, PHYSICS, "Collider removed from %s (type=%d)\n",
+		p_object->_b_is_rigidbody ? "rigidbody" : "static body",
+		p_object->_p_collider->type);
 
 	if (p_object->_p_collider->type == PHYSICS_COLLIDER_TYPE_hull) {
 		darr_free(&p_object->_p_collider->shape.as_hull.verts);
@@ -220,15 +291,19 @@ void physics_world_remove_solver(struct physics_world* p_world, physics_collisio
 }
 
 void physics_world_step(struct physics_world* p_world, float delta_time) {
-	//CX_DBG_LOG_FMT(PHYSICS, "Step (delta_time=%f)\n", delta_time);
-
 	if (FLT_CMP(delta_time, 0)) {
 		return;
 	}
 
 	physics_world_step_rigidbodies(p_world, delta_time);
+	
 	physics_world_detect_collisions(p_world);
-	physics_world_resolve_collisions(p_world, p_world->_collisions._p_buffer, p_world->_collisions._length, delta_time);
+	
+	physics_world_resolve_collisions(
+		p_world,
+		p_world->_collisions._p_buffer,
+		p_world->_collisions._length,
+		delta_time);
 }
 
 void physics_collider_shape_transform_sphere(union physics_collider_shape* p_shape, const struct transform* p_t) {
@@ -419,7 +494,8 @@ void physics_world_detect_collisions_narrowphase(struct physics_world* p_world) 
 	for (int i = p_world->_collisions._length - 1; i >= 0; --i) {
 		struct physics_collision* p_collision = darr_get(&p_world->_collisions, i);
 
-		p_collision->b_has_collision = physics_test_collision(p_collision->p_a->_p_collider, p_collision->p_b->_p_collider, &p_collision->result);
+		p_collision->b_has_collision =
+			physics_test_collision(p_collision->p_a->_p_collider, p_collision->p_b->_p_collider, &p_collision->result);
 		
 		if (!p_collision->b_has_collision) {
 			darr_remove(&p_world->_collisions, i);
@@ -427,7 +503,12 @@ void physics_world_detect_collisions_narrowphase(struct physics_world* p_world) 
 	}
 }
 
-void physics_world_resolve_collisions(struct physics_world* p_world, const struct physics_collision* p_collisions, size_t n, float delta_time) {
+void physics_world_resolve_collisions(
+	struct physics_world* p_world,
+	const struct physics_collision* p_collisions,
+	size_t n,
+	float delta_time) {
+
 	for (size_t i = 0; i < p_world->_solvers._length; ++i) {
 		physics_collision_solver_func* p_solver = darr_get(&p_world->_solvers, i);
 		(*p_solver)(p_collisions, n, delta_time);
@@ -445,10 +526,22 @@ int physics_test_collision(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	static const physics_test_collision_func test_func_table[3][4] = {
-		{ (void*)physics_test_collision_sphere_sphere, (void*)physics_test_collision_sphere_capsule,  (void*)physics_test_collision_sphere_hull,  (void*)physics_test_collision_sphere_plane  },
-		{ 0,                                           (void*)physics_test_collision_capsule_capsule, (void*)physics_test_collision_capsule_hull, (void*)physics_test_collision_capsule_plane },
-		{ 0,                                           0,                                             (void*)physics_test_collision_hull_hull,    (void*)physics_test_collision_hull_plane    }
+	static const physics_test_collision_func test_func_table[3][4] = { { 
+			(void*)physics_test_collision_sphere_sphere,
+			(void*)physics_test_collision_sphere_capsule,
+			(void*)physics_test_collision_sphere_hull,
+			(void*)physics_test_collision_sphere_plane
+		}, {
+			0,
+			(void*)physics_test_collision_capsule_capsule,
+			(void*)physics_test_collision_capsule_hull,
+			(void*)physics_test_collision_capsule_plane
+		}, {
+			0,
+			0,
+			(void*)physics_test_collision_hull_hull,
+			(void*)physics_test_collision_hull_plane
+		}
 	};
 
 	if (p_a->type == PHYSICS_COLLIDER_TYPE_plane && p_b->type == PHYSICS_COLLIDER_TYPE_plane) {
@@ -478,7 +571,11 @@ int physics_test_collision(
 	return b_has_collision;
 }
 
-int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a, const float* p_center_b, float radius_b, struct physics_collision_result* p_result) {
+int physics_test_sphere_sphere_internal(
+	const float* p_center_a, float radius_a,
+	const float* p_center_b, float radius_b,
+	struct physics_collision_result* p_result) {
+	
 	float ab[3];
 	vec3_sub(p_center_b, p_center_a, ab);
 	
@@ -488,12 +585,6 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 
 	if (d > radius_ab * radius_ab) {
 		*p_result = (struct physics_collision_result){0};
-		// CX_DBG_LOG_FMT(PHYSICS, "Sphere-sphere no collision: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(radius_ab*radius_ab)=%u\n"
-		//     , p_center_a[0], p_center_a[1], p_center_a[2], radius_a
-		//     , p_center_b[0], p_center_b[1], p_center_b[2], radius_b
-		//     , d
-		//     , radius_a + radius_b
-		//     , d < radius_ab * radius_ab);
 		return 0;
 	}
 
@@ -509,17 +600,6 @@ int physics_test_sphere_sphere_internal(const float* p_center_a, float radius_a,
 	vec3_mul_s(p_result->ab_normal, radius_b, p_result->b);
 	vec3_sub(p_result->b, p_center_b, p_result->b);
 	
-	// CX_DBG_LOG_FMT(PHYSICS, "Sphere-sphere collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, a.radius+b.radius=%.12f, dist<(a.radius+b.radius)=%u, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
-	//     , p_center_a[0], p_center_a[1], p_center_a[2], radius_a
-	//     , p_center_b[0], p_center_b[1], p_center_b[2], radius_b
-	//     , d
-	//     , radius_a + radius_b
-	//     , d < (radius_a + radius_b)
-	//     , p_result->a[0], p_result->a[1], p_result->a[2]
-	//     , p_result->b[0], p_result->b[1], p_result->b[2]
-	//     , p_result->ab_normal[0], p_result->ab_normal[1], p_result->ab_normal[2]
-	//     , p_result->depth);
-
 	return 1;
 }
 
@@ -544,7 +624,10 @@ int physics_test_collision_sphere_sphere(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	return physics_test_sphere_sphere_internal(p_a->shape.as_sphere.center, p_a->shape.as_sphere.radius, p_b->shape.as_sphere.center, p_b->shape.as_sphere.radius, p_result);
+	return physics_test_sphere_sphere_internal(
+		p_a->shape.as_sphere.center, p_a->shape.as_sphere.radius,
+		p_b->shape.as_sphere.center, p_b->shape.as_sphere.radius,
+		p_result);
 }
 
 int physics_test_collision_sphere_capsule(
@@ -570,7 +653,10 @@ int physics_test_collision_sphere_capsule(
 		vec3_add(p_b->shape.as_capsule.p0, v1, v0);
 	}
 	
-	return physics_test_sphere_sphere_internal(p_a->shape.as_sphere.center, p_a->shape.as_sphere.radius, v0, p_b->shape.as_capsule.radius, p_result);
+	return physics_test_sphere_sphere_internal(
+		p_a->shape.as_sphere.center, p_a->shape.as_sphere.radius,
+		v0, p_b->shape.as_capsule.radius,
+		p_result);
 }
 
 int physics_test_collision_sphere_hull(
@@ -606,15 +692,6 @@ int physics_test_collision_sphere_plane(
 	
 	p_result->depth = p_a->shape.as_sphere.radius - d;
 
-	// CX_DBG_LOG_FMT(PHYSICS, "Sphere-plane collision detected: a=([%f, %f, %f], %f) b=([%f, %f, %f], %f), dist=%.12f, result.a=[%f, %f, %f], result.b=[%f, %f, %f], result.norm=[%f, %f, %f], result.depth=%f\n"
-	//     , center_a[0], center_a[1], center_a[2], radius_a
-	//     , normal_b[0], normal_b[1], normal_b[2], p_b->distance
-	//     , distance
-	//     , p_result->a[0], p_result->a[1], p_result->a[2]
-	//     , p_result->b[0], p_result->b[1], p_result->b[2]
-	//     , p_result->normal[0], p_result->normal[1], p_result->normal[2]
-	//     , p_result->depth);
-	
 	return 1;
 }
 
@@ -668,7 +745,10 @@ int physics_test_collision_capsule_capsule(
 	vec3_mul_s(p_v, t, p_v);
 	vec3_add(p_b->shape.as_capsule.p0, p_v, p_v);
 	
-	return physics_test_sphere_sphere_internal(p_u, p_a->shape.as_capsule.radius, p_v, p_b->shape.as_capsule.radius, p_result);
+	return physics_test_sphere_sphere_internal(
+		p_u, p_a->shape.as_capsule.radius,
+		p_v, p_b->shape.as_capsule.radius,
+		p_result);
 }
 
 int physics_test_collision_capsule_hull(
@@ -686,10 +766,18 @@ int physics_test_collision_capsule_plane(
 	(void)p_a;
 	(void)p_b;
 
-	*p_result = (struct physics_collision_result){0};
-	return 0;
+	const float n_dot_p0 = vec3_dot(p_b->shape.as_plane.normal, p_a->shape.as_capsule.p0);
+	const float n_dot_p1 = vec3_dot(p_b->shape.as_plane.normal, p_a->shape.as_capsule.p1);
+	const float r = p_a->shape.as_capsule.radius;
 
-	// todo: capsule-plane collision
+	if ((n_dot_p0 > r && n_dot_p1 > r) || (n_dot_p0 < -r && n_dot_p1 < -r)) {
+		*p_result = (struct physics_collision_result){0};
+		return 0;
+	}
+
+	*p_result = (struct physics_collision_result){0};
+	
+	return 1;
 }
 
 int physics_test_collision_hull_hull(
@@ -728,8 +816,11 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 	(void)delta_time;
 
 	for (size_t i = 0; i < n; ++i) {
-		struct physics_rigidbody* p_rb_a = (struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
-		struct physics_rigidbody* p_rb_b = (struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
+		struct physics_rigidbody* p_rb_a =
+			(struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
+		
+		struct physics_rigidbody* p_rb_b =
+			(struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
 
 		float vel_a[3] = {0};
 		float vel_b[3] = {0};
@@ -827,7 +918,11 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 	}
 }
 
-void physics_collision_solver_smooth_positions(const struct physics_collision* p_collisions, size_t n, float delta_time) {
+void physics_collision_solver_smooth_positions(
+	const struct physics_collision* p_collisions,
+	size_t n,
+	float delta_time) {
+
 	(void)delta_time;
 
 	static struct darr deltas;
@@ -836,8 +931,11 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 	}
 
 	for (size_t i = 0; i < n; ++i) {
-		struct physics_rigidbody* p_rb_a = (struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
-		struct physics_rigidbody* p_rb_b = (struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
+		struct physics_rigidbody* p_rb_a =
+			(struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
+		
+		struct physics_rigidbody* p_rb_b =
+			(struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
 
 		float* p_deltas = (float*)darr_push(&deltas);
 		float* p_delta_a = &p_deltas[0];
@@ -870,12 +968,13 @@ void physics_collision_solver_smooth_positions(const struct physics_collision* p
 	}
 	
 	for (size_t i = 0; i < n; ++i) {
-		struct physics_rigidbody* p_rb_a = (struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
-		struct physics_rigidbody* p_rb_b = (struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
+		struct physics_rigidbody* p_rb_a =
+			(struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
+		
+		struct physics_rigidbody* p_rb_b =
+			(struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
 		
 		const float* p_deltas = darr_get(&deltas, i);
-
-		//CX_DBG_LOG_FMT(0, "Smooth positions solver: delta_a=[%f, %f, %f], delta_b=[%f, %f, %f]\n", p_deltas[0], p_deltas[1], p_deltas[2], p_deltas[3], p_deltas[4], p_deltas[5]);
 
 		if (p_rb_a) {
 			float new_position[3];
@@ -919,23 +1018,52 @@ int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, 
 		gjk_find_support(p_a, p_b, dir, simplex[simplex_d]);
 		++simplex_d;
 
-		// if (simplex_d == 2) {
-		// 	CX_DBG_LOG_FMT("gjk", "new simplex=(\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], dir[0], dir[1], dir[2]);
-		// } else if (simplex_d == 3) {
-		// 	CX_DBG_LOG_FMT("gjk", "new simplex=(\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], dir[0], dir[1], dir[2]);
-		// } else {
-		// 	CX_DBG_LOG_FMT("gjk", "new simplex=(\n\tD[%f, %f, %f]\n\tC[%f, %f, %f]\n\tB[%f, %f, %f]\n\tA[%f, %f, %f]\n), dir=[%f, %f, %f]\n", simplex[0][0], simplex[0][1], simplex[0][2], simplex[1][0], simplex[1][1], simplex[1][2], simplex[2][0], simplex[2][1], simplex[2][2], simplex[3][0], simplex[3][1], simplex[3][2], dir[0], dir[1], dir[2]);
-		// }
+CX_DBG(
+		if (simplex_d == 2) {
+			CX_LOG_FMT(TRACE, PHYSICS_GJK,
+				"new simplex=(\n"
+				"  B[%f, %f, %f]\n"
+				"  A[%f, %f, %f]\n"
+				"), dir=[%f, %f, %f]\n",
+				simplex[0][0], simplex[0][1], simplex[0][2],
+				simplex[1][0], simplex[1][1], simplex[1][2],
+				dir[0], dir[1], dir[2]);
+		} else if (simplex_d == 3) {
+			CX_LOG_FMT(TRACE, PHYSICS_GJK,
+				"new simplex=(\n"
+				"  C[%f, %f, %f]\n"
+				"  B[%f, %f, %f]\n"
+				"  A[%f, %f, %f]\n"
+				"), dir=[%f, %f, %f]\n",
+				simplex[0][0], simplex[0][1], simplex[0][2],
+				simplex[1][0], simplex[1][1], simplex[1][2],
+				simplex[2][0], simplex[2][1], simplex[2][2],
+				dir[0], dir[1], dir[2]);
+		} else {
+			CX_LOG_FMT(TRACE, PHYSICS_GJK,
+				"new simplex=(\n"
+				"  D[%f, %f, %f]\n"
+				"  C[%f, %f, %f]\n"
+				"  B[%f, %f, %f]\n"
+				"  A[%f, %f, %f]\n"
+				"), dir=[%f, %f, %f]\n",
+				simplex[0][0], simplex[0][1], simplex[0][2],
+				simplex[1][0], simplex[1][1], simplex[1][2],
+				simplex[2][0], simplex[2][1], simplex[2][2],
+				simplex[3][0], simplex[3][1], simplex[3][2],
+				dir[0], dir[1], dir[2]);
+		}
+); // CX_DBG
 
 		// If the new point is not beyond the origin from the perspective of the search direction,
 		// then there's no collision!
 		if (!GJK_SAME_SIDE(simplex[simplex_d - 1], dir)) {
-			//CX_DBG_LOG("gjk", "NO COLLISION\n");
+			CX_DBG(CX_LOG(TRACE, PHYSICS_GJK, "NO COLLISION\n"));
 			return 0;
 		}
 
 		if (gjk_process_simplex(simplex, &simplex_d, dir)) {
-			//CX_DBG_LOG("gjk", "\tCOLLISION DETECTED\n");
+			CX_DBG(CX_LOG(TRACE, PHYSICS_GJK, "COLLISION DETECTED\n"));
 			return 1;
 		}
 	}
@@ -983,7 +1111,12 @@ void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_
 	}
 }
 
-void gjk_find_support(const struct physics_collider* p_a, const struct physics_collider* p_b, const float* p_dir, float* p_support) {
+void gjk_find_support(
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	const float* p_dir,
+	float* p_support) {
+	
 	float tmp[3];
 
 	vec3_inv(p_dir, tmp);
@@ -991,7 +1124,10 @@ void gjk_find_support(const struct physics_collider* p_a, const struct physics_c
 
 	gjk_find_extreme(p_a, p_dir, tmp);
 
-	//CX_DBG_LOG_FMT("gjk", "collider extremes: dir=[%f, %f, %f], a=[%f, %f, %f], b=[%f, %f, %f]\n", p_dir[0], p_dir[1], p_dir[2], tmp[0], tmp[1], tmp[2], p_support[0], p_support[1], p_support[2]);
+	CX_DBG(CX_LOG_FMT(TRACE, PHYSICS_GJK, "collider extremes: dir=[%f, %f, %f], a=[%f, %f, %f], b=[%f, %f, %f]\n",
+		p_dir[0], p_dir[1], p_dir[2],
+		tmp[0], tmp[1], tmp[2],
+		p_support[0], p_support[1], p_support[2]));
 
 	vec3_sub(tmp, p_support, p_support);
 }
@@ -1083,7 +1219,15 @@ void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* 
 	}
 }
 
-void gjk_process_simplex_triangle_test_ab(const float* p_ab, const float* p_ao, const float* p_a, const float* p_b, float simplex[4][3], int* p_simplex_d, float* p_dir) {
+void gjk_process_simplex_triangle_test_ab(
+	const float* p_ab,
+	const float* p_ao,
+	const float* p_a,
+	const float* p_b,
+	float simplex[4][3],
+	int* p_simplex_d,
+	float* p_dir) {
+
 	if (GJK_SAME_SIDE(p_ab, p_ao)) {
 		// simplex is LINE A->B
 		// direction is AB cross AO cross AB
@@ -1159,7 +1303,12 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 
 // Expanding Polytope/Polyhedra Algorithm (EPA)
 
-void epa(float simplex[4][3], const struct physics_collider* p_a, const struct physics_collider* p_b, struct physics_collision_result* p_result) {
+void epa(
+	float simplex[4][3],
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result) {
+	
 	(void)simplex;
 	(void)p_a;
 	(void)p_b;

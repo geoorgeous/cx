@@ -7,6 +7,7 @@
 #include "object_pool.h"
 
 #define CX_LOG_CAT_PHYSICS "physics"
+#define CX_LOG_CAT_PHYSICS_GJK "physics:gjk"
 
 struct physics_object {
     struct physics_world*    _p_world;
@@ -85,7 +86,9 @@ struct physics_collider {
 };
 
 void physics_collider_init(struct physics_collider* p_collider, enum physics_collider_type collider_type);
+
 void physics_collider_apply_transform(struct physics_collider* p_collider, const struct transform* p_t);
+
 void physics_collider_undo_transform(struct physics_collider* p_collider);
 
 typedef void(*physics_collision_solver_func)(const struct physics_collision* p_collisions, size_t n, float delta_time);
@@ -98,15 +101,29 @@ struct physics_world {
     struct object_pool _physics_object_pools[2];
 };
 
-void                   physics_world_init(struct physics_world* p_world);
-void                   physics_world_destroy(struct physics_world* p_world);
-struct physics_object* physics_world_new_object(struct physics_world* p_world, struct transform* p_transform, int b_is_rigidbody);
-void                   physics_world_destroy_object(struct physics_world* p_world, struct physics_object* p_object);
-void                   physics_world_new_object_collider(struct physics_world* p_world, struct physics_object* p_object, enum physics_collider_type type);
-void                   physics_world_destroy_object_collider(struct physics_world* p_world, struct physics_object* p_object);
-void                   physics_world_add_solver(struct physics_world* p_world, physics_collision_solver_func p_solver_func);
-void                   physics_world_remove_solver(struct physics_world* p_world, physics_collision_solver_func p_solver_func);
-void                   physics_world_step(struct physics_world* p_world, float delta_time);
+void physics_world_init(struct physics_world* p_world);
+
+void physics_world_destroy(struct physics_world* p_world);
+
+struct physics_object* physics_world_new_object(
+	struct physics_world* p_world,
+	struct transform* p_transform,
+	int b_is_rigidbody);
+
+void physics_world_destroy_object(struct physics_world* p_world, struct physics_object* p_object);
+
+void physics_world_new_object_collider(
+	struct physics_world* p_world,
+	struct physics_object* p_object,
+	enum physics_collider_type type);
+
+void physics_world_destroy_object_collider(struct physics_world* p_world, struct physics_object* p_object);
+
+void physics_world_add_solver(struct physics_world* p_world, physics_collision_solver_func p_solver_func);
+
+void physics_world_remove_solver(struct physics_world* p_world, physics_collision_solver_func p_solver_func);
+
+void physics_world_step(struct physics_world* p_world, float delta_time);
 
 int physics_test_collision(
     const struct physics_collider* p_a,
@@ -159,6 +176,10 @@ int physics_test_collision_hull_plane(
     struct physics_collision_result* p_result);
     
 void physics_collision_solver_impulse(const struct physics_collision* p_collisions, size_t n, float delta_time);
-void physics_collision_solver_smooth_positions(const struct physics_collision* p_collisions, size_t n, float delta_time);
+
+void physics_collision_solver_smooth_positions(
+	const struct physics_collision* p_collisions,
+	size_t n,
+	float delta_time);
 
 #endif
