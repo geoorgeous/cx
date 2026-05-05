@@ -5,7 +5,7 @@ A game engine development project with a few core principles:
  2. **Lightweight, functional, flat architecture**. This type of software architecture is simple and easy to navigate. The focus here is implementation and functionality, not code structure.
  3. **As few dependencies as practicably possible**. Not relying on dependencies forces me to write my own systems, which in turn forces me to learn how those systems work. It also gives me fine control of what this project encompasses.
 
-<img alt="cx test demo" src="https://github.com/user-attachments/assets/151b59fd-5999-44a0-bcc7-5fe5a4d05e79" />
+<img alt="cx demo screenshot" src="./cx_demo.png" />
 
 Since this project should have few dependencies, the list of systems involved in completing this project is long and ambitious. A rough overview:
  - Native platform window creation and management
