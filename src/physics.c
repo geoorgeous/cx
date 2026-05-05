@@ -763,20 +763,39 @@ int physics_test_collision_capsule_plane(
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 
-	(void)p_a;
-	(void)p_b;
+	const float distp0 = vec3_dot(p_b->shape.as_plane.normal, p_a->shape.as_capsule.p0) - p_b->shape.as_plane.distance;
+	const float distp1 = vec3_dot(p_b->shape.as_plane.normal, p_a->shape.as_capsule.p1) - p_b->shape.as_plane.distance;
 
-	const float n_dot_p0 = vec3_dot(p_b->shape.as_plane.normal, p_a->shape.as_capsule.p0);
-	const float n_dot_p1 = vec3_dot(p_b->shape.as_plane.normal, p_a->shape.as_capsule.p1);
-	const float r = p_a->shape.as_capsule.radius;
+	float dist = fminf(distp0, distp1);
 
-	if ((n_dot_p0 > r && n_dot_p1 > r) || (n_dot_p0 < -r && n_dot_p1 < -r)) {
+	if (dist > p_a->shape.as_capsule.radius) {
 		*p_result = (struct physics_collision_result){0};
 		return 0;
 	}
 
+	float t = distp0 / (distp0 - distp1);
+	t = clampf(t, 0, 1);
+
+	// point on capsule line segment closest to plane
+	float c[3];
+	vec3_sub(p_a->shape.as_capsule.p1, p_a->shape.as_capsule.p0, c);
+	vec3_mul_s(c, t, c);
+	vec3_add(distp0 < distp1 ? p_a->shape.as_capsule.p0 : p_a->shape.as_capsule.p1, c, c);
+
 	*p_result = (struct physics_collision_result){0};
-	
+
+	p_result->depth = p_a->shape.as_capsule.radius - dist;
+
+	vec3_set(p_b->shape.as_plane.normal, p_result->ab_normal);
+	vec3_mul_s(p_result->ab_normal, -1, p_result->ab_normal);
+
+	vec3_mul_s(p_b->shape.as_plane.normal, p_a->shape.as_capsule.radius, p_result->a);
+	vec3_sub(c, p_result->a, p_result->a);
+
+	dist = vec3_dot(p_b->shape.as_plane.normal, p_result->a) - p_b->shape.as_plane.distance;
+	vec3_mul_s(p_b->shape.as_plane.normal, dist, p_result->b);
+	vec3_sub(p_result->a, p_result->b, p_result->b);
+
 	return 1;
 }
 
