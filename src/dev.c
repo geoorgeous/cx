@@ -139,7 +139,6 @@ static void compute_physics_collider_mesh_trs_capsule(
 	float* p_out_trs_mid, float* p_out_trs_cap_p0, float* p_out_trs_cap_p1);
 static void compute_physics_collider_mesh_trs_plane(const struct scene_entity* p_entity, float* p_out_trs);
 
-
 static void  draw_gizmo(void);
 static void  draw_gizmo_control(const struct gizmo_control* p_control);
 static int   find_gizmo_control_plane_cursor_drag_intersection(const float* p_control_plane_normal, const float* p_cursor_ray_origin, const float* p_cursor_ray, float* p_cursor_world_pos);
@@ -494,7 +493,7 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
             
 			cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_object, 0, 0, g_dev.p_selected_entity->transform.world_trs_matrix);
             
-            float mesh_bounds_box_color[] = { 0.75, 0.6, 0 };
+            float mesh_bounds_box_color[] = { 1.f, .65f, 1.f, 1.f };
 			cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, mesh_bounds_box_color);
 
             cx_gfx_mesh_draw(&gfx_mesh_bounds_box_mesh);
