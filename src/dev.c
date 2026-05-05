@@ -304,29 +304,29 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	g_dev.gizmos.control_t_center.color_ka[3] =
 	g_dev.gizmos.hovered_control_color_ka[3] = 1.0f;
 
-	vec3_set_ijk(.961f, .306f, .306f, g_dev.gizmos.control_t_x.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_r_x.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_s_x.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_t_yz.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_s_yz.color_ka);
+	vec3_set(.961f, .306f, .306f, g_dev.gizmos.control_t_x.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_r_x.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_s_x.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_t_yz.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_x.color_ka, g_dev.gizmos.control_s_yz.color_ka);
 
-	vec3_set_ijk(.525f, .941f, .090f, g_dev.gizmos.control_t_y.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_r_y.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_s_y.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_t_xz.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_s_xz.color_ka);
+	vec3_set(.525f, .941f, .090f, g_dev.gizmos.control_t_y.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_r_y.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_s_y.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_t_xz.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_y.color_ka, g_dev.gizmos.control_s_xz.color_ka);
     
-	vec3_set_ijk(.243f, .478f,  1.0f, g_dev.gizmos.control_t_z.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_r_z.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_s_z.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_t_xy.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_s_xy.color_ka);
+	vec3_set(.243f, .478f,  1.0f, g_dev.gizmos.control_t_z.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_r_z.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_s_z.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_t_xy.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_z.color_ka, g_dev.gizmos.control_s_xy.color_ka);
     
     vec3_set_s(.8f, g_dev.gizmos.control_t_center.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_center.color_ka, g_dev.gizmos.control_r_center.color_ka);
-	vec_set(4, g_dev.gizmos.control_t_center.color_ka, g_dev.gizmos.control_s_center.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_center.color_ka, g_dev.gizmos.control_r_center.color_ka);
+	vec_copy(4, g_dev.gizmos.control_t_center.color_ka, g_dev.gizmos.control_s_center.color_ka);
     
-	vec3_set_ijk(.9f, .8f, .3f, g_dev.gizmos.hovered_control_color_ka);
+	vec3_set(.9f, .8f, .3f, g_dev.gizmos.hovered_control_color_ka);
 	
 	struct mesh_primitive mesh_primitive;
 
@@ -397,7 +397,7 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
 
     float view_matrix_inverse[16];
     matrix_inverse(4, p_view_matrix, view_matrix_inverse);
-    vec3_set(&view_matrix_inverse[12], g_dev.camera_position);
+    vec3_copy(&view_matrix_inverse[12], g_dev.camera_position);
 
 	cx_gfx_framebuffer_bind(p_framebuffer);
 
@@ -605,7 +605,7 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
                     darr_set_length(&g_dev.p_selected_entity->p_physics_object->_p_collider->shape.as_hull.verts, g_dev.num_hull_points);
                     for (size_t i = 0; i < g_dev.num_hull_points; ++i) {
                         float* p_v = darr_get(&g_dev.p_selected_entity->p_physics_object->_p_collider->shape.as_hull.verts, i);
-                        vec3_set(&g_dev.p_hull_points[i * 3], p_v);
+                        vec3_copy(&g_dev.p_hull_points[i * 3], p_v);
                     }
                 }
             } else {
@@ -980,7 +980,7 @@ void compute_physics_collider_mesh_trs_capsule(
 	
 	// Capsule p1 cap
 
-	vec3_set(p_capsule->p1, t);
+	vec3_copy(p_capsule->p1, t);
 	s[1] = s[0];
 	matrix_make_trs(t, r, s, p_out_trs_cap_p1);
 
@@ -988,7 +988,7 @@ void compute_physics_collider_mesh_trs_capsule(
 
 	float q[4];
 
-	vec3_set(p_capsule->p0, t);
+	vec3_copy(p_capsule->p0, t);
 	quaternion_from_axis_angle((const float[]){ 1, 0, 0 }, M_PI, q);
 	quaternion_multiply(r, q, r);
 
@@ -998,7 +998,12 @@ void compute_physics_collider_mesh_trs_capsule(
 }
 
 void compute_physics_collider_mesh_trs_plane(const struct scene_entity* p_entity, float* p_out_trs) {
-	matrix_copy(p_entity->transform.world_trs_matrix, p_out_trs);
+	const float s = 10.0f;
+
+	matrix_make_trs(
+		p_entity->transform.world_position,
+		p_entity->transform.world_rotation,
+		(const float[]){ s, 1, s }, p_out_trs);
 }
 
 void draw_gizmo(void) {
@@ -1080,7 +1085,7 @@ int find_gizmo_control_plane_cursor_drag_intersection(const float* p_control_pla
         return 1;
     }
     
-    vec3_set(p_cursor_world_pos, g_dev.gizmos.cursor_drag_last_world_pos);
+    vec3_copy(p_cursor_world_pos, g_dev.gizmos.cursor_drag_last_world_pos);
     g_dev.b_is_dragging = 1;
     return 0;
 }
@@ -1096,9 +1101,9 @@ void compute_gizmo_control_axis_drag_plane_normal(const float* p_control_axis, c
 
     // Select the plane with the best viewing angle
     if (fabsf(vec3_dot(side, view_dir)) < fabsf(vec3_dot(up, view_dir))) {
-        vec3_set(up, p_plane_norm_d);
+        vec3_copy(up, p_plane_norm_d);
     } else {
-        vec3_set(side, p_plane_norm_d);
+        vec3_copy(side, p_plane_norm_d);
     }
 }
 
@@ -1111,7 +1116,7 @@ void compute_gizmo_control_plane_cursor_drag_delta(const float* p_control_plane_
 
     vec3_sub(cursor_ray_intersection, g_dev.gizmos.cursor_drag_last_world_pos, p_cursor_world_delta);
     
-    vec3_set(cursor_ray_intersection, g_dev.gizmos.cursor_drag_last_world_pos);
+    vec3_copy(cursor_ray_intersection, g_dev.gizmos.cursor_drag_last_world_pos);
 }
 
 float compute_gizmo_control_plane_cursor_drag_delta_angle(const float* p_control_plane_normal, const float* p_cursor_ray_origin, const float* p_cursor_ray) {
@@ -1123,7 +1128,7 @@ float compute_gizmo_control_plane_cursor_drag_delta_angle(const float* p_control
     }
 
     vec3_sub(g_dev.gizmos.cursor_drag_last_world_pos, &g_dev.gizmos.gizmo_transform[12], p0);
-    vec3_set(p1, g_dev.gizmos.cursor_drag_last_world_pos);
+    vec3_copy(p1, g_dev.gizmos.cursor_drag_last_world_pos);
 
     vec3_sub(p1, &g_dev.gizmos.gizmo_transform[12], p1);
     

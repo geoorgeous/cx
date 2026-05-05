@@ -40,7 +40,7 @@ void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, siz
         struct he_edge* p_edge = p_face->p_edges;
         do {
             float* p_v = darr_push(&vertices);
-            vec3_set(p_edge->p_tail->position, p_v);
+            vec3_copy(p_edge->p_tail->position, p_v);
             p_edge = p_edge->p_next;
         } while (p_edge != p_face->p_edges);
         p_face = p_face->p_next;
@@ -56,14 +56,14 @@ void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, siz
     size_t m = 1;
 
     if (p_vertices) {
-        vec3_set(darr_get(&vertices, 0), &p_vertices[0]);
+        vec3_copy(darr_get(&vertices, 0), &p_vertices[0]);
         for (size_t i = 1; i < vertices._length; ++i) {
             float* p_a = darr_get(&vertices, i);
             float* p_b = darr_get(&vertices, m - 1);
             if (!vec3_cmp(p_a, p_b)) {
                 if (i != m) {
-                    vec3_set(p_a, darr_get(&vertices, m));
-                    vec3_set(p_a, &p_vertices[m * 3]);
+                    vec3_copy(p_a, darr_get(&vertices, m));
+                    vec3_copy(p_a, &p_vertices[m * 3]);
                 }
                 ++m;
             }
@@ -74,7 +74,7 @@ void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, siz
             const float* p_b = darr_get(&vertices, m - 1);
             if (!vec3_cmp(p_a, p_b)) {
                 if (i != m) {
-                    vec3_set(p_a, darr_get(&vertices, m));
+                    vec3_copy(p_a, darr_get(&vertices, m));
                 }
                 ++m;
             }

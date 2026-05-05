@@ -604,19 +604,19 @@ void mesh_factory_make_from_halfedge_mesh(
 
 		do {
 			float* p_vertex = darr_push(&vertices);
-			vec3_set(p_edge->p_tail->position, p_vertex);
-			vec3_set(p_normal, &p_vertex[3]);
+			vec3_copy(p_edge->p_tail->position, p_vertex);
+			vec3_copy(p_normal, &p_vertex[3]);
 
 			++num_vertices;
 
 			if (num_vertices > 3) {
 				p_vertex = darr_push(&vertices);
-				vec3_set(p_face->p_edges->p_tail->position, p_vertex);
-				vec3_set(p_normal, &p_vertex[3]);
+				vec3_copy(p_face->p_edges->p_tail->position, p_vertex);
+				vec3_copy(p_normal, &p_vertex[3]);
 				
 				p_vertex = darr_push(&vertices);
-				vec3_set(p_edge->p_prev->p_tail->position, p_vertex);
-				vec3_set(p_normal, &p_vertex[3]);
+				vec3_copy(p_edge->p_prev->p_tail->position, p_vertex);
+				vec3_copy(p_normal, &p_vertex[3]);
 			}
 
 			p_edge = p_edge->p_next;

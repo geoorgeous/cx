@@ -103,16 +103,16 @@ void matrix_make_trs(const float* p_t_xyz, const float* p_r_xyzw, const float* p
 
 	float tmp[3];
 
-	vec3_set_ijk(p_s_xyz[0], 0, 0, tmp);
+	vec3_set(p_s_xyz[0], 0, 0, tmp);
 	quaternion_rotate_vec3(p_r_xyzw, tmp, &p_result[0]);
 
-	vec3_set_ijk(0, p_s_xyz[1], 0, tmp);
+	vec3_set(0, p_s_xyz[1], 0, tmp);
 	quaternion_rotate_vec3(p_r_xyzw, tmp, &p_result[4]);
 
-	vec3_set_ijk(0, 0, p_s_xyz[2], tmp);
+	vec3_set(0, 0, p_s_xyz[2], tmp);
 	quaternion_rotate_vec3(p_r_xyzw, tmp, &p_result[8]);
 
-	vec3_set(p_t_xyz, &p_result[12]);
+	vec3_copy(p_t_xyz, &p_result[12]);
 
 	p_result[ 3] =
 	p_result[ 7] =
@@ -259,7 +259,7 @@ void matrix_multiply_vec3(const float* p_m, const float* p_v, float* p_result) {
 }
 
 void matrix_decompose_trs(const float* p_m, float* p_t, float* p_r, float* p_s) {
-    vec3_set(&p_m[12], p_t);
+    vec3_copy(&p_m[12], p_t);
 
     // todo: proper decomposition including negative scale, maybe see gltf 2.0 spec
 

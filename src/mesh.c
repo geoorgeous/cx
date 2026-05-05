@@ -127,8 +127,8 @@ void mesh_generate_normals(struct mesh_primitive* p_mesh_primitive, size_t posit
             vec3_cross(b_sub_a, c_sub_a, p_a_norm);
             vec3_norm(p_a_norm, p_a_norm);
 
-            vec3_set(p_a_norm, p_b_norm);
-            vec3_set(p_a_norm, p_c_norm);
+            vec3_copy(p_a_norm, p_b_norm);
+            vec3_copy(p_a_norm, p_c_norm);
         }
     }
 }

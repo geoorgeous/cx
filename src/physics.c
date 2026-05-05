@@ -151,14 +151,14 @@ void physics_collider_init(struct physics_collider* p_collider, enum physics_col
 
 			darr_set_length(&p_collider->shape.as_hull.verts, 8);
 
-			vec3_set_ijk(-.5f, -.5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 0));
-			vec3_set_ijk( .5f, -.5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 1));
-			vec3_set_ijk(-.5f,  .5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 2));
-			vec3_set_ijk( .5f,  .5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 3));
-			vec3_set_ijk(-.5f, -.5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 4));
-			vec3_set_ijk( .5f, -.5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 5));
-			vec3_set_ijk(-.5f,  .5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 6));
-			vec3_set_ijk( .5f,  .5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 7));
+			vec3_set(-.5f, -.5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 0));
+			vec3_set( .5f, -.5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 1));
+			vec3_set(-.5f,  .5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 2));
+			vec3_set( .5f,  .5f, -.5f, darr_get(&p_collider->shape.as_hull.verts, 3));
+			vec3_set(-.5f, -.5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 4));
+			vec3_set( .5f, -.5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 5));
+			vec3_set(-.5f,  .5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 6));
+			vec3_set( .5f,  .5f,  .5f, darr_get(&p_collider->shape.as_hull.verts, 7));
 			break;
 		}
 
@@ -369,7 +369,7 @@ void physics_collider_apply_transform_hull(struct physics_collider* p_collider, 
 	for (size_t i = 0; i < p_collider->shape.as_hull.verts._length; ++i) {
 		float* p_v = darr_get(&p_collider->shape.as_hull.verts, i);
 		float* p_v_shape_cached = darr_get(&p_collider->_shape_cached.as_hull.verts, i);
-		vec3_set(p_v, p_v_shape_cached);
+		vec3_copy(p_v, p_v_shape_cached);
 	}
 	physics_collider_shape_transform_hull(&p_collider->shape, p_t);
 }
@@ -401,7 +401,7 @@ void physics_collider_undo_transform_hull(struct physics_collider* p_collider) {
 	for (size_t i = 0; i < p_collider->shape.as_hull.verts._length; ++i) {
 		float* p_v = darr_get(&p_collider->shape.as_hull.verts, i);
 		float* p_v_shape_cached = darr_get(&p_collider->_shape_cached.as_hull.verts, i);
-		vec3_set(p_v_shape_cached, p_v);
+		vec3_copy(p_v_shape_cached, p_v);
 	}
 }
 
@@ -562,9 +562,9 @@ int physics_test_collision(
 	const int b_has_collision = test_func_table[p_a->type][p_b->type](p_a, p_b, p_result);
 	if (b_has_collision && b_swap) {
 		float v_temp[3];
-		vec3_set(p_result->a, v_temp);
-		vec3_set(p_result->b, p_result->a);
-		vec3_set(v_temp, p_result->b);
+		vec3_copy(p_result->a, v_temp);
+		vec3_copy(p_result->b, p_result->a);
+		vec3_copy(v_temp, p_result->b);
 		vec3_inv(p_result->ab_normal, p_result->ab_normal);
 	}
 
@@ -645,9 +645,9 @@ int physics_test_collision_sphere_capsule(
 	const float s2 = FLT_ISZERO(s1) ? -1 : s0 / s1;
 
 	if (s2 < 0) {
-		vec3_set(p_b->shape.as_capsule.p0, v0);
+		vec3_copy(p_b->shape.as_capsule.p0, v0);
 	} else if (s2 > 1) {
-		vec3_set(p_b->shape.as_capsule.p1, v0);
+		vec3_copy(p_b->shape.as_capsule.p1, v0);
 	} else {
 		vec3_mul_s(v1, s2, v1);
 		vec3_add(p_b->shape.as_capsule.p0, v1, v0);
@@ -786,8 +786,8 @@ int physics_test_collision_capsule_plane(
 
 	p_result->depth = p_a->shape.as_capsule.radius - dist;
 
-	vec3_set(p_b->shape.as_plane.normal, p_result->ab_normal);
-	vec3_mul_s(p_result->ab_normal, -1, p_result->ab_normal);
+	vec3_copy(p_b->shape.as_plane.normal, p_result->ab_normal);
+	vec3_inv(p_result->ab_normal, p_result->ab_normal);
 
 	vec3_mul_s(p_b->shape.as_plane.normal, p_a->shape.as_capsule.radius, p_result->a);
 	vec3_sub(c, p_result->a, p_result->a);
@@ -845,11 +845,11 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 		float vel_b[3] = {0};
 
 		if (p_rb_a) {
-			vec3_set(p_rb_a->velocity, vel_a);
+			vec3_copy(p_rb_a->velocity, vel_a);
 		}
 		
 		if (p_rb_b) {
-			vec3_set(p_rb_b->velocity, vel_b);
+			vec3_copy(p_rb_b->velocity, vel_b);
 		}
 
 		float rel_vel[3];
@@ -1106,9 +1106,9 @@ void gjk_find_extreme_on_sphere(const struct physics_sphere* p_sphere, const flo
 void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const float* p_dir, float* p_extreme) {
 	vec3_sub(p_capsule->p1, p_capsule->p0, p_extreme);
 	if (GJK_SAME_SIDE(p_extreme, p_dir)) {
-		vec3_set(p_capsule->p1, p_extreme);
+		vec3_copy(p_capsule->p1, p_extreme);
 	} else {
-		vec3_set(p_capsule->p0, p_extreme);
+		vec3_copy(p_capsule->p0, p_extreme);
 	}
 
 	float tmp[3];
@@ -1125,7 +1125,7 @@ void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_
 		const float dot = vec3_dot(p_vert, p_dir);
 		if (dot > dot_max) {
 			dot_max = dot;
-			vec3_set(p_vert, p_extreme);
+			vec3_copy(p_vert, p_extreme);
 		}
 	}
 }
@@ -1205,8 +1205,8 @@ void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* 
 			// simplex is LINE A->C
 			// direction is AC cross AO cross AC
 
-			vec3_set(p_c, simplex[0]);
-			vec3_set(p_a, simplex[1]);
+			vec3_copy(p_c, simplex[0]);
+			vec3_copy(p_a, simplex[1]);
 			*p_simplex_d = 2;
 
 			vec3_cross(ac, ao, p_dir);
@@ -1223,14 +1223,14 @@ void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* 
 				// simpelx is TRIANGLE A->B->C
 				// direction is abc
 
-				vec3_set(abc, p_dir);
+				vec3_copy(abc, p_dir);
 			} else {
 				// simplex is TRIANGLE A->C->B
 				// direction is -acb
 
-				vec3_set(p_c, tmp);
-				vec3_set(p_b, simplex[0]);
-				vec3_set(tmp, simplex[1]);
+				vec3_copy(p_c, tmp);
+				vec3_copy(p_b, simplex[0]);
+				vec3_copy(tmp, simplex[1]);
 				
 				vec3_inv(abc, p_dir);
 			}
@@ -1251,8 +1251,8 @@ void gjk_process_simplex_triangle_test_ab(
 		// simplex is LINE A->B
 		// direction is AB cross AO cross AB
 
-		vec3_set(p_b, simplex[0]);
-		vec3_set(p_a, simplex[1]);
+		vec3_copy(p_b, simplex[0]);
+		vec3_copy(p_a, simplex[1]);
 		*p_simplex_d = 2;
 
 		vec3_cross(p_ab, p_ao, p_dir);
@@ -1261,10 +1261,10 @@ void gjk_process_simplex_triangle_test_ab(
 		// simplex is POINT A
 		// direction is AO
 
-		vec3_set(p_a, simplex[0]);
+		vec3_copy(p_a, simplex[0]);
 		*p_simplex_d = 1;
 
-		vec3_set(p_ao, p_dir);
+		vec3_copy(p_ao, p_dir);
 	}
 }
 
@@ -1288,9 +1288,9 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 	vec3_cross(ab, ac, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
 		// Simplex is TRANGLE A->B->C
-		vec3_set(p_c, simplex[0]);
-		vec3_set(p_b, simplex[1]);
-		vec3_set(p_a, simplex[2]);
+		vec3_copy(p_c, simplex[0]);
+		vec3_copy(p_b, simplex[1]);
+		vec3_copy(p_a, simplex[2]);
 		*p_simplex_d = 3;
 		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
@@ -1299,7 +1299,7 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 	vec3_cross(ac, ad, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
 		// Simplex is TRANGLE A->C->D
-		vec3_set(p_a, simplex[2]);
+		vec3_copy(p_a, simplex[2]);
 		*p_simplex_d = 3;
 		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;
@@ -1308,8 +1308,8 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 	vec3_cross(ad, ab, cross);
 	if (GJK_SAME_SIDE(cross, ao)) {
 		// Simplex is TRANGLE A->B->D
-		vec3_set(p_b, simplex[1]);
-		vec3_set(p_a, simplex[2]);
+		vec3_copy(p_b, simplex[1]);
+		vec3_copy(p_a, simplex[2]);
 		*p_simplex_d = 3;
 		gjk_process_simplex_triangle(simplex, p_simplex_d, p_dir);
 		return 0;

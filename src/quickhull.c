@@ -226,7 +226,7 @@ void qh_find_initial_hull_vertices(const float* p_point_cloud, size_t num_points
 
 	for (size_t i = 0; i < num_points; ++i) {
 		const float* p = &p_point_cloud[i * 3];
-		vec3_set(p, p_hull->p_free_vertices[i].position);
+		vec3_copy(p, p_hull->p_free_vertices[i].position);
 		if (p[0] < p_point_cloud[extremes[0] * 3 + 0]) {
 			extremes[0] = i;
 		}
@@ -541,7 +541,7 @@ int qh_is_point_above_face_plane(const struct he_face* p_face, const float* p_po
 }
 
 void qh_compute_face_center(const struct he_face* p_face, float* p_result) {
-	vec3_set_s(0, p_result);
+	vec3_clr(p_result);
 
 	size_t num_vertices = 0;
 
@@ -891,7 +891,7 @@ void qh_purge_duplicate_input_points(float* p_point_cloud, size_t* p_num_points)
 		float* p_b = &p_point_cloud[(m - 1) * 3];
         if (!vec3_cmp(p_a, p_b)) {
             if (i != m) {
-				vec3_set(p_a, &p_point_cloud[m * 3]);
+				vec3_copy(p_a, &p_point_cloud[m * 3]);
             }
             ++m;
         }
@@ -1017,7 +1017,7 @@ void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_me
 
 		for (size_t v = 0; v < p_primitive->vertex_count; ++v) {
 			const float* p_v = (float*)(void*)((char*)p_position_buffer->p_bytes + p_position_attribute->layout.offset + (p_position_attribute->layout.stride * v));
-			vec3_set(p_v, &point_cloud_points[v * 3]);
+			vec3_copy(p_v, &point_cloud_points[v * 3]);
 		}
 	}
 
