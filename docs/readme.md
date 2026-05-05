@@ -1,17 +1,20 @@
 # cx
 
-A game engine development project with a few core ideas at heart:
+A game engine development project with a few core principles:
  1. **Written in strict C99**. Stable, feature-complete C99 is widely-supported by many compilers, and most importantly, it is low-level, simple, and fast.
  2. **Lightweight, functional, flat architecture**. This type of software architecture is simple and easy to navigate. The focus here is implementation and functionality, not code structure.
  3. **As few dependencies as practicably possible**. Not relying on dependencies forces me to write my own systems, which in turn forces me to learn how those systems work. It also gives me fine control of what this project encompasses.
 
-Since this project should have few dependencies, the list of systems involved in completing this project is long and ambitious. Here's an overview:
- - Platform window creation and management
- - Platform input handling
+<img alt="cx test demo" src="https://github.com/user-attachments/assets/151b59fd-5999-44a0-bcc7-5fe5a4d05e79" />
+
+Since this project should have few dependencies, the list of systems involved in completing this project is long and ambitious. A rough overview:
+ - Native platform window creation and management
+ - Native platform input handling
  - Windows (Win32) and Linux (X11) support
  - Graphics API context creation and management
  - 3D rendering
  - 3D physics simulation
+ - Graphical user interface
  - Audio
  - Scene and entity management
  - Integrated editing tools
@@ -19,8 +22,8 @@ Since this project should have few dependencies, the list of systems involved in
  - Asset management (importing, serialization)
 
 ## Third-party contributions
-
-This project uses source code from the [stb repository](https://github.com/nothings/stb) to load image files ([`stb_image.h`](https://github.com/nothings/stb/blob/master/stb_image.h])).
+ - Sean Barrett (aka *nothings*), [stb project - a collection of single-file libraries](https://github.com/nothings/stb):
+   - [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h) for loading various image file types
 
 ## Project coding conventions
 
