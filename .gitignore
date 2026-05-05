@@ -1,7 +1,6 @@
 *
 !*.*
 !*/
-!makefile
 
 # Prerequisites
 *.d
@@ -46,12 +45,17 @@
 *.su
 *.idb
 *.pdb
-
-# debug information files
 *.dwo
 
+# VSCode
 .vscode/
+
 .cache/
 res/
 !res/builtin/*
+!makefile
 compile_commands.json
+
+*untracked/
+*.untracked.*
+*.untracked
