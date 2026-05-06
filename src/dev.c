@@ -56,8 +56,8 @@ enum gizmo_type {
 
 struct gizmo_control {
     struct cx_gfx_mesh gfx_mesh;
-    unsigned int   mesh_id_capturer_id;
-    float          color_ka[4];
+    unsigned int       mesh_id_capturer_id;
+    float              color_ka[4];
 };
 
 static struct dev_state {
@@ -80,11 +80,11 @@ static struct dev_state {
 	struct cx_gfx_program_param_buffer program_pbuffer_object;
 	struct cx_gfx_program_param_buffer program_pbuffer_material;
     
-    struct asset_package          asset_package;
+    struct asset_package asset_package;
 
-    float                         perspective_view_matrix[16];
-    float                         perspective_scale;
-    float                         camera_position[3];
+    float perspective_view_matrix[16];
+    float perspective_scale;
+    float camera_position[3];
 
     struct physics_world* p_physics_world;
     int                   b_draw_physics;
@@ -226,9 +226,9 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	cx_gfx_program_refl_param_block(&g_dev.program_flat, "blk_object", &g_dev.program_pblock_object);
 	cx_gfx_program_refl_param_block(&g_dev.program_flat, "blk_material_properties", &g_dev.program_pblock_material);
 
-	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_camera, g_dev.program_pblock_camera._size);
-	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_object, g_dev.program_pblock_object._size);
-	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_material, g_dev.program_pblock_material._size);
+	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_camera, g_dev.program_pblock_camera.size_);
+	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_object, g_dev.program_pblock_object.size_);
+	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_material, g_dev.program_pblock_material.size_);
 
     asset_package_init(&g_dev.asset_package);
 
@@ -242,13 +242,13 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_load_from_file("res/builtin/gizmo_translate.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->asset_.p_data_))->p_primitives[0]);
     
     gltf_free(&gltf);
     import_gltf_free(&import_result);
@@ -256,10 +256,10 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_load_from_file("res/builtin/gizmo_rotate.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->asset_.p_data_))->p_primitives[0]);
     
     gltf_free(&gltf);
     import_gltf_free(&import_result);
@@ -267,13 +267,13 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
     gltf_load_from_file("res/builtin/gizmo_scale.glb", &gltf);
     import_gltf(&gltf, &g_dev.asset_package, &import_result);
     
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->_asset._p_data))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->_asset._p_data))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->asset_.p_data_))->p_primitives[0]);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->asset_.p_data_))->p_primitives[0]);
     
     gltf_free(&gltf);
     import_gltf_free(&import_result);
@@ -430,12 +430,12 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
             float bounds_min[3] = { FLT_MAX, FLT_MAX, FLT_MAX };
             float bounds_max[3] = { FLT_MIN, FLT_MIN, FLT_MIN };
 
-            const struct static_mesh* p_mesh = g_dev.p_selected_entity->p_mesh->_asset._p_data;
+            const struct static_mesh* p_mesh = g_dev.p_selected_entity->p_mesh->asset_.p_data_;
 
             for (size_t i = 0; i < p_mesh->num_primitives; ++i) {
                 const struct cx_gfx_mesh* p_gfx_mesh = &p_mesh->p_gfx_meshes[i];
-                vec3_min(bounds_min, p_gfx_mesh->_bounds_min, bounds_min);
-                vec3_max(bounds_max, p_gfx_mesh->_bounds_max, bounds_max);
+                vec3_min(bounds_min, p_gfx_mesh->bounds_min_, bounds_min);
+                vec3_max(bounds_max, p_gfx_mesh->bounds_max_, bounds_max);
             }
 
             float mesh_bounds_box_vertices[] = {
@@ -581,7 +581,7 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
             if (!g_dev.p_selected_entity->p_physics_object) {
                 g_dev.p_selected_entity->p_physics_object = physics_world_new_object(g_dev.p_physics_world, &g_dev.p_selected_entity->transform, 0);
                 physics_world_new_object_collider(g_dev.p_physics_world, g_dev.p_selected_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_sphere);
-            } else if (!g_dev.p_selected_entity->p_physics_object->_b_is_rigidbody) {
+            } else if (!g_dev.p_selected_entity->p_physics_object->b_is_rigidbody_) {
                 // todo replace static object with rigidbody with SAME collider
             } else {
                 physics_world_destroy_object(g_dev.p_physics_world, g_dev.p_selected_entity->p_physics_object);
@@ -596,15 +596,15 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
                 break;
             }
 
-            if (!g_dev.p_selected_entity->p_physics_object->_p_collider) {
+            if (!g_dev.p_selected_entity->p_physics_object->p_collider_) {
                 physics_world_new_object_collider(g_dev.p_physics_world, g_dev.p_selected_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_sphere);
-            } else if (g_dev.p_selected_entity->p_physics_object->_p_collider->type != PHYSICS_COLLIDER_TYPE_plane) {
-                physics_collider_init(g_dev.p_selected_entity->p_physics_object->_p_collider, g_dev.p_selected_entity->p_physics_object->_p_collider->type + 1);
+            } else if (g_dev.p_selected_entity->p_physics_object->p_collider_->type != PHYSICS_COLLIDER_TYPE_plane) {
+                physics_collider_init(g_dev.p_selected_entity->p_physics_object->p_collider_, g_dev.p_selected_entity->p_physics_object->p_collider_->type + 1);
 
-                if (g_dev.p_selected_entity->p_physics_object->_p_collider->type == PHYSICS_COLLIDER_TYPE_hull) {
-                    darr_set_length(&g_dev.p_selected_entity->p_physics_object->_p_collider->shape.as_hull.verts, g_dev.num_hull_points);
+                if (g_dev.p_selected_entity->p_physics_object->p_collider_->type == PHYSICS_COLLIDER_TYPE_hull) {
+                    darr_set_length(&g_dev.p_selected_entity->p_physics_object->p_collider_->shape.as_hull.verts, g_dev.num_hull_points);
                     for (size_t i = 0; i < g_dev.num_hull_points; ++i) {
-                        float* p_v = darr_get(&g_dev.p_selected_entity->p_physics_object->_p_collider->shape.as_hull.verts, i);
+                        float* p_v = darr_get(&g_dev.p_selected_entity->p_physics_object->p_collider_->shape.as_hull.verts, i);
                         vec3_copy(&g_dev.p_hull_points[i * 3], p_v);
                     }
                 }
@@ -628,17 +628,17 @@ void on_key(const void* p_event_data, void* p_user_ptr) {
             p_new_scene_entity->p_mesh = g_dev.p_selected_entity->p_mesh;
 
             if (g_dev.p_selected_entity->p_physics_object) {
-                p_new_scene_entity->p_physics_object = physics_world_new_object(g_dev.p_selected_entity->p_physics_object->_p_world, 0, g_dev.p_selected_entity->p_physics_object->_b_is_rigidbody);
+                p_new_scene_entity->p_physics_object = physics_world_new_object(g_dev.p_selected_entity->p_physics_object->p_world_, 0, g_dev.p_selected_entity->p_physics_object->b_is_rigidbody_);
 
-                if (p_new_scene_entity->p_physics_object->_b_is_rigidbody) {
+                if (p_new_scene_entity->p_physics_object->b_is_rigidbody_) {
                     const struct physics_rigidbody* p_rigidbody = (const struct physics_rigidbody*)g_dev.p_selected_entity->p_physics_object;
                     struct physics_rigidbody* p_new_rigidbody = (struct physics_rigidbody*)p_new_scene_entity->p_physics_object;
                     *p_new_rigidbody = *p_rigidbody;
-                    p_new_rigidbody->base._p_transform = &p_new_scene_entity->transform;
+                    p_new_rigidbody->base.p_transform_ = &p_new_scene_entity->transform;
                 }
 
-                if (g_dev.p_selected_entity->p_physics_object->_p_collider) {
-                    *p_new_scene_entity->p_physics_object->_p_collider = *g_dev.p_selected_entity->p_physics_object->_p_collider;
+                if (g_dev.p_selected_entity->p_physics_object->p_collider_) {
+                    *p_new_scene_entity->p_physics_object->p_collider_ = *g_dev.p_selected_entity->p_physics_object->p_collider_;
                 }
             }
 
@@ -849,17 +849,17 @@ void toggle_draw_physics_colliders(void) {
 }
 
 void draw_physics(void) {
-    for (size_t i = 0; i < g_dev.p_scene->_entities._length; ++i) {
-        struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&g_dev.p_scene->_entities, i);
+    for (size_t i = 0; i < g_dev.p_scene->entities_.length_; ++i) {
+        struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&g_dev.p_scene->entities_, i);
 
-        if (!p_entity->p_physics_object || !p_entity->p_physics_object->_p_collider) {
+        if (!p_entity->p_physics_object || !p_entity->p_physics_object->p_collider_) {
             continue;
         }
 
 		float color_ka[] = { 1.0f, 0.85f, 0.4f, 0.3f };
 		cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color_ka);
 
-		switch (p_entity->p_physics_object->_p_collider->type) {
+		switch (p_entity->p_physics_object->p_collider_->type) {
 			case PHYSICS_COLLIDER_TYPE_sphere: {
 				float p_trs[16];
 
@@ -890,16 +890,16 @@ void draw_physics(void) {
 			}
 
 			case PHYSICS_COLLIDER_TYPE_hull: {
-				const struct physics_hull* p_hull = &p_entity->p_physics_object->_p_collider->shape.as_hull;
+				const struct physics_hull* p_hull = &p_entity->p_physics_object->p_collider_->shape.as_hull;
 
 				struct cx_gfx_mesh* p_hull_mesh;
 
 				struct hashtable_itr itr;
-				if (!hashtable_find(&g_dev.physics_hull_meshes, &p_entity->_id, sizeof(p_entity->_id), &itr)) {
-					p_hull_mesh = hashtable_add(&g_dev.physics_hull_meshes, &p_entity->_id, sizeof(p_entity->_id));
+				if (!hashtable_find(&g_dev.physics_hull_meshes, &p_entity->id_, sizeof(p_entity->id_), &itr)) {
+					p_hull_mesh = hashtable_add(&g_dev.physics_hull_meshes, &p_entity->id_, sizeof(p_entity->id_));
 					
 					struct he_mesh he_mesh;
-					quickhull(p_hull->verts._p_buffer, p_hull->verts._length, &he_mesh);
+					quickhull(p_hull->verts.p_buffer_, p_hull->verts.length_, &he_mesh);
 
 					struct mesh_primitive mesh_primitive;
 					mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive);
@@ -934,9 +934,9 @@ void draw_physics(void) {
 }
 
 void compute_physics_collider_mesh_trs_sphere(const struct scene_entity* p_entity, float* p_out_trs) {
-	physics_collider_apply_transform(p_entity->p_physics_object->_p_collider, &p_entity->transform);
+	physics_collider_apply_transform(p_entity->p_physics_object->p_collider_, &p_entity->transform);
 	
-	const struct physics_sphere* p_sphere = &p_entity->p_physics_object->_p_collider->shape.as_sphere;
+	const struct physics_sphere* p_sphere = &p_entity->p_physics_object->p_collider_->shape.as_sphere;
 	
 	float s[3];
 	float r[4];
@@ -947,16 +947,16 @@ void compute_physics_collider_mesh_trs_sphere(const struct scene_entity* p_entit
 
 	matrix_make_trs(p_sphere->center, r, s, p_out_trs);
 	
-	physics_collider_undo_transform(p_entity->p_physics_object->_p_collider);
+	physics_collider_undo_transform(p_entity->p_physics_object->p_collider_);
 }
 
 void compute_physics_collider_mesh_trs_capsule(
 	const struct scene_entity* p_entity,
 	float* p_out_trs_mid, float* p_out_trs_cap_p0, float* p_out_trs_cap_p1) {
 
-	physics_collider_apply_transform(p_entity->p_physics_object->_p_collider, &p_entity->transform);
+	physics_collider_apply_transform(p_entity->p_physics_object->p_collider_, &p_entity->transform);
 	
-	const struct physics_capsule* p_capsule = &p_entity->p_physics_object->_p_collider->shape.as_capsule;
+	const struct physics_capsule* p_capsule = &p_entity->p_physics_object->p_collider_->shape.as_capsule;
 
 	float s[3];
 	float r[4];
@@ -994,7 +994,7 @@ void compute_physics_collider_mesh_trs_capsule(
 
 	matrix_make_trs(t, r, s, p_out_trs_cap_p0);
 
-	physics_collider_undo_transform(p_entity->p_physics_object->_p_collider);
+	physics_collider_undo_transform(p_entity->p_physics_object->p_collider_);
 }
 
 void compute_physics_collider_mesh_trs_plane(const struct scene_entity* p_entity, float* p_out_trs) {
@@ -1239,13 +1239,13 @@ void gizmo_drag_scale_uniformly(const float* p_control_plane_normal, const float
 }
 
 void send_scene_to_mesh_id_capturer(void) {
-    for (size_t i = 0; i < g_dev.p_scene->_entities._length; ++i) {
-        struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&g_dev.p_scene->_entities, i);
+    for (size_t i = 0; i < g_dev.p_scene->entities_.length_; ++i) {
+        struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&g_dev.p_scene->entities_, i);
 
-        const unsigned int mesh_id_capturer_entity_id = DEV_MESH_ID_CAPTURER_RESERVED_IDS + p_entity->_id;
+        const unsigned int mesh_id_capturer_entity_id = DEV_MESH_ID_CAPTURER_RESERVED_IDS + p_entity->id_;
 
         if (p_entity->p_mesh) {
-            const struct static_mesh* p_mesh = p_entity->p_mesh->_asset._p_data;
+            const struct static_mesh* p_mesh = p_entity->p_mesh->asset_.p_data_;
 
             for (size_t j = 0; j < p_mesh->num_primitives; ++j) {
                 const struct cx_gfx_mesh* p_gfx_mesh = &p_mesh->p_gfx_meshes[j];
@@ -1258,7 +1258,7 @@ void send_scene_to_mesh_id_capturer(void) {
             }
         }
 
-		if (!g_dev.b_draw_physics || !p_entity->p_physics_object || !p_entity->p_physics_object->_p_collider) {
+		if (!g_dev.b_draw_physics || !p_entity->p_physics_object || !p_entity->p_physics_object->p_collider_) {
 			continue;
 		}
 
@@ -1270,7 +1270,7 @@ void send_scene_to_mesh_id_capturer(void) {
 			.id = mesh_id_capturer_entity_id
 		};
 
-		switch (p_entity->p_physics_object->_p_collider->type) {
+		switch (p_entity->p_physics_object->p_collider_->type) {
 			case PHYSICS_COLLIDER_TYPE_sphere: {
 				float p_trs[16];
 
@@ -1307,7 +1307,7 @@ void send_scene_to_mesh_id_capturer(void) {
 
 			case PHYSICS_COLLIDER_TYPE_hull: {
 				struct hashtable_itr itr;
-				if (!hashtable_find(&g_dev.physics_hull_meshes, &p_entity->_id, sizeof(p_entity->_id), &itr)) {
+				if (!hashtable_find(&g_dev.physics_hull_meshes, &p_entity->id_, sizeof(p_entity->id_), &itr)) {
 					break;
 				}
 
@@ -1401,7 +1401,7 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
             cx_gfx_mesh_destroy(&gfx_mesh_outline);
         }
 
-        quickhull_static_mesh((const struct static_mesh*)g_dev.p_selected_entity->p_mesh->_asset._p_data, &he_mesh);
+        quickhull_static_mesh((const struct static_mesh*)g_dev.p_selected_entity->p_mesh->asset_.p_data_, &he_mesh);
         
         mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive);
         cx_gfx_mesh_create(&gfx_mesh, &mesh_primitive);

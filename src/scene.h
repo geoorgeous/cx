@@ -16,7 +16,7 @@ struct texture;
 struct static_mesh;
 
 struct scene_entity {
-    size_t                   _id;
+    size_t                   id_;
     struct transform         transform;
     asset_handle             p_mesh;
     struct physics_object*   p_physics_object;
@@ -29,9 +29,9 @@ struct scene_entity_event_data {
 };
 
 struct scene {
-    struct object_pool   _entity_pool;
-    struct darr          _entities;
-    size_t               _next_entity_id;
+    struct object_pool   entity_pool_;
+    struct darr          entities_;
+    size_t               next_entity_id_;
     struct event         on_new_entity;
     struct event         on_remove_entity;
 };

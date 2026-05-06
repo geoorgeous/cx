@@ -46,18 +46,18 @@ void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, siz
         p_face = p_face->p_next;
     }
 
-    if (vertices._length == 0) {
+    if (vertices.length_ == 0) {
         *p_num_vertices = 0;
         return;
     }
 
-    qsort(vertices._p_buffer, vertices._length, vertices._element_size, (void*)vec3_sort_cmp);
+    qsort(vertices.p_buffer_, vertices.length_, vertices.element_size_, (void*)vec3_sort_cmp);
 
     size_t m = 1;
 
     if (p_vertices) {
         vec3_copy(darr_get(&vertices, 0), &p_vertices[0]);
-        for (size_t i = 1; i < vertices._length; ++i) {
+        for (size_t i = 1; i < vertices.length_; ++i) {
             float* p_a = darr_get(&vertices, i);
             float* p_b = darr_get(&vertices, m - 1);
             if (!vec3_cmp(p_a, p_b)) {
@@ -69,7 +69,7 @@ void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, siz
             }
         }
     } else {
-        for (size_t i = 1; i < vertices._length; ++i) {
+        for (size_t i = 1; i < vertices.length_; ++i) {
             const float* p_a = darr_get(&vertices, i);
             const float* p_b = darr_get(&vertices, m - 1);
             if (!vec3_cmp(p_a, p_b)) {

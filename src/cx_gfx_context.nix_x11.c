@@ -94,8 +94,8 @@ enum error cx_gfx_context_create(
 	const struct platform_window* p_window,
 	struct cx_gfx_context* p_out_context) {
 
-    struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->_bytes;
-    const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->_bytes;
+    struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->bytes_;
+    const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->bytes_;
 	
 	GLint glx_version_major = 0;
 	GLint glx_version_minor = 0;
@@ -180,24 +180,24 @@ enum error cx_gfx_context_create(
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->_bytes;
+    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
     const struct platform_window_nix_x11_internals* p_window_internals =
-		(const void*)p_context_internals->p_window->_bytes;
+		(const void*)p_context_internals->p_window->bytes_;
     glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
 }
 
 enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->_bytes;
+    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
     const struct platform_window_nix_x11_internals* p_window_internals =
-		(const void*)p_context_internals->p_window->_bytes;
+		(const void*)p_context_internals->p_window->bytes_;
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
     return ERROR_none;
 }
 
 enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->_bytes;
+    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
     const struct platform_window_nix_x11_internals* p_window_internals =
-		(const void*)p_context_internals->p_window->_bytes;
+		(const void*)p_context_internals->p_window->bytes_;
     glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
     return ERROR_none;
 }

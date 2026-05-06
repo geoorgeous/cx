@@ -49,13 +49,13 @@ int cx_cli_is_enabled(void) {
 void cx_cli_on_key(const void* p_event_data, void* p_user_ptr) {
 	(void)p_user_ptr;
 
-	const struct input_event_data_key* _p_event_data = p_event_data;
+	const struct input_event_data_key* p_e = p_event_data;
 
-	if (!_p_event_data->b_is_down) {
+	if (!p_e->b_is_down) {
 		return;
 	}
 
-	switch(_p_event_data->key) {
+	switch(p_e->key) {
 		case KEY_enter: {
 			cx_cli_submit();
 			cx_text_input_clear(&text_input);
@@ -98,13 +98,13 @@ void cx_cli_on_key(const void* p_event_data, void* p_user_ptr) {
 void cx_cli_on_char(const void* p_event_data, void* p_user_ptr) {
 	(void)p_user_ptr;
 
-	const struct input_event_data_char* _p_event_data = p_event_data;
+	const struct input_event_data_char* p_e = p_event_data;
 
-	if (iscntrl(_p_event_data->code)) {
+	if (iscntrl(p_e->code)) {
 		return;
 	}
 
-	const char str[2] = { _p_event_data->code, '\0' };
+	const char str[2] = { p_e->code, '\0' };
 
 	cx_text_input_insert(&text_input, str);
 }

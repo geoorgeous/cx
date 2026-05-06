@@ -40,7 +40,7 @@ enum cx_gfx_program_opaque_param_type {
 
 struct cx_gfx_program_param_buffer {
 	size_t size;
-	char   _bytes[4];
+	char   bytes_[4];
 };
 
 enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size);
@@ -65,7 +65,7 @@ struct cx_gfx_program_opaque_param {
 	enum cx_gfx_program_opaque_param_type type;
 	size_t                                n;
 	unsigned int                          slot;
-	char _bytes[4];
+	char bytes_[4];
 };
 
 void cx_gfx_program_opaque_param_bind_resource(
@@ -73,8 +73,8 @@ void cx_gfx_program_opaque_param_bind_resource(
 	const void* p_resource);
 
 struct cx_gfx_program_param_block {
-	size_t       _size;
-	char         _bytes[4];
+	size_t size_;
+	char   bytes_[4];
 };
 
 void cx_gfx_program_param_block_bind_buffer(
@@ -89,7 +89,7 @@ struct cx_gfx_program_source {
 };
 
 struct cx_gfx_program {
-	char _bytes[4];
+	char bytes_[4];
 };
 
 enum error cx_gfx_program_create(struct cx_gfx_program* p_program);

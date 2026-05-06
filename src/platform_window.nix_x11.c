@@ -9,8 +9,8 @@
 
 #include "cx_dbg.h"
 #include "cx_logging.h"
-#include "platform_window.h"
 #include "errors.h"
+#include "platform_window.h"
 #include "input.h"
 #include "keys.h"
 #include "platform_window.nix_x11.h"
@@ -29,8 +29,8 @@ static int      num_x11_windows;
 enum error platform_window_create(
 	int width, int height,
 	const char* s_title,
-	void(*p_callback_on_created)(struct platform_window*, void*),
-	void* p_callback_on_created_user_ptr,
+	void(*f_callback_on_created)(struct platform_window*, void*),
+	void* f_callback_on_created_user_ptr,
 	struct platform_window* p_out_window) {
 
     enum error err = x11_init_connection();
@@ -150,11 +150,11 @@ enum error platform_window_create(
     XSetICFocus(x11_input_ctx);
 
     *p_out_window = (struct platform_window) {
-        ._p_callback_on_created = p_callback_on_created,
-        ._p_callback_on_created_user_ptr = p_callback_on_created_user_ptr
+        .f_callback_on_created_ = f_callback_on_created,
+        .p_callback_on_created_user_ptr_ = f_callback_on_created_user_ptr
     };
 
-    struct platform_window_nix_x11_internals* p_internals = (void*)p_out_window->_bytes;
+    struct platform_window_nix_x11_internals* p_internals = (void*)p_out_window->bytes_;
     *p_internals = (struct platform_window_nix_x11_internals) {
         .p_display = p_x11_display,
         .window = x11_window,
@@ -171,19 +171,19 @@ enum error platform_window_create(
 
     ++num_x11_windows;
     
-    if (p_out_window->_p_callback_on_created) {
-        p_out_window->_p_callback_on_created(p_out_window, p_out_window->_p_callback_on_created_user_ptr);
+    if (p_out_window->f_callback_on_created_) {
+        p_out_window->f_callback_on_created_(p_out_window, p_out_window->p_callback_on_created_user_ptr_);
     }
 
     return ERROR_none;
 }
 
 void platform_window_destroy(struct platform_window* p_window) {
-    if (p_window->_p_callback_on_close) {
-        p_window->_p_callback_on_close(p_window, p_window->_p_callback_on_close_user_ptr);
+    if (p_window->f_callback_on_close_) {
+        p_window->f_callback_on_close_(p_window, p_window->p_callback_on_close_user_ptr_);
     }
     
-    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->_bytes;
+    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->bytes_;
     XDestroyIC(p_internals->input_ctx);
     XDestroyWindow(p_internals->p_display, p_internals->window);
     
@@ -198,7 +198,7 @@ void platform_window_destroy(struct platform_window* p_window) {
 }
 
 void platform_window_poll_events(struct platform_window* p_window) {
-    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->_bytes;
+    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->bytes_;
 
     while (XPending(p_internals->p_display) > 0) {
         XEvent event = {0};
@@ -222,30 +222,30 @@ void platform_window_poll_events(struct platform_window* p_window) {
             }
 
             case FocusIn: {
-                if (p_window->_p_callback_on_focus_change) {
-                    p_window->_p_callback_on_focus_change(
+                if (p_window->f_callback_on_focus_change_) {
+                    p_window->f_callback_on_focus_change_(
                         p_window,
-                        p_window->_p_callback_on_focus_change_user_ptr,
+                        p_window->p_callback_on_focus_change_user_ptr_,
                         1);
                 }
                 break;
             }
 
             case FocusOut: {
-                if (p_window->_p_callback_on_focus_change) {
-                    p_window->_p_callback_on_focus_change(
+                if (p_window->f_callback_on_focus_change_) {
+                    p_window->f_callback_on_focus_change_(
                         p_window, 
-                        p_window->_p_callback_on_focus_change_user_ptr,
+                        p_window->p_callback_on_focus_change_user_ptr_,
                         0);
                 }
                 break;
             }
 
             case ConfigureNotify: {
-                if (p_window->_p_callback_on_resize) {
-                    p_window->_p_callback_on_resize(
+                if (p_window->f_callback_on_resize_) {
+                    p_window->f_callback_on_resize_(
                         p_window,
-                        p_window->_p_callback_on_resize_user_ptr,
+                        p_window->p_callback_on_resize_user_ptr_,
                         event.xconfigure.width, 
                         event.xconfigure.height);
                 }
@@ -253,21 +253,21 @@ void platform_window_poll_events(struct platform_window* p_window) {
             }
 
             case KeyPress: {
-                if (p_window->_p_callback_on_key) {
-                    p_window->_p_callback_on_key(
+                if (p_window->f_callback_on_key_) {
+                    p_window->f_callback_on_key_(
                         p_window,
-                        p_window->_p_callback_on_key_user_ptr,
+                        p_window->p_callback_on_key_user_ptr_,
                         x11_keycode_to_key(event.xkey.keycode),
                         1,
 						x11_mods_to_input_mods(event.xkey.state));
                 }
 
-                if (p_window->_p_callback_on_char) {
+                if (p_window->f_callback_on_char_) {
                     const char c = x11_keypressed_to_utf8(p_internals->input_ctx, &event.xkey);
                     if (c) {
-                    p_window->_p_callback_on_char(
+                    p_window->f_callback_on_char_(
                         p_window,
-                        p_window->_p_callback_on_char_user_ptr,
+                        p_window->p_callback_on_char_user_ptr_,
                         (unsigned int)c);
                     }
                 }
@@ -276,10 +276,10 @@ void platform_window_poll_events(struct platform_window* p_window) {
             }
 
             case KeyRelease: {
-                if (p_window->_p_callback_on_key) {
-                    p_window->_p_callback_on_key(
+                if (p_window->f_callback_on_key_) {
+                    p_window->f_callback_on_key_(
                         p_window,
-                        p_window->_p_callback_on_key_user_ptr,
+                        p_window->p_callback_on_key_user_ptr_,
                         x11_keycode_to_key(event.xkey.keycode),
                         0,
 						x11_mods_to_input_mods(event.xkey.state));
@@ -291,7 +291,7 @@ void platform_window_poll_events(struct platform_window* p_window) {
             case ButtonRelease: {
 				const unsigned int input_mods = x11_mods_to_input_mods(event.xbutton.state);
 
-                if (p_window->_p_callback_on_mouse_button) {
+                if (p_window->f_callback_on_mouse_button_) {
                     enum mouse_button btn = MOUSE_BUTTON_MAX_;
 
                     switch (event.xbutton.button) {
@@ -304,30 +304,30 @@ void platform_window_poll_events(struct platform_window* p_window) {
                     }
 
                     if (btn != MOUSE_BUTTON_MAX_) {
-                    p_window->_p_callback_on_mouse_button(
+                    p_window->f_callback_on_mouse_button_(
                         p_window, 
-                        p_window->_p_callback_on_mouse_button_user_ptr, 
+                        p_window->p_callback_on_mouse_button_user_ptr_, 
                         btn, 
                         event.type == ButtonPress,
 						input_mods);
                     }
                 }
 
-                if (p_window->_p_callback_on_scroll_user_ptr) {
+                if (p_window->p_callback_on_scroll_user_ptr_) {
                     switch (event.xbutton.button) {
                         case Button4: {
-                            p_window->_p_callback_on_scroll(
+                            p_window->f_callback_on_scroll_(
                                 p_window,
-                                p_window->_p_callback_on_scroll_user_ptr,
+                                p_window->p_callback_on_scroll_user_ptr_,
                                 -1,
 								input_mods);
                             break;
                         }
                         
                         case Button5: {
-                            p_window->_p_callback_on_scroll(
+                            p_window->f_callback_on_scroll_(
                                 p_window,
-                                p_window->_p_callback_on_scroll_user_ptr,
+                                p_window->p_callback_on_scroll_user_ptr_,
                                 1,
 								input_mods);
                             break;
@@ -343,14 +343,14 @@ void platform_window_poll_events(struct platform_window* p_window) {
             }
 
             case MotionNotify: {
-                p_window->_mouse_pos[0] = event.xmotion.x;
-                p_window->_mouse_pos[1] = event.xmotion.y;
-                if (p_window->_p_callback_on_mouse_move) {
-                    const int delta_x = p_window->_mouse_pos[0] - p_window->_mouse_pos_old[0];
-                    const int delta_y = p_window->_mouse_pos[1] - p_window->_mouse_pos_old[1];
-                    p_window->_p_callback_on_mouse_move(
+                p_window->mouse_pos_[0] = event.xmotion.x;
+                p_window->mouse_pos_[1] = event.xmotion.y;
+                if (p_window->f_callback_on_mouse_move_) {
+                    const int delta_x = p_window->mouse_pos_[0] - p_window->mouse_pos_old_[0];
+                    const int delta_y = p_window->mouse_pos_[1] - p_window->mouse_pos_old_[1];
+                    p_window->f_callback_on_mouse_move_(
                         p_window,
-                        p_window->_p_callback_on_mouse_move_user_ptr,
+                        p_window->p_callback_on_mouse_move_user_ptr_,
                         delta_x, delta_y,
 						x11_mods_to_input_mods(event.xmotion.state));
                 }
@@ -358,12 +358,12 @@ void platform_window_poll_events(struct platform_window* p_window) {
             }
 
             case Expose: {
-                if (p_window->_p_callback_on_resize) {
+                if (p_window->f_callback_on_resize_) {
                     unsigned int width, height;
                     platform_window_size(p_window, &width, &height);
-                    p_window->_p_callback_on_resize(
+                    p_window->f_callback_on_resize_(
                         p_window,
-                        p_window->_p_callback_on_resize_user_ptr,
+                        p_window->p_callback_on_resize_user_ptr_,
                         width, 
                         height);
                 }
@@ -372,12 +372,12 @@ void platform_window_poll_events(struct platform_window* p_window) {
         }
     }
 
-    p_window->_mouse_pos_old[0] = p_window->_mouse_pos[0];
-    p_window->_mouse_pos_old[1] = p_window->_mouse_pos[1];
+    p_window->mouse_pos_old_[0] = p_window->mouse_pos_[0];
+    p_window->mouse_pos_old_[1] = p_window->mouse_pos_[1];
 }
 
 int platform_window_is_open(const struct platform_window* p_window) {
-    const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->_bytes;
+    const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->bytes_;
 
     if (p_internals->p_display == 0 || p_internals->window == 0) {
         return 0;
@@ -391,7 +391,7 @@ void platform_window_size(
 	const struct platform_window* p_window,
 	unsigned int* p_out_width, unsigned int* p_out_height) {
     
-	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->_bytes;
+	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->bytes_;
 
     *p_out_width =
     *p_out_height = 0;

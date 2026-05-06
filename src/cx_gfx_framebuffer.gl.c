@@ -23,7 +23,7 @@ struct cx_gfx_framebuffer_gl_internals {
 };
 
 enum error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer) {
-	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->_bytes;
+	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->bytes_;
 
 	glGenFramebuffers(1, &p_internals->id);
 
@@ -35,7 +35,7 @@ enum error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer) {
 }
 
 void cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer) {
-	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->_bytes;
+	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->bytes_;
 
 	glDeleteFramebuffers(1, &p_internals->id);
 
@@ -47,8 +47,8 @@ void cx_gfx_framebuffer_set_attachment(
 	enum cx_gfx_framebuffer_attachment attachment_point,
 	const struct cx_gfx_texture* p_texture) {
 
-	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer->_bytes;
-	const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->_bytes;
+	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer->bytes_;
+	const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->bytes_;
 
     glBindFramebuffer(GL_FRAMEBUFFER, p_internals->id);
     
@@ -73,7 +73,7 @@ void cx_gfx_framebuffer_read(
 	const uint32_t* p_read_size,
 	void* p_out_read_buffer) {
 
-	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer->_bytes;
+	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer->bytes_;
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, p_internals->id);
     glReadBuffer(gl_fb_attachment_point_table[attachment]);

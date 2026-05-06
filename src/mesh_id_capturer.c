@@ -65,8 +65,8 @@ void mesh_id_capturer_begin(
 		cx_gfx_program_refl_param_block(&program, "blk_camera", &program_pblk_camera);
 		cx_gfx_program_refl_param_block(&program, "blk_object", &program_pblk_object);
 
-		cx_gfx_program_param_buffer_create(&program_pbuf_camera, program_pblk_camera._size);
-		cx_gfx_program_param_buffer_create(&program_pbuf_object, program_pblk_object._size);
+		cx_gfx_program_param_buffer_create(&program_pbuf_camera, program_pblk_camera.size_);
+		cx_gfx_program_param_buffer_create(&program_pbuf_object, program_pblk_object.size_);
     }
 
     if (p_mesh_id_capturer->framebuffer_size[0] != p_framebuffer_size[0] ||

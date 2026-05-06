@@ -10,10 +10,10 @@
 #define CX_LOG_CAT_PHYSICS_GJK "physics:gjk"
 
 struct physics_object {
-    struct physics_world*    _p_world;
-    struct transform*        _p_transform;
-    struct physics_collider* _p_collider;
-    int                      _b_is_rigidbody;
+    struct physics_world*    p_world_;
+    struct transform*        p_transform_;
+    struct physics_collider* p_collider_;
+    int                      b_is_rigidbody_;
 };
 
 struct physics_rigidbody {
@@ -82,7 +82,7 @@ void physics_collider_shape_transform(
 struct physics_collider {
     enum physics_collider_type   type;
 	union physics_collider_shape shape;
-	union physics_collider_shape _shape_cached;
+	union physics_collider_shape shape_cached_;
 };
 
 void physics_collider_init(struct physics_collider* p_collider, enum physics_collider_type collider_type);
@@ -94,11 +94,11 @@ void physics_collider_undo_transform(struct physics_collider* p_collider);
 typedef void(*physics_collision_solver_func)(const struct physics_collision* p_collisions, size_t n, float delta_time);
 
 struct physics_world {
-    struct darr        _objects;
-    struct darr        _collisions;
-    struct darr        _solvers;
-    struct object_pool _collider_pool;
-    struct object_pool _physics_object_pools[2];
+    struct darr        objects_;
+    struct darr        collisions_;
+    struct darr        solvers_;
+    struct object_pool collider_pool_;
+    struct object_pool physics_object_pools_[2];
 };
 
 void physics_world_init(struct physics_world* p_world);

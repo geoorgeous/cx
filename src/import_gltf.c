@@ -145,7 +145,7 @@ void import_gltf_image(struct gltf_importer* p_importer, size_t gltf_image_index
 	}
     
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_IMAGE);
-    handle->_asset._p_data = p_image;
+    handle->asset_.p_data_ = p_image;
 
     p_importer->p_result->p_images[p_importer->p_result->num_images] = handle;
     ++p_importer->p_result->num_images;
@@ -166,11 +166,11 @@ void import_gltf_texture(struct gltf_importer* p_importer, size_t gltf_texture_i
             .address_mode_u = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_s),
             .address_mode_v = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_t)
         },
-		.gfx_texture_format = ((const struct image*)p_source_image->_asset._p_data)->pixel_data_format.pixel_format
+		.gfx_texture_format = ((const struct image*)p_source_image->asset_.p_data_)->pixel_data_format.pixel_format
     };
 
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_TEXTURE);
-    handle->_asset._p_data = p_texture;
+    handle->asset_.p_data_ = p_texture;
 
     p_importer->p_result->p_textures[p_importer->p_result->num_textures] = handle;
     ++p_importer->p_result->num_textures;
@@ -185,7 +185,7 @@ void import_gltf_material(struct gltf_importer* p_importer, size_t gltf_material
     };
     
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_MATERIAL);
-    handle->_asset._p_data = p_material;
+    handle->asset_.p_data_ = p_material;
 
     p_importer->p_result->p_materials[p_importer->p_result->num_materials] = handle;
     ++p_importer->p_result->num_materials;
@@ -206,7 +206,7 @@ void import_gltf_mesh(struct gltf_importer* p_importer, size_t gltf_mesh_index) 
     }
     
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_STATIC_MESH);
-    handle->_asset._p_data = p_mesh;
+    handle->asset_.p_data_ = p_mesh;
 
     p_importer->p_result->p_meshes[p_importer->p_result->num_meshes] = handle;
     ++p_importer->p_result->num_meshes;
@@ -436,7 +436,7 @@ void import_gltf_skin(struct gltf_importer* p_importer, size_t gltf_skin_index) 
     }
 
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_SKELETON);
-    handle->_asset._p_data = p_skeleton;
+    handle->asset_.p_data_ = p_skeleton;
 
     p_importer->p_result->p_skeletons[p_importer->p_result->num_skeleton] = handle;
     ++p_importer->p_result->num_skeleton;
@@ -539,7 +539,7 @@ void import_gltf_scene(struct gltf_importer* p_importer, size_t gltf_scene_index
     }
 
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_SCENE);
-    handle->_asset._p_data = p_scene;
+    handle->asset_.p_data_ = p_scene;
 
     p_importer->p_result->p_scenes[p_importer->p_result->num_scenes] = handle;
     ++p_importer->p_result->num_scenes;

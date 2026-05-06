@@ -9,9 +9,9 @@
 #define CX_LOG_CAT_GFX_TEXTURE "gfx:texture"
 
 struct cx_gfx_texture {
-	uint32_t             _size[2];
-	enum cx_pixel_format _pixel_format;
-	char                 _bytes[8];
+	uint32_t             size_[2];
+	enum cx_pixel_format pixel_format_;
+	char                 bytes_[8];
 };
 
 enum error cx_gfx_texture_create(
@@ -19,14 +19,14 @@ enum error cx_gfx_texture_create(
 	const uint32_t* p_size,
 	enum cx_pixel_format pixel_format);
 
-void       cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture);
+void cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture);
 
-void       cx_gfx_texture_set_data(
+void cx_gfx_texture_set_data(
 	const struct cx_gfx_texture* p_texture,
 	const void* p_data,
 	const struct cx_pixel_buffer_format* p_data_format);
 
-void       cx_gfx_texture_set_data_subregion(
+void cx_gfx_texture_set_data_subregion(
 	const struct cx_gfx_texture* p_texture,
 	const void* p_data,
 	const struct cx_pixel_buffer_format* p_format,
@@ -35,7 +35,7 @@ void       cx_gfx_texture_set_data_subregion(
 
 struct cx_texture_sampler_settings;
 
-void       cx_gfx_texture_set_sampler_settings(
+void cx_gfx_texture_set_sampler_settings(
 	struct cx_gfx_texture* p_texture,
 	const struct cx_texture_sampler_settings* p_sampler_settings);
 

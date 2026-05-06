@@ -632,20 +632,20 @@ void mesh_factory_make_from_halfedge_mesh(
         .num_vertex_buffers = 1,
         .p_attributes       = malloc(sizeof(*p_out_mesh_primitive->p_attributes) * 2),
         .num_attributes     = 2,
-        .vertex_count       = vertices._length,
+        .vertex_count       = vertices.length_,
         .draw_mode          = MESH_PRIMITIVE_DRAW_MODE_triangles,
     };
 
     *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
-        .p_bytes = vertices._p_buffer,
-        .size = vertices._capacity * vertices._element_size
+        .p_bytes = vertices.p_buffer_,
+        .size = vertices.capacity_ * vertices.element_size_
     };
 
     p_out_mesh_primitive->p_attributes[0] = (struct vertex_attribute) {
         .index               = 0,
         .vertex_buffer_index = 0,
         .layout = {
-            .stride          = vertices._element_size,
+            .stride          = vertices.element_size_,
             .component_count = 3,
             .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
         }
@@ -656,7 +656,7 @@ void mesh_factory_make_from_halfedge_mesh(
         .vertex_buffer_index = 0,
         .layout = {
             .offset          = sizeof(float) * 3,
-            .stride          = vertices._element_size,
+            .stride          = vertices.element_size_,
             .component_count = 3,
             .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
         }

@@ -28,7 +28,7 @@ void              log_program_info_log(GLuint program, int level, const char* me
 static GLint      get_uniform_index(GLuint program, const char* s_name);
 
 enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size) {
-	struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (void*)p_buffer->_bytes;
+	struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (void*)p_buffer->bytes_;
 
 	glGenBuffers(1, &p_buffer_internals->id);
 
@@ -49,7 +49,7 @@ enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer
 }
 
 void cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer) {
-	struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (void*)p_buffer->_bytes;
+	struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (void*)p_buffer->bytes_;
 	
 	glDeleteBuffers(1, &p_buffer_internals->id);
 
@@ -57,7 +57,7 @@ void cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_b
 }
 
 void cx_gfx_program_param_buffer_bind(const struct cx_gfx_program_param_buffer* p_buffer, unsigned int index) {
-	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->_bytes;
+	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->bytes_;
 	glBindBufferBase(GL_UNIFORM_BUFFER, index, p_buffer_internals->id);
 }
 
@@ -67,7 +67,7 @@ void cx_gfx_program_param_buffer_bind_range(
 	size_t offset,
 	size_t size) {
 	
-	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->_bytes;
+	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->bytes_;
 	glBindBufferRange(GL_UNIFORM_BUFFER, index, p_buffer_internals->id, offset, size);
 }
 
@@ -77,7 +77,7 @@ void cx_gfx_program_param_buffer_set(
 	size_t size,
 	const void* p_data) {
 	
-	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->_bytes;
+	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->bytes_;
 	glBindBuffer(GL_UNIFORM_BUFFER, p_buffer_internals->id);
 	glBufferSubData(GL_UNIFORM_BUFFER, offset, size ? size : p_buffer->size, p_data);
 }
@@ -89,7 +89,7 @@ void cx_gfx_program_opaque_param_bind_resource(
 	switch (p_opaque_param->type) {
 		case CX_GFX_PROGRAM_OPAQUE_PARAM_TYPE_sampler_2d: {
 			const struct cx_gfx_texture* p_texture = p_resource;
-			const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->_bytes;
+			const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->bytes_;
 			glActiveTexture(GL_TEXTURE0 + p_opaque_param->slot);
 			glBindTexture(GL_TEXTURE_2D, p_texture_internals->id);
 			break;
@@ -113,7 +113,7 @@ void cx_gfx_program_param_block_bind_buffer(
 	size_t buffer_data_offset,
 	size_t buffer_data_size) {
 	
-	const struct cx_gfx_program_param_block_gl_internals* p_internals = (const void*)p_param_block->_bytes;
+	const struct cx_gfx_program_param_block_gl_internals* p_internals = (const void*)p_param_block->bytes_;
 	cx_gfx_program_param_buffer_bind_range(
 		p_buffer,
 		p_internals->bind_index,
@@ -122,7 +122,7 @@ void cx_gfx_program_param_block_bind_buffer(
 }
 
 enum error cx_gfx_program_create(struct cx_gfx_program* p_program) {
-	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->_bytes;
+	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->bytes_;
 	p_program_internals->id = glCreateProgram();
 	if (p_program_internals->id == 0) {
 		return ERROR_allocation_failed;
@@ -131,13 +131,13 @@ enum error cx_gfx_program_create(struct cx_gfx_program* p_program) {
 }
 
 void cx_gfx_program_destroy(struct cx_gfx_program* p_program) {
-	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->_bytes;
+	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->bytes_;
 	glDeleteProgram(p_program_internals->id);
 	*p_program = (struct cx_gfx_program){0};
 }
 
 int cx_gfx_program_is_built(struct cx_gfx_program* p_program) {
-	const struct cx_gfx_program_gl_internals* p_internals = (const void*)p_program->_bytes;
+	const struct cx_gfx_program_gl_internals* p_internals = (const void*)p_program->bytes_;
 
 	if (p_internals->id == 0) {
 		return 0;
@@ -159,7 +159,7 @@ int cx_gfx_program_is_built(struct cx_gfx_program* p_program) {
 }
 
 enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source) {
-	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->_bytes;
+	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->bytes_;
 
 	if (p_program_internals->id == 0) {
 		return ERROR_invalid_state;
@@ -321,7 +321,7 @@ int cx_gfx_program_refl_opaque_param(
 	const char* s_name,
 	struct cx_gfx_program_opaque_param* p_out_opaque_param) {
 
-	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->_bytes;
+	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->bytes_;
 	
 	const GLint uniform_location = glGetUniformLocation(p_program_internals->id, s_name);
 
@@ -370,8 +370,8 @@ int cx_gfx_program_refl_param_block(
 	const char* s_name,
 	struct cx_gfx_program_param_block* p_out_param_block) {
 
-	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->_bytes;
-	struct cx_gfx_program_param_block_gl_internals* p_out_blk_internals = (void*)p_out_param_block->_bytes;
+	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->bytes_;
+	struct cx_gfx_program_param_block_gl_internals* p_out_blk_internals = (void*)p_out_param_block->bytes_;
 
 	const GLuint index = glGetUniformBlockIndex(p_program_internals->id, s_name);
 
@@ -390,13 +390,13 @@ int cx_gfx_program_refl_param_block(
 	GLint block_data_size;
 	glGetActiveUniformBlockiv(p_program_internals->id, index, GL_UNIFORM_BLOCK_DATA_SIZE, &block_data_size);
 
-	p_out_param_block->_size = (size_t)block_data_size;
+	p_out_param_block->size_ = (size_t)block_data_size;
 
 	return 1;
 }
 
 void cx_gfx_program_bind(const struct cx_gfx_program* p_program) {
-	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->_bytes;
+	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->bytes_;
 	glUseProgram(p_program_internals->id);
 }
 

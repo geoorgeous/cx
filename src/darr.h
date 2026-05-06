@@ -4,10 +4,10 @@
 #include <stddef.h>
 
 struct darr {
-    void*  _p_buffer;
-    size_t _length;
-    size_t _capacity;
-    size_t _element_size;
+    void*  p_buffer_;
+    size_t length_;
+    size_t capacity_;
+    size_t element_size_;
 };
 
 void  darr_init(struct darr* p_darr, size_t element_size);

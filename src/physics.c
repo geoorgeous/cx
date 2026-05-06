@@ -147,7 +147,7 @@ void physics_collider_init(struct physics_collider* p_collider, enum physics_col
 		case PHYSICS_COLLIDER_TYPE_hull: {
 			const float elemsize = sizeof(float) * 3;
 			darr_init(&p_collider->shape.as_hull.verts, elemsize);
-			darr_init(&p_collider->_shape_cached.as_hull.verts, elemsize);
+			darr_init(&p_collider->shape_cached_.as_hull.verts, elemsize);
 
 			darr_set_length(&p_collider->shape.as_hull.verts, 8);
 
@@ -173,23 +173,23 @@ void physics_collider_init(struct physics_collider* p_collider, enum physics_col
 }
 
 void physics_world_init(struct physics_world* p_world) {
-	darr_init(&p_world->_objects, sizeof(struct physics_object*));
-	darr_init(&p_world->_collisions, sizeof(struct physics_collision));
-	darr_init(&p_world->_solvers, sizeof(physics_collision_solver_func));
-	object_pool_init(&p_world->_collider_pool, sizeof(struct physics_collider), PHYSICS_MAX_COLLIDERS);
-	object_pool_init(&p_world->_physics_object_pools[0], sizeof(struct physics_object), PHYSICS_MAX_STATIC_OBJECTS);
-	object_pool_init(&p_world->_physics_object_pools[1], sizeof(struct physics_rigidbody), PHYSICS_MAX_RIGIDBODIES);
+	darr_init(&p_world->objects_, sizeof(struct physics_object*));
+	darr_init(&p_world->collisions_, sizeof(struct physics_collision));
+	darr_init(&p_world->solvers_, sizeof(physics_collision_solver_func));
+	object_pool_init(&p_world->collider_pool_, sizeof(struct physics_collider), PHYSICS_MAX_COLLIDERS);
+	object_pool_init(&p_world->physics_object_pools_[0], sizeof(struct physics_object), PHYSICS_MAX_STATIC_OBJECTS);
+	object_pool_init(&p_world->physics_object_pools_[1], sizeof(struct physics_rigidbody), PHYSICS_MAX_RIGIDBODIES);
 
 	CX_LOG(TRACE, PHYSICS, "Physics world initialised\n");
 }
 
 void physics_world_destroy(struct physics_world* p_world) {
-	darr_free(&p_world->_objects);
-	darr_free(&p_world->_collisions);
-	darr_free(&p_world->_solvers);
-	object_pool_free(&p_world->_collider_pool);
-	object_pool_free(&p_world->_physics_object_pools[0]);
-	object_pool_free(&p_world->_physics_object_pools[1]);
+	darr_free(&p_world->objects_);
+	darr_free(&p_world->collisions_);
+	darr_free(&p_world->solvers_);
+	object_pool_free(&p_world->collider_pool_);
+	object_pool_free(&p_world->physics_object_pools_[0]);
+	object_pool_free(&p_world->physics_object_pools_[1]);
 }
 
 struct physics_object* physics_world_new_object(
@@ -197,11 +197,11 @@ struct physics_object* physics_world_new_object(
 	struct transform* p_transform,
 	int b_is_rigidbody) {
 
-	struct physics_object* p_object = object_pool_get(&p_world->_physics_object_pools[b_is_rigidbody]);
+	struct physics_object* p_object = object_pool_get(&p_world->physics_object_pools_[b_is_rigidbody]);
 	*p_object = (struct physics_object) {
-		._p_world = p_world,
-		._p_transform = p_transform,
-		._b_is_rigidbody = b_is_rigidbody
+		.p_world_ = p_world,
+		.p_transform_ = p_transform,
+		.b_is_rigidbody_ = b_is_rigidbody
 	};
 
 	if (b_is_rigidbody) {
@@ -215,7 +215,7 @@ struct physics_object* physics_world_new_object(
 		p_rigidbody->k_dynamic_friction = 0.15f;
 	}
 
-	struct physics_object** pp_object = darr_push(&p_world->_objects);
+	struct physics_object** pp_object = darr_push(&p_world->objects_);
 	*pp_object = p_object;
 
 	CX_LOG_FMT(TRACE, PHYSICS, "%s created\n", b_is_rigidbody ? "Rigidbody" : "Static body");
@@ -224,21 +224,21 @@ struct physics_object* physics_world_new_object(
 }
 
 void physics_world_destroy_object(struct physics_world* p_world, struct physics_object* p_object) {
-	for (size_t i = 0; i < p_world->_objects._length; ++i) {
-		struct physics_object** pp_object = darr_get(&p_world->_objects, i);
+	for (size_t i = 0; i < p_world->objects_.length_; ++i) {
+		struct physics_object** pp_object = darr_get(&p_world->objects_, i);
 		if (*pp_object == p_object) {
-			darr_remove(&p_world->_objects, i);
+			darr_remove(&p_world->objects_, i);
 			break;
 		}
 	}
 
-	CX_LOG_FMT(TRACE, PHYSICS, "%s destroyed\n", p_object->_b_is_rigidbody ? "Rigidbody" : "Static object");
+	CX_LOG_FMT(TRACE, PHYSICS, "%s destroyed\n", p_object->b_is_rigidbody_ ? "Rigidbody" : "Static object");
 
-	if (p_object->_p_collider) {
-		object_pool_return(&p_world->_collider_pool, p_object->_p_collider);
+	if (p_object->p_collider_) {
+		object_pool_return(&p_world->collider_pool_, p_object->p_collider_);
 	}
 	
-	object_pool_return(&p_world->_physics_object_pools[p_object->_b_is_rigidbody], p_object);
+	object_pool_return(&p_world->physics_object_pools_[p_object->b_is_rigidbody_], p_object);
 }
 
 void physics_world_new_object_collider(
@@ -246,45 +246,45 @@ void physics_world_new_object_collider(
 	struct physics_object* p_object,
 	enum physics_collider_type type) {
 
-	if (p_object->_p_collider) {
+	if (p_object->p_collider_) {
 		return;
 	}
 
-	p_object->_p_collider = object_pool_get(&p_world->_collider_pool);
-	physics_collider_init(p_object->_p_collider, type);
+	p_object->p_collider_ = object_pool_get(&p_world->collider_pool_);
+	physics_collider_init(p_object->p_collider_, type);
 
 	CX_LOG_FMT(TRACE, PHYSICS, "Collider added to %s (type=%d)\n",
-		p_object->_b_is_rigidbody ? "rigidbody" : "static body",
+		p_object->b_is_rigidbody_ ? "rigidbody" : "static body",
 		type);
 }
 
 void physics_world_destroy_object_collider(struct physics_world* p_world, struct physics_object* p_object) {
-	if (!p_object->_p_collider) {
+	if (!p_object->p_collider_) {
 		return;
 	}
 
 	CX_LOG_FMT(TRACE, PHYSICS, "Collider removed from %s (type=%d)\n",
-		p_object->_b_is_rigidbody ? "rigidbody" : "static body",
-		p_object->_p_collider->type);
+		p_object->b_is_rigidbody_ ? "rigidbody" : "static body",
+		p_object->p_collider_->type);
 
-	if (p_object->_p_collider->type == PHYSICS_COLLIDER_TYPE_hull) {
-		darr_free(&p_object->_p_collider->shape.as_hull.verts);
+	if (p_object->p_collider_->type == PHYSICS_COLLIDER_TYPE_hull) {
+		darr_free(&p_object->p_collider_->shape.as_hull.verts);
 	}
 
-	object_pool_return(&p_world->_collider_pool, p_object->_p_collider);
-	p_object->_p_collider = 0;
+	object_pool_return(&p_world->collider_pool_, p_object->p_collider_);
+	p_object->p_collider_ = 0;
 }
 
 void physics_world_add_solver(struct physics_world* p_world, physics_collision_solver_func p_solver_func) {
-	physics_collision_solver_func* p_solver = darr_push(&p_world->_solvers);
+	physics_collision_solver_func* p_solver = darr_push(&p_world->solvers_);
 	*p_solver = p_solver_func;
 }
 
 void physics_world_remove_solver(struct physics_world* p_world, physics_collision_solver_func p_solver_func) {
-	for (size_t i = 0; i < p_world->_solvers._length; ++i) {
-		physics_collision_solver_func* p = darr_get(&p_world->_solvers, i);
+	for (size_t i = 0; i < p_world->solvers_.length_; ++i) {
+		physics_collision_solver_func* p = darr_get(&p_world->solvers_, i);
 		if (*p == p_solver_func) {
-			darr_remove(&p_world->_solvers, i);
+			darr_remove(&p_world->solvers_, i);
 			break;
 		}
 	}
@@ -301,8 +301,8 @@ void physics_world_step(struct physics_world* p_world, float delta_time) {
 	
 	physics_world_resolve_collisions(
 		p_world,
-		p_world->_collisions._p_buffer,
-		p_world->_collisions._length,
+		p_world->collisions_.p_buffer_,
+		p_world->collisions_.length_,
 		delta_time);
 }
 
@@ -331,7 +331,7 @@ void physics_collider_shape_transform_capsule(union physics_collider_shape* p_sh
 void physics_collider_shape_transform_hull(union physics_collider_shape* p_shape, const struct transform* p_t) {
 	struct physics_hull* p_hull = &p_shape->as_hull;
 
-	for (size_t i = 0; i < p_hull->verts._length; ++i) {
+	for (size_t i = 0; i < p_hull->verts.length_; ++i) {
 		float* p_v = darr_get(&p_hull->verts, i);
 		matrix_multiply_vec3(p_t->world_trs_matrix, p_v, p_v);
 	}
@@ -355,27 +355,27 @@ void physics_collider_apply_transform(struct physics_collider* p_collider, const
 }
 
 void physics_collider_apply_transform_sphere(struct physics_collider* p_collider, const struct transform* p_t) {
-	p_collider->_shape_cached.as_sphere = p_collider->shape.as_sphere;
+	p_collider->shape_cached_.as_sphere = p_collider->shape.as_sphere;
 	physics_collider_shape_transform_sphere(&p_collider->shape, p_t);
 }
 
 void physics_collider_apply_transform_capsule(struct physics_collider* p_collider, const struct transform* p_t) {
-	p_collider->_shape_cached.as_capsule = p_collider->shape.as_capsule;
+	p_collider->shape_cached_.as_capsule = p_collider->shape.as_capsule;
 	physics_collider_shape_transform_capsule(&p_collider->shape, p_t);
 }
 
 void physics_collider_apply_transform_hull(struct physics_collider* p_collider, const struct transform* p_t) {
-	darr_set_length(&p_collider->_shape_cached.as_hull.verts, p_collider->shape.as_hull.verts._length);
-	for (size_t i = 0; i < p_collider->shape.as_hull.verts._length; ++i) {
+	darr_set_length(&p_collider->shape_cached_.as_hull.verts, p_collider->shape.as_hull.verts.length_);
+	for (size_t i = 0; i < p_collider->shape.as_hull.verts.length_; ++i) {
 		float* p_v = darr_get(&p_collider->shape.as_hull.verts, i);
-		float* p_v_shape_cached = darr_get(&p_collider->_shape_cached.as_hull.verts, i);
+		float* p_v_shape_cached = darr_get(&p_collider->shape_cached_.as_hull.verts, i);
 		vec3_copy(p_v, p_v_shape_cached);
 	}
 	physics_collider_shape_transform_hull(&p_collider->shape, p_t);
 }
 
 void physics_collider_apply_transform_plane(struct physics_collider* p_collider, const struct transform* p_t) {
-	p_collider->_shape_cached.as_plane = p_collider->shape.as_plane;
+	p_collider->shape_cached_.as_plane = p_collider->shape.as_plane;
 	physics_collider_shape_transform_plane(&p_collider->shape, p_t);
 }
 
@@ -390,33 +390,33 @@ void physics_collider_undo_transform(struct physics_collider* p_collider) {
 }
 
 void physics_collider_undo_transform_sphere(struct physics_collider* p_collider) {
-	p_collider->shape.as_sphere = p_collider->_shape_cached.as_sphere;
+	p_collider->shape.as_sphere = p_collider->shape_cached_.as_sphere;
 }
 
 void physics_collider_undo_transform_capsule(struct physics_collider* p_collider) {
-	p_collider->shape.as_capsule = p_collider->_shape_cached.as_capsule;
+	p_collider->shape.as_capsule = p_collider->shape_cached_.as_capsule;
 }
 
 void physics_collider_undo_transform_hull(struct physics_collider* p_collider) {
-	for (size_t i = 0; i < p_collider->shape.as_hull.verts._length; ++i) {
+	for (size_t i = 0; i < p_collider->shape.as_hull.verts.length_; ++i) {
 		float* p_v = darr_get(&p_collider->shape.as_hull.verts, i);
-		float* p_v_shape_cached = darr_get(&p_collider->_shape_cached.as_hull.verts, i);
+		float* p_v_shape_cached = darr_get(&p_collider->shape_cached_.as_hull.verts, i);
 		vec3_copy(p_v_shape_cached, p_v);
 	}
 }
 
 void physics_collider_undo_transform_plane(struct physics_collider* p_collider) {
-	p_collider->shape.as_plane = p_collider->_shape_cached.as_plane;
+	p_collider->shape.as_plane = p_collider->shape_cached_.as_plane;
 }
 
 void physics_world_step_rigidbodies(struct physics_world* p_world, float delta_time) {
 	const float gravity_force[] = { 0, -9.81f, 0 };
 	float temp[3];
 
-	for (size_t i = 0; i < p_world->_objects._length; ++i) {
-		struct physics_object* p_object = *(struct physics_object**)darr_get(&p_world->_objects, i);
+	for (size_t i = 0; i < p_world->objects_.length_; ++i) {
+		struct physics_object* p_object = *(struct physics_object**)darr_get(&p_world->objects_, i);
 
-		if (!p_object->_b_is_rigidbody) {
+		if (!p_object->b_is_rigidbody_) {
 			continue;
 		}
 
@@ -431,57 +431,57 @@ void physics_world_step_rigidbodies(struct physics_world* p_world, float delta_t
 
 		float new_position[3];
 		vec3_mul_s(p_rigidbody->velocity, delta_time, temp);
-		vec3_add(p_object->_p_transform->world_position, temp, new_position);
-		transform_set_world_position(p_object->_p_transform, new_position);
+		vec3_add(p_object->p_transform_->world_position, temp, new_position);
+		transform_set_world_position(p_object->p_transform_, new_position);
 
 		vec3_clr(p_rigidbody->force);
 	}
 }
 
 void physics_world_detect_collisions(struct physics_world* p_world) {
-	for (size_t i = 0; i < p_world->_objects._length; ++i) {
-		struct physics_object* p_object = *(struct physics_object**)darr_get(&p_world->_objects, i);
+	for (size_t i = 0; i < p_world->objects_.length_; ++i) {
+		struct physics_object* p_object = *(struct physics_object**)darr_get(&p_world->objects_, i);
 
-		if (!p_object->_p_collider) {
+		if (!p_object->p_collider_) {
 			continue;
 		}
 
-		physics_collider_apply_transform(p_object->_p_collider, p_object->_p_transform);
+		physics_collider_apply_transform(p_object->p_collider_, p_object->p_transform_);
 	}
 
 	physics_world_detect_collisions_broadphase(p_world);
 	physics_world_detect_collisions_narrowphase(p_world);
 	
-	for (size_t i = 0; i < p_world->_objects._length; ++i) {
-		struct physics_object* p_object = *(struct physics_object**)darr_get(&p_world->_objects, i);
+	for (size_t i = 0; i < p_world->objects_.length_; ++i) {
+		struct physics_object* p_object = *(struct physics_object**)darr_get(&p_world->objects_, i);
 
-		if (!p_object->_p_collider) {
+		if (!p_object->p_collider_) {
 			continue;
 		}
 
-		physics_collider_undo_transform(p_object->_p_collider);
+		physics_collider_undo_transform(p_object->p_collider_);
 	}
 }
 
 void physics_world_detect_collisions_broadphase(struct physics_world* p_world) {
 	// todo: AABB tree
 	// AABB intersection
-	darr_set_length(&p_world->_collisions, 0);
+	darr_set_length(&p_world->collisions_, 0);
 	
-	for (size_t a = 0; a < p_world->_objects._length; ++a) {
-		for (size_t b = 0; b < p_world->_objects._length; ++b) {
+	for (size_t a = 0; a < p_world->objects_.length_; ++a) {
+		for (size_t b = 0; b < p_world->objects_.length_; ++b) {
 			if (a == b) {
 				break;
 			}
 
-			struct physics_object* p_a = *(struct physics_object**)darr_get(&p_world->_objects, a);
-			struct physics_object* p_b = *(struct physics_object**)darr_get(&p_world->_objects, b);
+			struct physics_object* p_a = *(struct physics_object**)darr_get(&p_world->objects_, a);
+			struct physics_object* p_b = *(struct physics_object**)darr_get(&p_world->objects_, b);
 
-			if (!p_a->_p_collider || !p_b->_p_collider) {
+			if (!p_a->p_collider_ || !p_b->p_collider_) {
 				continue;
 			}
 
-			struct physics_collision* p_collision = darr_push(&p_world->_collisions);
+			struct physics_collision* p_collision = darr_push(&p_world->collisions_);
 			*p_collision = (struct physics_collision) {
 				.p_a = p_a,
 				.p_b = p_b
@@ -491,14 +491,14 @@ void physics_world_detect_collisions_broadphase(struct physics_world* p_world) {
 }
 
 void physics_world_detect_collisions_narrowphase(struct physics_world* p_world) {
-	for (int i = p_world->_collisions._length - 1; i >= 0; --i) {
-		struct physics_collision* p_collision = darr_get(&p_world->_collisions, i);
+	for (int i = p_world->collisions_.length_ - 1; i >= 0; --i) {
+		struct physics_collision* p_collision = darr_get(&p_world->collisions_, i);
 
 		p_collision->b_has_collision =
-			physics_test_collision(p_collision->p_a->_p_collider, p_collision->p_b->_p_collider, &p_collision->result);
+			physics_test_collision(p_collision->p_a->p_collider_, p_collision->p_b->p_collider_, &p_collision->result);
 		
 		if (!p_collision->b_has_collision) {
-			darr_remove(&p_world->_collisions, i);
+			darr_remove(&p_world->collisions_, i);
 		}
 	}
 }
@@ -509,8 +509,8 @@ void physics_world_resolve_collisions(
 	size_t n,
 	float delta_time) {
 
-	for (size_t i = 0; i < p_world->_solvers._length; ++i) {
-		physics_collision_solver_func* p_solver = darr_get(&p_world->_solvers, i);
+	for (size_t i = 0; i < p_world->solvers_.length_; ++i) {
+		physics_collision_solver_func* p_solver = darr_get(&p_world->solvers_, i);
 		(*p_solver)(p_collisions, n, delta_time);
 	}
 }
@@ -836,10 +836,10 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 
 	for (size_t i = 0; i < n; ++i) {
 		struct physics_rigidbody* p_rb_a =
-			(struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
+			(struct physics_rigidbody*)(p_collisions[i].p_a->b_is_rigidbody_ ? p_collisions[i].p_a : 0);
 		
 		struct physics_rigidbody* p_rb_b =
-			(struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
+			(struct physics_rigidbody*)(p_collisions[i].p_b->b_is_rigidbody_ ? p_collisions[i].p_b : 0);
 
 		float vel_a[3] = {0};
 		float vel_b[3] = {0};
@@ -945,16 +945,16 @@ void physics_collision_solver_smooth_positions(
 	(void)delta_time;
 
 	static struct darr deltas;
-	if (deltas._element_size == 0) {
+	if (deltas.element_size_ == 0) {
 		darr_init(&deltas, sizeof(float) * 6);
 	}
 
 	for (size_t i = 0; i < n; ++i) {
 		struct physics_rigidbody* p_rb_a =
-			(struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
+			(struct physics_rigidbody*)(p_collisions[i].p_a->b_is_rigidbody_ ? p_collisions[i].p_a : 0);
 		
 		struct physics_rigidbody* p_rb_b =
-			(struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
+			(struct physics_rigidbody*)(p_collisions[i].p_b->b_is_rigidbody_ ? p_collisions[i].p_b : 0);
 
 		float* p_deltas = (float*)darr_push(&deltas);
 		float* p_delta_a = &p_deltas[0];
@@ -988,25 +988,25 @@ void physics_collision_solver_smooth_positions(
 	
 	for (size_t i = 0; i < n; ++i) {
 		struct physics_rigidbody* p_rb_a =
-			(struct physics_rigidbody*)(p_collisions[i].p_a->_b_is_rigidbody ? p_collisions[i].p_a : 0);
+			(struct physics_rigidbody*)(p_collisions[i].p_a->b_is_rigidbody_ ? p_collisions[i].p_a : 0);
 		
 		struct physics_rigidbody* p_rb_b =
-			(struct physics_rigidbody*)(p_collisions[i].p_b->_b_is_rigidbody ? p_collisions[i].p_b : 0);
+			(struct physics_rigidbody*)(p_collisions[i].p_b->b_is_rigidbody_ ? p_collisions[i].p_b : 0);
 		
 		const float* p_deltas = darr_get(&deltas, i);
 
 		if (p_rb_a) {
 			float new_position[3];
-			vec3_sub(p_rb_a->base._p_transform->world_position, &p_deltas[0], new_position);
+			vec3_sub(p_rb_a->base.p_transform_->world_position, &p_deltas[0], new_position);
 
-			transform_set_world_position(p_rb_a->base._p_transform, new_position);
+			transform_set_world_position(p_rb_a->base.p_transform_, new_position);
 		}
 
 		if (p_rb_b) {
 			float new_position[3];
-			vec3_add(p_rb_b->base._p_transform->world_position, &p_deltas[3], new_position);
+			vec3_add(p_rb_b->base.p_transform_->world_position, &p_deltas[3], new_position);
 
-			transform_set_world_position(p_rb_b->base._p_transform, new_position);
+			transform_set_world_position(p_rb_b->base.p_transform_, new_position);
 		}
 	}
 
@@ -1120,7 +1120,7 @@ void gjk_find_extreme_on_capsule(const struct physics_capsule* p_capsule, const 
 
 void gjk_find_extreme_on_hull(const struct physics_hull* p_hull, const float* p_dir, float* p_extreme) {
 	float dot_max = -FLT_MAX;
-	for (size_t i = 0; i < p_hull->verts._length; ++i) {
+	for (size_t i = 0; i < p_hull->verts.length_; ++i) {
 		const float* p_vert = darr_get(&p_hull->verts, i);
 		const float dot = vec3_dot(p_vert, p_dir);
 		if (dot > dot_max) {

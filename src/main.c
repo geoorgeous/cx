@@ -240,9 +240,9 @@ int main(int argc, const char* argv[]) {
 	struct cx_gfx_program_param_buffer program_pbuffer_object;
 	struct cx_gfx_program_param_buffer program_pbuffer_material;
 
-	cx_gfx_program_param_buffer_create(&program_pbuffer_camera, program_pblock_camera._size);
-	cx_gfx_program_param_buffer_create(&program_pbuffer_object, program_pblock_object._size);
-	cx_gfx_program_param_buffer_create(&program_pbuffer_material, program_pblock_material._size);
+	cx_gfx_program_param_buffer_create(&program_pbuffer_camera, program_pblock_camera.size_);
+	cx_gfx_program_param_buffer_create(&program_pbuffer_object, program_pblock_object.size_);
+	cx_gfx_program_param_buffer_create(&program_pbuffer_material, program_pblock_material.size_);
 
     // create screen shader program
 	
@@ -287,7 +287,7 @@ int main(int argc, const char* argv[]) {
     struct import_gltf_result import_gltf_result;
     import_gltf(&gltf, &asset_package, &import_gltf_result);
     
-    struct scene* p_scene = import_gltf_result.p_scenes[0]->_asset._p_data;
+    struct scene* p_scene = import_gltf_result.p_scenes[0]->asset_.p_data_;
 
     gltf_free(&gltf);
     import_gltf_free(&import_gltf_result);
@@ -489,8 +489,8 @@ int main(int argc, const char* argv[]) {
 
 			cx_gfx_program_param_buffer_set(&program_pbuffer_camera, 0, 0, &camera);
             
-            for (size_t i = 0; i < p_scene->_entities._length; ++i) {
-                struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&p_scene->_entities, i);
+            for (size_t i = 0; i < p_scene->entities_.length_; ++i) {
+                struct scene_entity* p_entity = *(struct scene_entity**)darr_get(&p_scene->entities_, i);
 
                 transform_compute_world_trs_matrix(&p_entity->transform);
 
@@ -503,7 +503,7 @@ int main(int argc, const char* argv[]) {
                 float model_color[] = { 1, 1, 1 };
 				cx_gfx_program_param_buffer_set(&program_pbuffer_material, 0, 0, model_color);
 
-                struct static_mesh* p_mesh = p_entity->p_mesh->_asset._p_data;
+                struct static_mesh* p_mesh = p_entity->p_mesh->asset_.p_data_;
 
                 if (!p_mesh->b_loaded_device_meshes) {
                     static_mesh_load_device_meshes(p_mesh);
@@ -513,11 +513,11 @@ int main(int argc, const char* argv[]) {
 					const struct cx_gfx_texture* p_gfx_texture = &texture_white_1x1;
 
                     if (p_mesh->p_materials[j]) {
-                        const struct material* p_material = p_mesh->p_materials[j]->_asset._p_data;
+                        const struct material* p_material = p_mesh->p_materials[j]->asset_.p_data_;
                         if (p_material->p_texture) {
-                            struct texture* p_texture = p_material->p_texture->_asset._p_data;
+                            struct texture* p_texture = p_material->p_texture->asset_.p_data_;
                             texture_load_gfx_texture(p_texture, 0);
-							p_gfx_texture = &p_texture->_gfx_texture;
+							p_gfx_texture = &p_texture->gfx_texture_;
                         }
                     }
 					

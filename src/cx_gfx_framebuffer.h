@@ -19,7 +19,7 @@ enum cx_gfx_framebuffer_attachment {
 };
 
 struct cx_gfx_framebuffer {
-	char _bytes[4];
+	char bytes_[4];
 };
 
 enum error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer);

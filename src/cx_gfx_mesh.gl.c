@@ -49,7 +49,7 @@ int    is_vertex_attribute_type_float(enum vertex_attribute_type vertex_attribut
 int    is_vertex_attribute_type_normalized(enum vertex_attribute_type vertex_attribute_type);
 
 void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive* p_mesh_primitive) {
-	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->_bytes;
+	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->bytes_;
 
     *p_mesh = (struct cx_gfx_mesh){0};
 
@@ -107,19 +107,19 @@ void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive*
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibo_size, p_mesh_primitive->index_buffer.p_bytes, GL_STATIC_DRAW);
 
         p_internals->ibo_type = gl_index_type_table[p_mesh_primitive->index_buffer.type];
-        p_mesh->_elements_count = p_mesh_primitive->index_buffer.count;
+        p_mesh->elements_count_ = p_mesh_primitive->index_buffer.count;
     } else {
-        p_mesh->_elements_count = p_mesh_primitive->vertex_count;
+        p_mesh->elements_count_ = p_mesh_primitive->vertex_count;
     }
 
 	p_internals->draw_mode = gl_draw_mode_table[p_mesh_primitive->draw_mode];
 
-    memcpy(p_mesh->_bounds_min, p_mesh_primitive->bounds_min, sizeof(p_mesh->_bounds_min));
-    memcpy(p_mesh->_bounds_max, p_mesh_primitive->bounds_max, sizeof(p_mesh->_bounds_max));
+    memcpy(p_mesh->bounds_min_, p_mesh_primitive->bounds_min, sizeof(p_mesh->bounds_min_));
+    memcpy(p_mesh->bounds_max_, p_mesh_primitive->bounds_max, sizeof(p_mesh->bounds_max_));
 }
 
 void cx_gfx_mesh_destroy(struct cx_gfx_mesh* p_mesh) {
-	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->_bytes;
+	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->bytes_;
 
     glDeleteBuffers(p_internals->vbos_len, p_internals->vbos);
     glDeleteBuffers(1, &p_internals->ibo);
@@ -128,14 +128,14 @@ void cx_gfx_mesh_destroy(struct cx_gfx_mesh* p_mesh) {
 }
 
 void cx_gfx_mesh_draw(const struct cx_gfx_mesh* p_mesh) {
-	const struct cx_gfx_mesh_gl_internals* p_internals = (const void*)p_mesh->_bytes;
+	const struct cx_gfx_mesh_gl_internals* p_internals = (const void*)p_mesh->bytes_;
 
     glBindVertexArray(p_internals->vao);
 
     if (p_internals->ibo) {
-        glDrawElements(p_internals->draw_mode, p_mesh->_elements_count, p_internals->ibo_type, 0);
+        glDrawElements(p_internals->draw_mode, p_mesh->elements_count_, p_internals->ibo_type, 0);
     } else {
-        glDrawArrays(p_internals->draw_mode, 0, p_mesh->_elements_count);
+        glDrawArrays(p_internals->draw_mode, 0, p_mesh->elements_count_);
     }
 }
 

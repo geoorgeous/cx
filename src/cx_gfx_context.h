@@ -8,7 +8,7 @@
 struct platform_window;
 
 struct cx_gfx_context {
-    char _bytes[24];
+    char bytes_[24];
 };
 
 enum error cx_gfx_context_create(const struct platform_window* p_window, struct cx_gfx_context* p_out_context);

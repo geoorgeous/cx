@@ -81,7 +81,7 @@ CX_DBG(
 }
 
 int cx_commands_init(void) {
-	if (commands._element_size != 0) {
+	if (commands.element_size_ != 0) {
 		return 1;
 	}
 
@@ -101,7 +101,7 @@ void cx_commands_help(const struct cx_command_context* p_context) {
 	struct hashtable_itr itr;
 	hashtable_itr(&commands, &itr);
 
-	CX_LOG_FMT(INFO, COMMANDS, "Registered commands (%d):\n", commands._n_elements);
+	CX_LOG_FMT(INFO, COMMANDS, "Registered commands (%d):\n", commands.n_elements_);
 	while (hashtable_itr_is_valid(&itr)) {
 		const struct cx_command* p_command = itr.p_value;
 		CX_LOG_FMT(INFO, COMMANDS, "  %s -- %s\n", p_command->info.s_id, p_command->info.s_description);

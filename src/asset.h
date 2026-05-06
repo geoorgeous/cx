@@ -29,9 +29,9 @@ register_asset_type(TYPE_ID, #NAME, sizeof(struct NAME), NAME##_serialize, NAME#
 typedef uint32_t asset_id;
 
 struct asset {
-    asset_id _id;
+    asset_id id_;
     char     s_name[ASSET_NAME_MAX_LEN];
-    void*    _p_data;
+    void*    p_data_;
 };
 
 typedef int(*asset_serialize_proc)(FILE*, const void*);
@@ -41,9 +41,9 @@ typedef void(*asset_free_proc)(void*);
 void register_asset_type(uint8_t asset_type_id, const char* s_display_name, size_t size, asset_serialize_proc f_serialize, asset_deserialize_proc f_deserialize, asset_free_proc f_free);
 
 struct asset_package_record {
-    struct asset          _asset;
-    struct asset_package* _p_package;
-    uint32_t              _file_location;
+    struct asset          asset_;
+    struct asset_package* p_package_;
+    uint32_t              file_location_;
 };
 
 typedef struct asset_package_record* asset_handle;
@@ -52,8 +52,8 @@ int  asset_load(asset_handle p_record);
 void asset_free(asset_handle p_record);
 
 struct asset_package {
-    char             _s_filename[ASSET_PACKAGE_FILENAME_MAX_LEN];
-    struct hashtable _asset_type_record_tables;
+    char             s_filename_[ASSET_PACKAGE_FILENAME_MAX_LEN];
+    struct hashtable asset_type_record_tables_;
 };
 
 void asset_package_init(struct asset_package* p_package);

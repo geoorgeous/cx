@@ -1,14 +1,14 @@
 #ifndef OBJECT_POOL_H
 #define OBJECT_POOL_H
 
-#include <stdint.h>
+#include <stddef.h>
 
 struct object_pool {
-    size_t _object_size;
-    size_t _capacity;
-    void*  _p_objects;
-    void*  _p_next_free;
-    void*  _p_allocated_head;
+    size_t object_size_;
+    size_t capacity_;
+    void*  p_objects_;
+    void*  p_next_free_;
+    void*  p_allocated_head_;
 };
 
 void  object_pool_init(struct object_pool* p_pool, size_t object_size, size_t capacity);

@@ -53,7 +53,7 @@ enum error cx_gfx_texture_create(
 	const uint32_t* p_size,
 	enum cx_pixel_format pixel_format) {
     
-	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->_bytes;
+	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
 
 	GLuint id;
 
@@ -77,7 +77,7 @@ enum error cx_gfx_texture_create(
 		p_size[0], p_size[1], gl_internal_format, gl_pixel_format, gl_pixel_type);
 
 	*p_texture = (struct cx_gfx_texture) {
-		._size = { p_size[0], p_size[1] },
+		.size_ = { p_size[0], p_size[1] },
 		._pixel_format = pixel_format
 	};
 
@@ -89,7 +89,7 @@ enum error cx_gfx_texture_create(
 }
 
 void cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture) {
-	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->_bytes;
+	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
 	glDeleteTextures(1, &p_internals->id);
 	*p_texture = (struct cx_gfx_texture){0};
 }
@@ -104,7 +104,7 @@ void cx_gfx_texture_set_data(
 		p_data,
 		p_format,
 		(uint32_t[]){ 0, 0 },
-		p_texture->_size);
+		p_texture->size_);
 }
 
 void cx_gfx_texture_set_data_subregion(
@@ -114,7 +114,7 @@ void cx_gfx_texture_set_data_subregion(
 	const uint32_t* region_offset,
 	const uint32_t* region_size) {
 
-	const struct cx_gfx_texture_gl_internals* p_internals = (const void*)p_texture->_bytes;
+	const struct cx_gfx_texture_gl_internals* p_internals = (const void*)p_texture->bytes_;
 
 	glBindTexture(GL_TEXTURE_2D, p_internals->id);
 
@@ -138,7 +138,7 @@ void cx_gfx_texture_set_sampler_settings(
 	struct cx_gfx_texture* p_texture,
 	const struct cx_texture_sampler_settings* p_sampler_settings) {
 
-	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->_bytes;
+	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
 
 	glBindTexture(GL_TEXTURE_2D, p_internals->id);
 

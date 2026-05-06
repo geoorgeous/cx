@@ -8,10 +8,10 @@
 struct mesh_primitive;
 
 struct cx_gfx_mesh {
-	size_t _elements_count;
-	float  _bounds_min[3];
-	float  _bounds_max[3];
-	char   _bytes[20 + (4 * CX_GFX_MESH_MAX_ATTR_BUFFERS)];
+	size_t elements_count_;
+	float  bounds_min_[3];
+	float  bounds_max_[3];
+	char   bytes_[20 + (4 * CX_GFX_MESH_MAX_ATTR_BUFFERS)];
 };
 
 void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive* p_mesh_primitive);
