@@ -45,7 +45,6 @@ int*         p_foo;       // pointer
 int**        pp_foo_bar;  // pointer to a pointer
 const char*  s_name;      // null-terminated string
 const char** p_s_name;    // pointer to a null-terminated string
-float        p_floats[4]; // arrays are just pointers
 int*         p_b_bool;    // pointer to a bool
 
 int(*f_callback)(const int, int, int*); // pointer to a function. param names are optional
