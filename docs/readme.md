@@ -24,6 +24,7 @@ Since this project should have few dependencies, the list of systems involved in
 ## Third-party contributions
  - Sean Barrett (aka *nothings*), [stb project - a collection of single-file libraries](https://github.com/nothings/stb):
    - [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h) for loading various image file types
+ - godgoldfear - [PSX industrial environment asset pack](https://godgoldfear.itch.io/psx-industrial-environment-asset-pack): used extensively for testing
 
 ## Project coding conventions
 
