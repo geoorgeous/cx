@@ -24,7 +24,7 @@ struct scene_entity* scene_new_entity(struct scene* p_scene) {
     }
 
     *p_new_entity = (struct scene_entity) {
-        .id_ = p_scene->_next_entity_id
+        .id_ = p_scene->next_entity_id_
     };
 
     transform_make_identity(&p_new_entity->transform);

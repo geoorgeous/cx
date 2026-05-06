@@ -40,10 +40,10 @@ void register_asset_type(uint8_t asset_type_id, const char* s_display_name, size
 }
 
 int asset_load(struct asset_package_record* p_record) {
-    FILE* p_file = fopen(p_record->p_package_->_s_filename, "rb");
+    FILE* p_file = fopen(p_record->p_package_->s_filename_, "rb");
 
     if (!p_file) {
-        CX_LOG_FMT(ERROR, ASSET, "Couldn't load asset. Failed to open file '%s'\n", p_record->p_package_->_s_filename);
+        CX_LOG_FMT(ERROR, ASSET, "Couldn't load asset. Failed to open file '%s'\n", p_record->p_package_->s_filename_);
         return 0;
     }
 
@@ -125,8 +125,8 @@ int asset_package_load_records(struct asset_package* p_result, const char* s_fil
 
         struct asset_package_record* p_new_record = hashtable_i_add(p_asset_type_table, id);
         *p_new_record = (struct asset_package_record) {
-            ._asset = { .id_ = id },
-            ._p_package = p_result
+            .asset_ = { .id_ = id },
+            .p_package_ = p_result
         };
 
         deserialize_uint32(p_file, &p_new_record->file_location_);
@@ -315,8 +315,8 @@ asset_handle asset_package_new_record(struct asset_package* p_package, uint8_t t
     
     struct asset_package_record* p_asset_record = hashtable_add(p_records, &new_asset_id, sizeof(new_asset_id));
     *p_asset_record = (struct asset_package_record) {
-        ._asset = { .id_ = new_asset_id },
-        ._p_package = p_package
+        .asset_ = { .id_ = new_asset_id },
+        .p_package_ = p_package
     };
     
     strcpy(p_asset_record->asset_.s_name, "New ");

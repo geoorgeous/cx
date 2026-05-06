@@ -78,7 +78,7 @@ enum error cx_gfx_texture_create(
 
 	*p_texture = (struct cx_gfx_texture) {
 		.size_ = { p_size[0], p_size[1] },
-		._pixel_format = pixel_format
+		.pixel_format_ = pixel_format
 	};
 
 	*p_internals = (struct cx_gfx_texture_gl_internals) {
