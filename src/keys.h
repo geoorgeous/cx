@@ -65,7 +65,7 @@ enum key {
 	KEY_delete,
 	KEY_grave,
 	KEY_escape,
-	KEY__MAX
+	KEY_MAX_
 
 	// todo: the rest...
 };

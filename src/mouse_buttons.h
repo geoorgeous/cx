@@ -8,7 +8,7 @@ enum mouse_button {
     MOUSE_BUTTON_middle,
     MOUSE_BUTTON_extra1,
     MOUSE_BUTTON_extra2,
-    MOUSE_BUTTON__MAX
+    MOUSE_BUTTON_MAX_
 };
 
 #endif

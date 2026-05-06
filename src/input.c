@@ -12,14 +12,14 @@ struct mouse_button_state {
 };
 
 struct input_frame_state {
-    struct key_state          keys[KEY__MAX];
-    struct mouse_button_state mouse_button[MOUSE_BUTTON__MAX];
+    struct key_state          keys[KEY_MAX_];
+    struct mouse_button_state mouse_button[MOUSE_BUTTON_MAX_];
     int                       mouse_delta[2];
     int                       scroll_delta[2];
 };
 
 static struct input {
-    struct event             events[INPUT_EVENT__MAX];
+    struct event             events[INPUT_EVENT_MAX_];
     struct input_frame_state frame;
     struct input_frame_state frame_old;
 } input;
@@ -37,7 +37,7 @@ void input_init(void) {
 }
 
 int input_frame_is_key_down(enum key key) {
-    if (key < 0 || key >= KEY__MAX) {
+    if (key < 0 || key >= KEY_MAX_) {
         return 0;
     }
 
@@ -45,7 +45,7 @@ int input_frame_is_key_down(enum key key) {
 }
 
 int input_frame_is_mouse_button_down(enum mouse_button mouse_button) {
-    if (mouse_button < 0 || mouse_button >= MOUSE_BUTTON__MAX) {
+    if (mouse_button < 0 || mouse_button >= MOUSE_BUTTON_MAX_) {
         return 0;
     }
 
@@ -86,7 +86,7 @@ void input_on_key(const void* p_e, void* p_user_ptr) {
     const struct input_event_data_key* p_key_event = p_e;
     struct input* p_input = p_user_ptr;
 
-    if (p_key_event->key < 0 || p_key_event->key >= KEY__MAX) {
+    if (p_key_event->key < 0 || p_key_event->key >= KEY_MAX_) {
         return;
     }
 
@@ -97,7 +97,7 @@ void input_on_mouse_button(const void* p_e, void* p_user_ptr) {
     const struct input_event_data_mouse_button* p_mouse_button_event = p_e;
     struct input* p_input = p_user_ptr;
 
-    if (p_mouse_button_event->button < 0 || p_mouse_button_event->button >= MOUSE_BUTTON__MAX) {
+    if (p_mouse_button_event->button < 0 || p_mouse_button_event->button >= MOUSE_BUTTON_MAX_) {
         return;
     }
 

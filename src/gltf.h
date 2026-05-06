@@ -173,7 +173,7 @@ enum gltf_mesh_vertex_attribute {
     GLTF_MESH_VERTEX_ATTRIBUTE_color,
     GLTF_MESH_VERTEX_ATTRIBUTE_joints,
     GLTF_MESH_VERTEX_ATTRIBUTE_weights,
-    GLTF_MESH_VERTEX_ATTRIBUTE__MAX
+    GLTF_MESH_VERTEX_ATTRIBUTE_MAX_
 };
 
 enum gltf_mesh_primitive_mode {
@@ -187,7 +187,7 @@ enum gltf_mesh_primitive_mode {
 };
 
 struct gltf_mesh_primitive {
-    gltf_index                    vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE__MAX];
+    gltf_index                    vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_MAX_];
     gltf_index                    vertex_indices_accessor_index;
     gltf_index                    material_index;
     enum gltf_mesh_primitive_mode mode;

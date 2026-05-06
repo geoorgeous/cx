@@ -67,14 +67,14 @@ foo_bar_fn f_foo_bar_callback;
 
  - Snake-case
  - Prefixed with enum identifier in upper-snake-case
- - Optional last constant postfixed with `__MAX`
+ - Optional last constant postfixed with `_MAX_`
 
 ```
 enum foo_bar {
     FOO_BAR_first_item,
     FOO_BAR_second,
     FOO_BAR_a_third_item,
-    FOO_BAR__MAX
+    FOO_BAR_MAX_
 };
 ```
 

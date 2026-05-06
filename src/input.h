@@ -22,7 +22,7 @@ enum input_event {
     INPUT_EVENT_mouse_move,
     INPUT_EVENT_scroll,
 	INPUT_EVENT_char,
-	INPUT_EVENT__MAX
+	INPUT_EVENT_MAX_
 };
 
 struct input_event_data_key {
