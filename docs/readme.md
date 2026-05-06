@@ -30,9 +30,9 @@ Since this project should have few dependencies, the list of systems involved in
 
 This project maintains a set of coding conventions which can be found here: [conventions.md](./conventions.md)
 
-## Bibliography
+## Further reading and resources
 
-A list of resources I've used throughout this project which I've found very useful.
+A list of references and resources I've used throughout this project which I've found very useful.
 
 - [C standard library reference](https://cppreference.com/w/c.html)
 - [Casey Muratori - Implementing GJK](https://caseymuratori.com/blog_0003)
