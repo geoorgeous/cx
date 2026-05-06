@@ -1,5 +1,5 @@
-#ifndef _H__CX_PIXEL_FORMAT
-#define _H__CX_PIXEL_FORMAT
+#ifndef CX_PIXEL_FORMAT_H
+#define CX_PIXEL_FORMAT_H
 
 enum cx_pixel_format {
 	CX_PIXEL_FORMAT_red,

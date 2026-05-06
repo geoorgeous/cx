@@ -1,5 +1,5 @@
-#ifndef _H__KEYS
-#define _H__KEYS
+#ifndef KEYS_H
+#define KEYS_H
 
 enum key {
 	KEY_unknown = -1,

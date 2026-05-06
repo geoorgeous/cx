@@ -1,5 +1,5 @@
-#ifndef _H__CX_GFX_PROGRAM
-#define _H__CX_GFX_PROGRAM
+#ifndef CX_GFX_PROGRAM_H
+#define CX_GFX_PROGRAM_H
 
 #include <stddef.h>
 

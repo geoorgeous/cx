@@ -1,5 +1,5 @@
-#ifndef _H__CX_GFX_FRAMEBUFFER
-#define _H__CX_GFX_FRAMEBUFFER
+#ifndef CX_GFX_FRAMEBUFFER_H
+#define CX_GFX_FRAMEBUFFER_H
 
 #include "errors.h"
 #include <stdint.h>

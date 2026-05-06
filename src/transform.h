@@ -1,5 +1,5 @@
-#ifndef _H__TRANSFORM
-#define _H__TRANSFORM
+#ifndef TRANSFORM_H
+#define TRANSFORM_H
 
 struct transform {
     float             position[3];

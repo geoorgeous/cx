@@ -1,5 +1,5 @@
-#ifndef _H__MESH_ID_CAPTURER
-#define _H__MESH_ID_CAPTURER
+#ifndef MESH_ID_CAPTURER_H
+#define MESH_ID_CAPTURER_H
 
 #include <stdint.h>
 

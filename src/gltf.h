@@ -1,5 +1,5 @@
-#ifndef _H__GLTF
-#define _H__GLTF
+#ifndef GLTF_H
+#define GLTF_H
 
 #include <stddef.h>
 

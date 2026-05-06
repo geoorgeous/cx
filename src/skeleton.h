@@ -1,5 +1,5 @@
-#ifndef _H__SKELETON
-#define _H__SKELETON
+#ifndef SKELETON_H
+#define SKELETON_H
 
 #include <stddef.h>
 

@@ -1,5 +1,5 @@
-#ifndef _H__PLATFORM_WINDOW_WIN32
-#define _H__PLATFORM_WINDOW_WIN32
+#ifndef PLATFORM_WINDOW_WIN32_H
+#define PLATFORM_WINDOW_WIN32_H
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

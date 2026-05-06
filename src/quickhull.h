@@ -1,5 +1,5 @@
-#ifndef _H__QUICKHULL
-#define _H__QUICKHULL
+#ifndef QUICKHULL_H
+#define QUICKHULL_H
 
 #include <stdint.h>
 

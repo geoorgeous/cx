@@ -1,5 +1,5 @@
-#ifndef _H__CX_GFX_MESH
-#define _H__CX_GFX_MESH
+#ifndef CX_GFX_MESH_H
+#define CX_GFX_MESH_H
 
 #include <stddef.h>
 

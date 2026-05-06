@@ -1,5 +1,5 @@
-#ifndef _H__CX_GFX_TEXTURE
-#define _H__CX_GFX_TEXTURE
+#ifndef CX_GFX_TEXTURE_H
+#define CX_GFX_TEXTURE_H
 
 #include <stdint.h>
 

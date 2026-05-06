@@ -1,5 +1,5 @@
-#ifndef _H__SKELETAL_ANIMATION
-#define _H__SKELETAL_ANIMATION
+#ifndef SKELETAL_ANIMATION_H
+#define SKELETAL_ANIMATION_H
 
 #include <stdint.h>
 

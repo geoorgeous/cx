@@ -1,5 +1,5 @@
-#ifndef _H__PLATFORM_WINDOW
-#define _H__PLATFORM_WINDOW
+#ifndef PLATFORM_WINDOW_H
+#define PLATFORM_WINDOW_H
 
 #include "errors.h"
 #include "keys.h"

@@ -1,5 +1,5 @@
-#ifndef _H__MATH_UTILS
-#define _H__MATH_UTILS
+#ifndef MATH_UTILS_H
+#define MATH_UTILS_H
 
 #include <float.h>
 #define FLT_CMP(A, B) (fabsf(A - B) < FLT_EPSILON)

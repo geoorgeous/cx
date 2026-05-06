@@ -1,5 +1,5 @@
-#ifndef _H__TEXTURE
-#define _H__TEXTURE
+#ifndef TEXTURE_H
+#define TEXTURE_H
 
 #include "asset.h"
 #include "cx_gfx_texture.h"

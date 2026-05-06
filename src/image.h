@@ -1,5 +1,5 @@
-#ifndef _H__IMAGE
-#define _H__IMAGE
+#ifndef IMAGE_H
+#define IMAGE_H
 
 #define ASSET_TYPE_IMAGE 1
 

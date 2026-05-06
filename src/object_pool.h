@@ -1,5 +1,5 @@
-#ifndef _H__OBJECT_POOL
-#define _H__OBJECT_POOL
+#ifndef OBJECT_POOL_H
+#define OBJECT_POOL_H
 
 #include <stdint.h>
 

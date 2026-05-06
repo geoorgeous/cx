@@ -1,4 +1,4 @@
-#ifndef _H__CX_TEXT_INPUT
+#ifndef CX_TEXT_INPUT_H
 
 struct cx_text_input {
 	char*        p_buffer;

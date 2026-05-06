@@ -77,8 +77,8 @@
  *     CX_LAZYLOG("A very lazy message\n");
  */
 
-#ifndef _H__CX_LOGGING
-#define _H__CX_LOGGING
+#ifndef CX_LOGGING_H
+#define CX_LOGGING_H
 
 #define CX_LOG_LEVEL_SILENT   -1
 #define CX_LOG_LEVEL_ALL       0

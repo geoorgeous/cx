@@ -1,5 +1,5 @@
-#ifndef _H__MESH_FACTORY
-#define _H__MESH_FACTORY
+#ifndef MESH_FACTORY_H
+#define MESH_FACTORY_H
 
 struct he_mesh;
 struct mesh_primitive;

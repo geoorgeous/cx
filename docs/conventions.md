@@ -13,7 +13,8 @@
 
 | type                    | convention       | example                     |
 | ----------------------- | ---------------- | --------------------------- |
-| include guard           | `_H__` prefix, upper-snake-case | `#ifndef _H__FOO_BAR` |
+| file, directory names   | snake-case       | src/module_foo_bar.c        |
+| include guard           | file name, uppser-snake-case | `#ifndef _H__FOO_BAR` (*src/foo_bar.h*) |
 | preprocessor definition | upper-snake-case | `#define FOO_BAR 42`        |
 | preprocessor macro      | upper-snake-case | `#define FOO_BAR() ...`     |
 | function                | snake-case       | `void foo_bar_func(void);`  |

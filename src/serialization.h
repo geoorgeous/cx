@@ -1,5 +1,5 @@
-#ifndef _H__SERIALIZATION
-#define _H__SERIALIZATION
+#ifndef SERIALIZATION_H
+#define SERIALIZATION_H
 
 #include <stdio.h>
 #include <stdint.h>

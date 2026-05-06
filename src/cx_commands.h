@@ -1,4 +1,4 @@
-#ifndef _H__CX_COMMANDS
+#ifndef CX_COMMANDS_H
 
 #define CX_LOG_CAT_COMMANDS "commands"
 

@@ -1,5 +1,5 @@
-#ifndef _H__HALF_EDGE
-#define _H__HALF_EDGE
+#ifndef HALF_EDGE_H
+#define HALF_EDGE_H
 
 #include <stddef.h>
 

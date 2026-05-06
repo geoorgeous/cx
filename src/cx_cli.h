@@ -1,4 +1,4 @@
-#ifndef _H__CX_CLI
+#ifndef CX_CLI_H
 
 void cx_cli_enable(void);
 void cx_cli_disable(void);

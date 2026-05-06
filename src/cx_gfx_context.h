@@ -1,5 +1,5 @@
-#ifndef _H__CX_GFX_CONTEXT
-#define _H__CX_GFX_CONTEXT
+#ifndef CX_GFX_CONTEXT_H
+#define CX_GFX_CONTEXT_H
 
 #include "errors.h"
 

@@ -1,5 +1,5 @@
-#ifndef _H__TRANSFORM_ANIMATION
-#define _H__TRANSFORM_ANIMATION
+#ifndef TRANSFORM_ANIMATION_H
+#define TRANSFORM_ANIMATION_H
 
 #include <stddef.h>
 

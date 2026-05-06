@@ -1,5 +1,5 @@
-#ifndef _H__PHYSICS
-#define _H__PHYSICS
+#ifndef PHYSICS_H
+#define PHYSICS_H
 
 #include <stdbool.h>
 

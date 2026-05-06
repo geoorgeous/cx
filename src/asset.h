@@ -1,5 +1,5 @@
-#ifndef _H__ASSET
-#define _H__ASSET
+#ifndef ASSET_H
+#define ASSET_H
 
 #include <stdio.h>
 #include <stdint.h>

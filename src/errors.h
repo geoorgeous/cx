@@ -1,5 +1,5 @@
-#ifndef _H__ERRORS
-#define _H__ERRORS
+#ifndef ERRORS_H
+#define ERRORS_H
 
 enum error {
     ERROR_none = 0,

@@ -1,5 +1,5 @@
-#ifndef _H__CX_GFX_TEXTURE_GL
-#define _H__CX_GFX_TEXTURE_GL
+#ifndef CX_GFX_TEXTURE_GL_H
+#define CX_GFX_TEXTURE_GL_H
 
 #include "gl.h"
 

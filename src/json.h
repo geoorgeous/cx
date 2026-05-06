@@ -1,5 +1,5 @@
-#ifndef _H__JSON
-#define _H__JSON
+#ifndef JSON_H
+#define JSON_H
 
 enum json_type {
     JSON_TYPE_null,

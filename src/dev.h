@@ -1,5 +1,5 @@
-#ifndef _H__DEV
-#define _H__DEV
+#ifndef DEV_H
+#define DEV_H
 
 #include <stdint.h>
 

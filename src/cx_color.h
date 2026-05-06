@@ -1,5 +1,5 @@
-#ifndef _H__CX_COLOR
-#define _H__CX_COLOR
+#ifndef CX_COLOR_H
+#define CX_COLOR_H
 
 #include <stdint.h>
 

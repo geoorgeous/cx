@@ -1,5 +1,5 @@
-#ifndef _H__SCENE
-#define _H__SCENE
+#ifndef SCENE_H
+#define SCENE_H
 
 #include "asset.h"
 #include "darr.h"

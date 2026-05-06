@@ -1,5 +1,5 @@
-#ifndef _H__DARR
-#define _H__DARR
+#ifndef DARR_H
+#define DARR_H
 
 #include <stddef.h>
 

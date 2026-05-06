@@ -1,5 +1,5 @@
-#ifndef _H__PLATFORM_WINDOW_NIX_X11
-#define _H__PLATFORM_WINDOW_NIX_X11
+#ifndef PLATFORM_WINDOW_NIX_X11_H
+#define PLATFORM_WINDOW_NIX_X11_H
 
 #include <GL/glx.h>
 #include <X11/Xlib.h>

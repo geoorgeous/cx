@@ -1,5 +1,5 @@
-#ifndef _H__STATIC_MESH
-#define _H__STATIC_MESH
+#ifndef STATIC_MESH_H
+#define STATIC_MESH_H
 
 #include <stdint.h>
 

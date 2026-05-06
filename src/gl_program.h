@@ -1,5 +1,5 @@
-#ifndef _H__GL_PROGRAM
-#define _H__GL_PROGRAM
+#ifndef GL_PROGRAM_H
+#define GL_PROGRAM_H
 
 #include "errors.h"
 #include "gl.h"

@@ -1,5 +1,5 @@
-#ifndef _H__MOUSE_BUTTONS
-#define _H__MOUSE_BUTTONS
+#ifndef MOUSE_BUTTONS_H
+#define MOUSE_BUTTONS_H
 
 enum mouse_button {
     MOUSE_BUTTON_unknown = -1,

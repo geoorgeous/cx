@@ -1,5 +1,5 @@
-#ifndef _H__CX_DBG
-#define _H__CX_DBG
+#ifndef CX_DBG_H
+#define CX_DBG_H
 
 #ifdef NDEBUG
 
