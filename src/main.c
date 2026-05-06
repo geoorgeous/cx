@@ -330,44 +330,45 @@ int main(int argc, const char* argv[]) {
     {
         struct scene_entity* p_new_entity;
 
-        // Sphere 1
+        // Sphere
         
         p_new_entity = scene_new_entity(p_scene);
 
         p_new_entity->transform.position[1] = 3;
 
-        p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 0);
+        p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
         physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_sphere);
         
-        // Sphere 2
+        // Capsule
         
         p_new_entity = scene_new_entity(p_scene);
 
         p_new_entity->transform.position[1] = 3;
         p_new_entity->transform.position[0] = 2;
 
-        p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 0);
+        p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
         physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_capsule);
         
-        // // Sphere 3
+        // Hull
         
-        // p_new_entity = scene_new_entity(p_scene);
+        p_new_entity = scene_new_entity(p_scene);
 
-        // p_new_entity->transform.position[1] = 3;
-        // p_new_entity->transform.position[0] = -2;
+        p_new_entity->transform.position[1] = 3;
+        p_new_entity->transform.position[0] = -2;
 
-        // p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
-        // physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_sphere);
+        p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
+        physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_hull);
         
-        // // Plane 1
+        // Plane
 
-        // p_new_entity = scene_new_entity(p_scene);
+        p_new_entity = scene_new_entity(p_scene);
 
-        // p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 0);
-        // physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_plane);
+        p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 0);
+        physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_plane);
     }
     
     dev_init(&platform_window, p_scene, &physics_world);
+	dev_mode_enable();
 
     clock_t old_frame_start = clock();
 
