@@ -42,4 +42,5 @@ A list of references and resources I've used throughout this project which I've 
 - [Khronos - glTF 2.0 specification](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)
 - [Khronos - OpenGL reference pages](https://registry.khronos.org/OpenGL-Refpages/gl4/)
 - [Microsoft - Win32 API reference](https://learn.microsoft.com/en-us/windows/win32/api/)
+- [William Bittle](https://github.com/wnbittle) - [EPA (Expanding Polytope Algorithm)](https://dyn4j.org/2010/05/epa-expanding-polytope-algorithm/)
 - [X.org - X11 API reference](https://www.x.org/releases/current/doc/libX11/libX11/libX11.html)
