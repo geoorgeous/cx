@@ -21,4 +21,6 @@ enum cx_error {
 	CX_ERROR_io,
 };
 
+const char* cx_error_get_string(enum cx_error error);
+
 #endif
