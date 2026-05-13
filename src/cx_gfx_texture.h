@@ -9,14 +9,15 @@
 #define CX_LOG_CAT_GFX_TEXTURE "gfx:texture"
 
 struct cx_gfx_texture {
-	uint32_t             size_[2];
+	uint32_t             width_;
+	uint32_t             height_;
 	enum cx_pixel_format pixel_format_;
 	char                 bytes_[8];
 };
 
 enum cx_error cx_gfx_texture_create(
 	struct cx_gfx_texture* p_texture,
-	const uint32_t* p_size,
+	uint32_t width, uint32_t height,
 	enum cx_pixel_format pixel_format);
 
 void cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture);
@@ -30,8 +31,8 @@ void cx_gfx_texture_set_data_subregion(
 	const struct cx_gfx_texture* p_texture,
 	const void* p_data,
 	const struct cx_pixel_buffer_format* p_format,
-	const uint32_t* region_offset,
-	const uint32_t* region_size);
+	uint32_t offset_x, uint32_t offset_y,
+	uint32_t width, uint32_t height);
 
 struct cx_texture_sampler_settings;
 

@@ -8,7 +8,8 @@
 #include "cx_pixel_format.h"
 
 struct image {
-	uint32_t                      size[2];
+	uint32_t                      width;
+	uint32_t                      height;
 	struct cx_pixel_buffer_format pixel_data_format;
     void*                         p_pixel_data;
 };

@@ -25,6 +25,10 @@ void dev_shutdown(void);
 
 struct cx_gfx_framebuffer;
 
-void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix);
+void dev_draw(
+	const struct cx_gfx_framebuffer* p_framebuffer,
+	uint32_t framebuffer_width, uint32_t framebuffer_height,
+	const float* p_projection_matrix,
+	const float* p_view_matrix);
 
 #endif

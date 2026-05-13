@@ -166,13 +166,14 @@ int main(int argc, const char* argv[]) {
 
     // create framebuffer
 
-    uint32_t framebuffer_resolution[] = { 800, 600 };
+	uint32_t fb_width = 800;
+	uint32_t fb_height = 600;
 
 	struct cx_gfx_texture texture_fb_color;
 	struct cx_gfx_texture texture_fb_depth_stencil;
 
-	cx_gfx_texture_create(&texture_fb_color, framebuffer_resolution, CX_PIXEL_FORMAT_rgb);
-	cx_gfx_texture_create(&texture_fb_depth_stencil, framebuffer_resolution, CX_PIXEL_FORMAT_depth_stencil); 
+	cx_gfx_texture_create(&texture_fb_color, fb_width, fb_height, CX_PIXEL_FORMAT_rgb);
+	cx_gfx_texture_create(&texture_fb_depth_stencil, fb_width, fb_height, CX_PIXEL_FORMAT_depth_stencil); 
 
 	struct cx_gfx_framebuffer framebuffer;
 	cx_gfx_framebuffer_create(&framebuffer);
@@ -294,7 +295,8 @@ int main(int argc, const char* argv[]) {
 
     uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
     struct image white_image = {
-		.size = { 1, 1 },
+		.width = 1,
+		.height = 1,
 		.pixel_data_format = {
 			.pixel_format = CX_PIXEL_FORMAT_rgb,
 			.pixel_type = CX_PIXEL_TYPE_u8
@@ -303,7 +305,7 @@ int main(int argc, const char* argv[]) {
     };
 
 	struct cx_gfx_texture texture_white_1x1;
-	cx_gfx_texture_create(&texture_white_1x1, white_image.size, CX_PIXEL_FORMAT_rgb);
+	cx_gfx_texture_create(&texture_white_1x1, white_image.width, white_image.height, CX_PIXEL_FORMAT_rgb);
 	cx_gfx_texture_set_data(&texture_white_1x1, white_image.p_pixel_data, &white_image.pixel_data_format);
 
     float camera_position[3] = { 10, 4, 10 };
@@ -384,7 +386,7 @@ int main(int argc, const char* argv[]) {
         {
             matrix_make_perspective_projection(
 				1,
-				(float)framebuffer_resolution[0] / framebuffer_resolution[1],
+				(float)fb_width / fb_height,
 				0.01f, 1000.0f,
 				camera.projection_matrix);
 
@@ -476,7 +478,7 @@ int main(int argc, const char* argv[]) {
         {
             glEnable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST); 
-            glViewport(0, 0, framebuffer_resolution[0], framebuffer_resolution[1]);
+            glViewport(0, 0, fb_width, fb_height);
 			cx_gfx_framebuffer_bind(&framebuffer);
             glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -526,7 +528,7 @@ int main(int argc, const char* argv[]) {
                 }
             }
 
-        	dev_draw(&framebuffer, framebuffer_resolution, camera.projection_matrix, camera.view_matrix);
+        	dev_draw(&framebuffer, fb_width, fb_height, camera.projection_matrix, camera.view_matrix);
 
             // SCREEN QUAD
             {

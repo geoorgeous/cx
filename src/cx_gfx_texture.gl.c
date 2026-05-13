@@ -50,7 +50,7 @@ void get_valid_pixel_transfer_params_for_format(
 
 enum cx_error cx_gfx_texture_create(
 	struct cx_gfx_texture* p_texture,
-	const uint32_t* p_size,
+	uint32_t width, uint32_t height,
 	enum cx_pixel_format pixel_format) {
     
 	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
@@ -67,17 +67,18 @@ enum cx_error cx_gfx_texture_create(
 	GLenum gl_pixel_type;
 	get_valid_pixel_transfer_params_for_format(gl_internal_format, &gl_pixel_format, &gl_pixel_type);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, p_size[0], p_size[1], 0, gl_pixel_format, gl_pixel_type, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, width, height, 0, gl_pixel_format, gl_pixel_type, 0);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	CX_LOG_FMT(INFO, GFX_TEXTURE,
 		"Texture created: (%ux%u) internal_format=%x, pixel_format=0x%x, pixel_type=0x%x\n",
-		p_size[0], p_size[1], gl_internal_format, gl_pixel_format, gl_pixel_type);
+		width, height, gl_internal_format, gl_pixel_format, gl_pixel_type);
 
 	*p_texture = (struct cx_gfx_texture) {
-		.size_ = { p_size[0], p_size[1] },
+		.width_ = width,
+		.height_ = height,
 		.pixel_format_ = pixel_format
 	};
 
@@ -103,16 +104,16 @@ void cx_gfx_texture_set_data(
 		p_texture,
 		p_data,
 		p_format,
-		(uint32_t[]){ 0, 0 },
-		p_texture->size_);
+		0, 0,
+		p_texture->width_, p_texture->height_);
 }
 
 void cx_gfx_texture_set_data_subregion(
 	const struct cx_gfx_texture* p_texture,
 	const void* p_data,
 	const struct cx_pixel_buffer_format* p_data_format,
-	const uint32_t* region_offset,
-	const uint32_t* region_size) {
+	uint32_t offset_x, uint32_t offset_y,
+	uint32_t width, uint32_t height) {
 
 	const struct cx_gfx_texture_gl_internals* p_internals = (const void*)p_texture->bytes_;
 
@@ -121,10 +122,8 @@ void cx_gfx_texture_set_data_subregion(
 	glTexSubImage2D(
 		GL_TEXTURE_2D,
 		0,
-		(GLint)region_offset[0],
-		(GLint)region_offset[1],
-		(GLint)region_size[0],
-		(GLint)region_size[1],
+		(GLint)offset_x,(GLint)offset_y,
+		(GLint)width, (GLint)height,
 		gl_pixel_format_table[p_data_format->pixel_format],
 		gl_pixel_type_table[p_data_format->pixel_type],
 		p_data);

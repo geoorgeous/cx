@@ -133,8 +133,8 @@ void import_gltf_image(struct gltf_importer* p_importer, size_t gltf_image_index
         return;
     }
 
-    p_image->size[0] = x;
-    p_image->size[1] = y;
+    p_image->width = x;
+    p_image->height = y;
 	p_image->pixel_data_format.pixel_type = CX_PIXEL_TYPE_u8;
 
 	switch(comp) {

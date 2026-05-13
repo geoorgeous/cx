@@ -4,6 +4,7 @@
 #include "cx_gfx_texture.h"
 #include "cx_pixel_format.h"
 #include "gl.h"
+#include "math_utils.h"
 #include "matrix.h"
 #include <stdint.h>
 #include "mesh_id_capturer.h"
@@ -23,7 +24,7 @@ void mesh_id_capturer_free(struct mesh_id_capturer* p_mesh_id_capturer) {
 
 void mesh_id_capturer_begin(
 	struct mesh_id_capturer* p_mesh_id_capturer,
-	const uint32_t* p_framebuffer_size,
+	uint32_t framebuffer_width, uint32_t framebuffer_height,
 	const float* p_projection_matrix,
 	const float* p_view_matrix) {
 
@@ -69,21 +70,33 @@ void mesh_id_capturer_begin(
 		cx_gfx_program_param_buffer_create(&program_pbuf_object, program_pblk_object.size_);
     }
 
-    if (p_mesh_id_capturer->framebuffer_size[0] != p_framebuffer_size[0] ||
-		p_mesh_id_capturer->framebuffer_size[1] != p_framebuffer_size[1]) {
+    if (p_mesh_id_capturer->framebuffer_width != framebuffer_width ||
+		p_mesh_id_capturer->framebuffer_height!= framebuffer_height) {
 
 		mesh_id_capturer_destroy_framebuffer(p_mesh_id_capturer);	
         
-		cx_gfx_texture_create(&p_mesh_id_capturer->framebuffer_color, p_framebuffer_size, CX_PIXEL_FORMAT_red_u32); // GL_RED_INTEGER, GL_UNSIGNED_INT
+		cx_gfx_texture_create(
+			&p_mesh_id_capturer->framebuffer_color,
+			framebuffer_width, framebuffer_height,
+			CX_PIXEL_FORMAT_red_u32);
 
-		cx_gfx_texture_create(&p_mesh_id_capturer->framebuffer_depth_stencil, p_framebuffer_size, CX_PIXEL_FORMAT_depth_stencil);
+		cx_gfx_texture_create(
+			&p_mesh_id_capturer->framebuffer_depth_stencil,
+			framebuffer_width, framebuffer_height,
+			CX_PIXEL_FORMAT_depth_stencil);
 
 		cx_gfx_framebuffer_create(&p_mesh_id_capturer->framebuffer);
-		cx_gfx_framebuffer_set_attachment(&p_mesh_id_capturer->framebuffer, CX_GFX_FRAMEBUFFER_ATTACHMENT_color0, &p_mesh_id_capturer->framebuffer_color);
-		cx_gfx_framebuffer_set_attachment(&p_mesh_id_capturer->framebuffer, CX_GFX_FRAMEBUFFER_ATTACHMENT_depth_stencil, &p_mesh_id_capturer->framebuffer_depth_stencil);
+		cx_gfx_framebuffer_set_attachment(
+			&p_mesh_id_capturer->framebuffer,
+			CX_GFX_FRAMEBUFFER_ATTACHMENT_color0,
+			&p_mesh_id_capturer->framebuffer_color);
+		cx_gfx_framebuffer_set_attachment(
+			&p_mesh_id_capturer->framebuffer,
+			CX_GFX_FRAMEBUFFER_ATTACHMENT_depth_stencil,
+			&p_mesh_id_capturer->framebuffer_depth_stencil);
 
-        p_mesh_id_capturer->framebuffer_size[0] = p_framebuffer_size[0];
-        p_mesh_id_capturer->framebuffer_size[1] = p_framebuffer_size[1];
+        p_mesh_id_capturer->framebuffer_width = framebuffer_width;
+        p_mesh_id_capturer->framebuffer_height = framebuffer_height;
     }
 
 	cx_gfx_framebuffer_bind(&p_mesh_id_capturer->framebuffer);
@@ -92,7 +105,7 @@ void mesh_id_capturer_begin(
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glEnable(GL_DEPTH_TEST); 
-    glViewport(0, 0, (GLsizei)p_framebuffer_size[0], (GLsizei)p_framebuffer_size[1]);
+    glViewport(0, 0, (GLsizei)framebuffer_width, (GLsizei)framebuffer_height);
 
 	cx_gfx_program_bind(&program);
 
@@ -125,18 +138,13 @@ void mesh_id_capturer_draw_item(const struct mesh_id_capturer_item* p_item) {
 	cx_gfx_mesh_draw(p_item->p_mesh);
 }
 
-unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, const float* p_normalized_coordinates) {
-    if (p_normalized_coordinates[0] < 0 ||
-		p_normalized_coordinates[1] < 0 ||
-		p_normalized_coordinates[0] > 1 ||
-		p_normalized_coordinates[1] > 1) {
-        
-		return 0;
-    }
-
+unsigned int mesh_id_capturer_query(const struct mesh_id_capturer* p_mesh_id_capturer, float x, float y) {
+    x = clampf(x, 0, 1);
+	y = clampf(y, 0, 1);
+	
 	uint32_t pixel_location[] = { 
-		(float)p_mesh_id_capturer->framebuffer_size[0] * p_normalized_coordinates[0],
-		(float)p_mesh_id_capturer->framebuffer_size[1] * (1.0f - p_normalized_coordinates[1])
+		(float)p_mesh_id_capturer->framebuffer_width * x,
+		(float)p_mesh_id_capturer->framebuffer_height * (1.0f - y)
 	};
 	unsigned int pixel_value;
 
@@ -154,6 +162,5 @@ void mesh_id_capturer_destroy_framebuffer(struct mesh_id_capturer* p_mesh_id_cap
 	cx_gfx_framebuffer_destroy(&p_mesh_id_capturer->framebuffer);
 	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_color);
 	cx_gfx_texture_destroy(&p_mesh_id_capturer->framebuffer_depth_stencil);
-	p_mesh_id_capturer->framebuffer_size[0] =
-	p_mesh_id_capturer->framebuffer_size[1] = 0;
+	*p_mesh_id_capturer = (struct mesh_id_capturer){0};
 }

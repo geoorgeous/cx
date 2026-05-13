@@ -388,7 +388,12 @@ void dev_shutdown(void) {
     asset_package_free(&g_dev.asset_package);
 }
 
-void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_framebuffer_size, const float* p_projection_matrix, const float* p_view_matrix) {
+void dev_draw(
+	const struct cx_gfx_framebuffer* p_framebuffer, 
+	uint32_t framebuffer_width, uint32_t framebuffer_height,
+	const float* p_projection_matrix,
+	const float* p_view_matrix) {
+	
 	ENSURE_DEV_MODE();
 
     matrix_multiply(p_projection_matrix, p_view_matrix, g_dev.perspective_view_matrix);
@@ -503,7 +508,7 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
     }
 
 	{
-		mesh_id_capturer_begin(&g_dev.mesh_id_capturer, p_framebuffer_size, p_projection_matrix, p_view_matrix);
+		mesh_id_capturer_begin(&g_dev.mesh_id_capturer, framebuffer_width, framebuffer_height, p_projection_matrix, p_view_matrix);
 
 		send_scene_to_mesh_id_capturer();
 		
@@ -517,7 +522,7 @@ void dev_draw(const struct cx_gfx_framebuffer* p_framebuffer, const uint32_t* p_
 		float mouse_position_normalized[2];
 		platform_window_normalize_client_coords(g_dev.p_window, mouse_client_coords[0], mouse_client_coords[1], &mouse_position_normalized[0], &mouse_position_normalized[1]);
 
-		g_dev.target_mesh_id = mesh_id_capturer_query(&g_dev.mesh_id_capturer, mouse_position_normalized);
+		g_dev.target_mesh_id = mesh_id_capturer_query(&g_dev.mesh_id_capturer, mouse_position_normalized[0], mouse_position_normalized[1]);
 	}
 }
 
