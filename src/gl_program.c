@@ -4,7 +4,7 @@
 
 #include "gl_program.h"
 #include "cx_logging.h"
-#include "errors.h"
+#include "cx_error.h"
 
 static void set_uniform_int(GLint gl_location, size_t count, const int* p_data);
 static void set_uniform_uint(GLint gl_location, size_t count, const unsigned int* p_data);
@@ -16,19 +16,19 @@ static void set_uniform_mat2(GLint gl_location, size_t count, const float* p_dat
 static void set_uniform_mat3(GLint gl_location, size_t count, const float* p_data);
 static void set_uniform_mat4(GLint gl_location, size_t count, const float* p_data);
 
-enum error gl_shader_create(struct gl_shader* p_gl_shader, GLenum gl_shader_type) {
+enum cx_error gl_shader_create(struct gl_shader* p_gl_shader, GLenum gl_shader_type) {
 	p_gl_shader->gl_handle = glCreateShader(gl_shader_type);
 	
 	if (p_gl_shader->gl_handle) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
-	return ERROR_gfx_program_build_failure;
+	return CX_ERROR_gfx_program_build_failure;
 }
 
-enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source) {
+enum cx_error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source) {
 	if (!glIsShader(p_gl_shader->gl_handle)) {
-		return ERROR_invalid_argument;
+		return CX_ERROR_invalid_argument;
 	}
 
 	glShaderSource(p_gl_shader->gl_handle, 1, &s_source, NULL);
@@ -39,7 +39,7 @@ enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source
 	glGetShaderiv(p_gl_shader->gl_handle, GL_COMPILE_STATUS, &b_is_compiled);
 
 	if (b_is_compiled) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
 	GLint log_len = 0;
@@ -52,40 +52,40 @@ enum error gl_shader_compile(struct gl_shader* p_gl_shader, const char* s_source
 
 	free(s_log);
 
-	return ERROR_gfx_program_build_failure;
+	return CX_ERROR_gfx_program_build_failure;
 }
 
 void gl_shader_destroy(struct gl_shader* p_gl_shader) {
 	glDeleteShader(p_gl_shader->gl_handle);
 }
 
-enum error gl_program_create(struct gl_program* p_gl_program) {
+enum cx_error gl_program_create(struct gl_program* p_gl_program) {
 	p_gl_program->gl_handle = glCreateProgram();
 
 	if (p_gl_program->gl_handle) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
-	return ERROR_allocation_failed;
+	return CX_ERROR_allocation_failed;
 }
 
-enum error gl_program_attach_shader(struct gl_program* p_gl_program, const struct gl_shader* p_gl_shader) {
+enum cx_error gl_program_attach_shader(struct gl_program* p_gl_program, const struct gl_shader* p_gl_shader) {
 	if (!glIsProgram(p_gl_program->gl_handle)) {
-		return ERROR_invalid_argument;
+		return CX_ERROR_invalid_argument;
 	}
 
 	if (!glIsShader(p_gl_shader->gl_handle)) {
-		return ERROR_invalid_argument;
+		return CX_ERROR_invalid_argument;
 	}
 
 	glAttachShader(p_gl_program->gl_handle, p_gl_shader->gl_handle);
 
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
-enum error gl_program_link(struct gl_program* p_gl_program) {
+enum cx_error gl_program_link(struct gl_program* p_gl_program) {
 	if (!glIsProgram(p_gl_program->gl_handle)) {
-		return ERROR_invalid_argument;
+		return CX_ERROR_invalid_argument;
 	}
 
 	glLinkProgram(p_gl_program->gl_handle);
@@ -94,10 +94,10 @@ enum error gl_program_link(struct gl_program* p_gl_program) {
 	glGetProgramiv(p_gl_program->gl_handle, GL_LINK_STATUS, &b_is_linked);
 	
 	if (b_is_linked) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
-	return ERROR_gfx_program_build_failure;
+	return CX_ERROR_gfx_program_build_failure;
 }
 
 void gl_program_destroy(struct gl_program* p_gl_program) {

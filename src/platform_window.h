@@ -1,7 +1,7 @@
 #ifndef PLATFORM_WINDOW_H
 #define PLATFORM_WINDOW_H
 
-#include "errors.h"
+#include "cx_error.h"
 #include "keys.h"
 #include "mouse_buttons.h"
 
@@ -34,7 +34,7 @@ struct platform_window {
 
 // Platform-dependent interface
 
-enum error platform_window_create(
+enum cx_error platform_window_create(
 	int width, int height,
 	const char* s_title,
 	void(*f_callback_on_created)(struct platform_window*, void*),

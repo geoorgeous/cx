@@ -9,32 +9,32 @@
 
 #include "cx_dbg.h"
 #include "cx_logging.h"
-#include "errors.h"
+#include "cx_error.h"
 #include "platform_window.h"
 #include "input.h"
 #include "keys.h"
 #include "platform_window.nix_x11.h"
 
-static enum error   x11_init_connection(void);
-static void         x11_close_connection(void);
-static enum key     x11_keycode_to_key(unsigned int keycode);
-static unsigned int x11_mods_to_input_mods(unsigned int mods);
-static char         x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
-static int          x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
+static enum cx_error x11_init_connection(void);
+static void          x11_close_connection(void);
+static enum key      x11_keycode_to_key(unsigned int keycode);
+static unsigned int  x11_mods_to_input_mods(unsigned int mods);
+static char          x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
+static int           x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
 
 static Display* p_x11_display;
 static XIM      x11_input_method;
 static int      num_x11_windows;
 
-enum error platform_window_create(
+enum cx_error platform_window_create(
 	int width, int height,
 	const char* s_title,
 	void(*f_callback_on_created)(struct platform_window*, void*),
 	void* f_callback_on_created_user_ptr,
 	struct platform_window* p_out_window) {
 
-    enum error err = x11_init_connection();
-    if (err != ERROR_none) {
+    enum cx_error err = x11_init_connection();
+    if (err != CX_ERROR_none) {
         return err;
     }
 
@@ -80,7 +80,7 @@ enum error platform_window_create(
 
 	if (!fbconfig) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to find required visual info\n"));
-		return ERROR_api_glx;
+		return CX_ERROR_api_glx;
 	}
 
 	const Colormap colormap = XCreateColormap(p_x11_display, root_window, p_visual_info->visual, AllocNone);
@@ -120,7 +120,7 @@ enum error platform_window_create(
 
 	if (!x11_window) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform window\n"));
-		return ERROR_api_x11;
+		return CX_ERROR_api_x11;
 	}
 
     XIC x11_input_ctx = XCreateIC(x11_input_method,
@@ -131,7 +131,7 @@ enum error platform_window_create(
 
     if (!x11_input_ctx) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform input context\n"));
-        return ERROR_api_x11;
+        return CX_ERROR_api_x11;
     }
 
     XStoreName(p_x11_display, x11_window, s_title);
@@ -175,7 +175,7 @@ enum error platform_window_create(
         p_out_window->f_callback_on_created_(p_out_window, p_out_window->p_callback_on_created_user_ptr_);
     }
 
-    return ERROR_none;
+    return CX_ERROR_none;
 }
 
 void platform_window_destroy(struct platform_window* p_window) {
@@ -416,15 +416,15 @@ void platform_window_size(
         &d);
 }
 
-enum error x11_init_connection(void) {
+enum cx_error x11_init_connection(void) {
     if (p_x11_display) {
-        return ERROR_none;
+        return CX_ERROR_none;
     }
 
     p_x11_display = XOpenDisplay(NULL);
 
     if (!p_x11_display) {
-        return ERROR_api_x11;
+        return CX_ERROR_api_x11;
     }
 
     (void)XSetLocaleModifiers("");
@@ -436,14 +436,14 @@ enum error x11_init_connection(void) {
     }
 
     if (!x11_input_method) {
-        return ERROR_api_x11;
+        return CX_ERROR_api_x11;
     }
 
     (void)XSetErrorHandler(x11_error_handler);
 
     CX_LOG(INFO, PLATFORM_WINDOW, "Connection to X server established\n");
 
-    return ERROR_none;
+    return CX_ERROR_none;
 }
 
 void x11_close_connection(void) {

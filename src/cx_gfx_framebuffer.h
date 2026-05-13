@@ -1,7 +1,7 @@
 #ifndef CX_GFX_FRAMEBUFFER_H
 #define CX_GFX_FRAMEBUFFER_H
 
-#include "errors.h"
+#include "cx_error.h"
 #include <stdint.h>
 
 enum cx_gfx_framebuffer_attachment {
@@ -22,7 +22,7 @@ struct cx_gfx_framebuffer {
 	char bytes_[4];
 };
 
-enum error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer);
+enum cx_error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer);
 
 void       cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer);
 

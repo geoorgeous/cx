@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "errors.h"
+#include "cx_error.h"
 
 #define CX_LOG_CAT_GFX_PROGRAM "gfx:program"
 
@@ -43,7 +43,7 @@ struct cx_gfx_program_param_buffer {
 	char   bytes_[4];
 };
 
-enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size);
+enum cx_error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size);
 
 void       cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer);
 
@@ -92,13 +92,13 @@ struct cx_gfx_program {
 	char bytes_[4];
 };
 
-enum error cx_gfx_program_create(struct cx_gfx_program* p_program);
+enum cx_error cx_gfx_program_create(struct cx_gfx_program* p_program);
 
 void       cx_gfx_program_destroy(struct cx_gfx_program* p_program);
 
 int        cx_gfx_program_is_built(struct cx_gfx_program* p_program);
 
-enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source);
+enum cx_error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source);
 
 int        cx_gfx_program_refl_opaque_param(
 	const struct cx_gfx_program* p_program,

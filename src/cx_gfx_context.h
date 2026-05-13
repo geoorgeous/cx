@@ -1,7 +1,7 @@
 #ifndef CX_GFX_CONTEXT_H
 #define CX_GFX_CONTEXT_H
 
-#include "errors.h"
+#include "cx_error.h"
 
 #define CX_LOG_CAT_GFX_CORE "gfx:core"
 
@@ -11,9 +11,9 @@ struct cx_gfx_context {
     char bytes_[24];
 };
 
-enum error cx_gfx_context_create(const struct platform_window* p_window, struct cx_gfx_context* p_out_context);
+enum cx_error cx_gfx_context_create(const struct platform_window* p_window, struct cx_gfx_context* p_out_context);
 void       cx_gfx_context_destroy(struct cx_gfx_context* p_context);
-enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context);
-enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context);
+enum cx_error cx_gfx_context_make_current(const struct cx_gfx_context* p_context);
+enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context);
 
 #endif

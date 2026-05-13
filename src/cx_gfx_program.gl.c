@@ -4,7 +4,7 @@
 #include "cx_dbg.h"
 #include "cx_gfx_texture.h"
 #include "cx_gfx_texture.gl.h"
-#include "errors.h"
+#include "cx_error.h"
 #include "gl.h"
 #include "cx_logging.h"
 
@@ -23,17 +23,17 @@ struct cx_gfx_program_gl_internals {
 	GLuint id;
 };
 
-static enum error compile_shader_source(GLuint shader, const char* s_source);
+static enum cx_error compile_shader_source(GLuint shader, const char* s_source);
 void              log_program_info_log(GLuint program, int level, const char* message);
 static GLint      get_uniform_index(GLuint program, const char* s_name);
 
-enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size) {
+enum cx_error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size) {
 	struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (void*)p_buffer->bytes_;
 
 	glGenBuffers(1, &p_buffer_internals->id);
 
 	if (p_buffer_internals->id == 0) {
-		return ERROR_allocation_failed;
+		return CX_ERROR_allocation_failed;
 	}
 
 	glBindBuffer(GL_UNIFORM_BUFFER, p_buffer_internals->id);
@@ -45,7 +45,7 @@ enum error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer
 		"Program param buffer created: opengl_buffer_id=%d, size=%u\n",
 		p_buffer_internals->id, p_buffer->size));
 
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
 void cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer) {
@@ -121,13 +121,13 @@ void cx_gfx_program_param_block_bind_buffer(
 		buffer_data_size ? buffer_data_size : p_buffer->size);
 }
 
-enum error cx_gfx_program_create(struct cx_gfx_program* p_program) {
+enum cx_error cx_gfx_program_create(struct cx_gfx_program* p_program) {
 	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->bytes_;
 	p_program_internals->id = glCreateProgram();
 	if (p_program_internals->id == 0) {
-		return ERROR_allocation_failed;
+		return CX_ERROR_allocation_failed;
 	}
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
 void cx_gfx_program_destroy(struct cx_gfx_program* p_program) {
@@ -158,31 +158,31 @@ int cx_gfx_program_is_built(struct cx_gfx_program* p_program) {
 	return param == GL_TRUE;
 }
 
-enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source) {
+enum cx_error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source) {
 	struct cx_gfx_program_gl_internals* p_program_internals = (void*)p_program->bytes_;
 
 	if (p_program_internals->id == 0) {
-		return ERROR_invalid_state;
+		return CX_ERROR_invalid_state;
 	}
 
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
 	if (vertex_shader == 0 || fragment_shader == 0) {
-		return ERROR_allocation_failed;
+		return CX_ERROR_allocation_failed;
 	}
 
-	enum error err;
+	enum cx_error err;
 
 	err = compile_shader_source(vertex_shader, p_source->s_vertex_stage_source);
 	
-	if (err != ERROR_none) {
+	if (err != CX_ERROR_none) {
 		goto end;
 	}
 
 	err = compile_shader_source(fragment_shader, p_source->s_fragment_stage_source);
 
-	if (err != ERROR_none) {
+	if (err != CX_ERROR_none) {
 		goto end;
 	}
 
@@ -196,7 +196,7 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 
 	if (param == GL_FALSE) {
 		log_program_info_log(p_program_internals->id, CX_LOG_LEVEL_ERROR, "Program linking failed");
-		err = ERROR_gfx_program_build_failure;
+		err = CX_ERROR_gfx_program_build_failure;
 		goto end;
 	}
 
@@ -205,7 +205,7 @@ enum error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct c
 
 	if (param == GL_FALSE) {
 		log_program_info_log(p_program_internals->id, CX_LOG_LEVEL_ERROR, "Program validation failed");
-		err = ERROR_gfx_program_build_failure;
+		err = CX_ERROR_gfx_program_build_failure;
 		goto end;
 	}
 
@@ -400,7 +400,7 @@ void cx_gfx_program_bind(const struct cx_gfx_program* p_program) {
 	glUseProgram(p_program_internals->id);
 }
 
-enum error compile_shader_source(GLuint shader, const char* s_source) {
+enum cx_error compile_shader_source(GLuint shader, const char* s_source) {
 	glShaderSource(shader, 1, &s_source, NULL);
 
 	glCompileShader(shader);
@@ -409,7 +409,7 @@ enum error compile_shader_source(GLuint shader, const char* s_source) {
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &b_is_compiled);
 
 	if (b_is_compiled) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
 	char log[1024];
@@ -417,7 +417,7 @@ enum error compile_shader_source(GLuint shader, const char* s_source) {
 
 	CX_LOG_FMT(ERROR, GFX_PROGRAM, "Shader compilation failed. Reason: %s\n", log);
 
-	return ERROR_gfx_program_build_failure;
+	return CX_ERROR_gfx_program_build_failure;
 }
 
 void log_program_info_log(GLuint program, int level, const char* s_message) {

@@ -1,6 +1,6 @@
 #include "cx_gfx_context.h"
 #include "cx_logging.h"
-#include "errors.h"
+#include "cx_error.h"
 #include "gl.h"
 #include "platform_window.h"
 #include "platform_window.win32.h"
@@ -90,7 +90,7 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
     const struct platform_window_win32_internals* p_window_win32_internals = (const void*)p_window->_bytes;
 
     enum error err = win32_load_gl_functions();
-	if (err != ERROR_none) {
+	if (err != CX_ERROR_none) {
 		return err;
 	}
 
@@ -110,20 +110,20 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 	int pixel_format;
 	UINT num_formats;
 	if (!wglChoosePixelFormatARB(p_window_win32_internals->hdc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats)) {
-		return ERROR_api_wgl;
+		return CX_ERROR_api_wgl;
 	}
 
 	if (num_formats == 0) {
-		return ERROR_api_wgl;
+		return CX_ERROR_api_wgl;
 	}
 
 	PIXELFORMATDESCRIPTOR pfd;
 	if (DescribePixelFormat(p_window_win32_internals->hdc, pixel_format, sizeof(pfd), &pfd) == 0) {
-		return ERROR_api_win32;
+		return CX_ERROR_api_win32;
 	}
 
 	if (!SetPixelFormat(p_window_win32_internals->hdc, pixel_format, &pfd)) {
-		return ERROR_api_win32;
+		return CX_ERROR_api_win32;
 	}
 
 	int gl_context_flags = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -142,11 +142,11 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 
 	HGLRC hrc = wglCreateContextAttribsARB(p_window_win32_internals->hdc, 0, gl_attribs);
 	if (!hrc) {
-		return ERROR_api_wgl;
+		return CX_ERROR_api_wgl;
 	}
 
 	if (!wglMakeCurrent(p_window_win32_internals->hdc, hrc)) {
-		return ERROR_api_wgl;
+		return CX_ERROR_api_wgl;
 	}
 
 #ifndef NDEBUG
@@ -173,7 +173,7 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 		"Graphics platform: %s, %s\n",
 		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
@@ -186,26 +186,26 @@ enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
     const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglMakeCurrent(p_internals->hdc, p_internals->hrc)) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
-	return ERROR_gl_make_current;
+	return CX_ERROR_gl_make_current;
 }
 
 enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
     const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
     if (wglSwapLayerBuffers(p_internals->hdc, WGL_SWAP_MAIN_PLANE)) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
-	return ERROR_api_wgl;
+	return CX_ERROR_api_wgl;
 }
 
 enum error win32_load_gl_functions(void) {
     static int b_loaded = 0;
 
 	if (b_loaded) {
-		return ERROR_none;
+		return CX_ERROR_none;
 	}
 
 	// Before we can load extensions, we need a dummy OpenGL context, created using a dummy window.
@@ -221,7 +221,7 @@ enum error win32_load_gl_functions(void) {
 	};
 
 	if (!RegisterClass(&wndclass)) {
-		return ERROR_WIN32_REGISTER_CLASS;
+		return CX_ERROR_WIN32_REGISTER_CLASS;
 	}
 
 	HWND hwnd = CreateWindowEx(
@@ -239,7 +239,7 @@ enum error win32_load_gl_functions(void) {
 		0);
 
 	if (!hwnd) {
-		return ERROR_api_win32;
+		return CX_ERROR_api_win32;
 	}
 
 	HDC hdc = GetDC(hwnd);
@@ -258,20 +258,20 @@ enum error win32_load_gl_functions(void) {
 
 	int pixel_format = ChoosePixelFormat(hdc, &pfd);
 	if (!pixel_format) {
-		return ERROR_api_win32;
+		return CX_ERROR_api_win32;
 	}
 	
 	if (!SetPixelFormat(hdc, pixel_format, &pfd)) {
-		return ERROR_api_win32;
+		return CX_ERROR_api_win32;
 	}
 
 	HGLRC hglrc = wglCreateContext(hdc);
 	if (!hglrc) {
-		return ERROR_api_wgl;
+		return CX_ERROR_api_wgl;
 	}
 
 	if (!wglMakeCurrent(hdc, hglrc)) {
-		return ERROR_api_wgl;
+		return CX_ERROR_api_wgl;
 	}
 
 	// GLint extensions_n = 0;
@@ -320,7 +320,7 @@ enum error win32_load_gl_functions(void) {
 
 	b_loaded = 1;
 
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
 #ifndef NDEBUG

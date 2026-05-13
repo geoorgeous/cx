@@ -4,7 +4,7 @@
 #include "cx_gfx_texture.gl.h"
 #include "cx_pixel_format.h"
 #include "cx_texture_sampler_settings.h"
-#include "errors.h"
+#include "cx_error.h"
 #include "gl.h"
 #include "cx_logging.h"
 
@@ -48,7 +48,7 @@ void get_valid_pixel_transfer_params_for_format(
 	GLenum* p_out_pixel_format,
 	GLenum* p_out_pixel_type);
 
-enum error cx_gfx_texture_create(
+enum cx_error cx_gfx_texture_create(
 	struct cx_gfx_texture* p_texture,
 	const uint32_t* p_size,
 	enum cx_pixel_format pixel_format) {
@@ -85,7 +85,7 @@ enum error cx_gfx_texture_create(
 		.id = id
 	};
 
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
 void cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture) {

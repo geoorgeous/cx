@@ -27,7 +27,7 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
 
 	if (!b_wndclass_registered) {
 		if (!RegisterClass(&wndclass)) {
-            return ERROR_WIN32_REGISTER_CLASS;
+            return CX_ERROR_WIN32_REGISTER_CLASS;
         }
 		b_wndclass_registered = 1;
 	}
@@ -59,12 +59,12 @@ enum error platform_window_create(int width, int height, const char* s_title, vo
     );
 
 	if (!hwnd) {
-        return ERROR_WIN32_CREATE_WINDOW;
+        return CX_ERROR_WIN32_CREATE_WINDOW;
     }
 
     p_internals->hwnd = hwnd;
 
-	return ERROR_none;
+	return CX_ERROR_none;
 }
 
 void platform_window_destroy(struct platform_window* p_window) {

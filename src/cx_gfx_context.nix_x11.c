@@ -6,7 +6,7 @@
 
 #include "cx_gfx_context.h"
 #include "cx_logging.h"
-#include "errors.h"
+#include "cx_error.h"
 #include "platform_window.h"
 #include "platform_window.nix_x11.h"
 
@@ -90,7 +90,7 @@ struct gl_context_nix_x11_internals {
     GLXContext                    context;
 };
 
-enum error cx_gfx_context_create(
+enum cx_error cx_gfx_context_create(
 	const struct platform_window* p_window,
 	struct cx_gfx_context* p_out_context) {
 
@@ -105,7 +105,7 @@ enum error cx_gfx_context_create(
 		CX_LOG_FMT(ERROR, GFX_CORE,
 			"glX %d.%d or greater is required (glX version = %d.%d)\n",
 			GLX_MIN_VERSION_MAJOR, GLX_MIN_VERSION_MINOR, glx_version_major, glx_version_minor);
-		return ERROR_api_glx;
+		return CX_ERROR_api_glx;
 	}
 
 	// const int screen = DefaultScreen(p_window_internals->p_display);
@@ -145,7 +145,7 @@ enum error cx_gfx_context_create(
 	}
 
 	if (!p_context_internals->context) {
-		return ERROR_api_glx;
+		return CX_ERROR_api_glx;
 	}
 
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
@@ -176,7 +176,7 @@ enum error cx_gfx_context_create(
 		"Graphics platform: %s, %s\n",
 		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
-    return ERROR_none;
+    return CX_ERROR_none;
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
@@ -186,20 +186,20 @@ void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
     glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
 }
 
-enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
+enum cx_error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
     const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->bytes_;
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
-    return ERROR_none;
+    return CX_ERROR_none;
 }
 
-enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
+enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
     const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
     const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->bytes_;
     glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
-    return ERROR_none;
+    return CX_ERROR_none;
 }
 
 #ifndef NDEBUG
