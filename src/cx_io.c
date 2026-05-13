@@ -3,9 +3,15 @@
 
 #include "cx_io.h"
 #include "cx_error.h"
+#include "cx_logging.h"
 
 enum cx_error cx_io_file_read_all(const char* s_filename, void** pp_out_buf, size_t* p_out_size) {
+	CX_LOG_FMT(INFO, IO, "Reading file from disk '%s'...\n", s_filename);
+
 	FILE* file = fopen(s_filename, "rb");
+
+	*pp_out_buf = 0;
+	*p_out_size = 0;
 
 	if (!file) {
 		return CX_ERROR_io;
