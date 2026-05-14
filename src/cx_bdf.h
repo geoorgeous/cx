@@ -24,7 +24,7 @@ struct cx_bdf {
 	size_t               num_glyphs_;
 	unsigned short       max_glyph_width_;
 	unsigned short       max_glyph_height_;
-	short                glyph_baseline_;
+	unsigned short       line_height_;
 };
 
 void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf);

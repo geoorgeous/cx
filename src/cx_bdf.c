@@ -8,6 +8,8 @@
 #define CX_BDF_KW_STARTFONT        "STARTFONT"
 #define CX_BDF_KW_STARTCHAR        "STARTCHAR"
 #define CX_BDF_KW_ENDCHAR          "ENDCHAR"
+#define CX_BDF_KW_FONT_ASCENT      "FONT_ASCENT"
+#define CX_BDF_KW_FONT_DESCENT     "FONT_DESCENT"
 #define CX_BDF_KW_FONT_NAME        "FONT"
 #define CX_BDF_KW_FONT_BOUNDINGBOX "FONTBOUNDINGBOX"
 #define CX_BDF_KW_FONT_CHARCOUNT   "CHARS"
@@ -108,6 +110,10 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 			p_out_bdf->max_glyph_height_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_CHARCOUNT)) {
 			p_out_bdf->num_glyphs_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_ASCENT)) {
+			p_out_bdf->line_height_ += cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_DESCENT)) {
+			p_out_bdf->line_height_ += cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		}
 	}
 

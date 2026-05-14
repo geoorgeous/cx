@@ -26,7 +26,7 @@ void cx_font_build_from_bdf(const struct cx_bdf* p_bdf, struct cx_font* p_out) {
 	*p_out = (struct cx_font) {
 		.max_glyph_width_ = p_bdf->max_glyph_width_,
 		.max_glyph_height_ = p_bdf->max_glyph_height_,
-		.glyph_baseline_ = p_bdf->glyph_baseline_
+		.line_height_ = p_bdf->line_height_
 	};
 
 	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7) / 8;
@@ -81,6 +81,13 @@ void cx_font_build_from_bdf(const struct cx_bdf* p_bdf, struct cx_font* p_out) {
 	CX_LOG_FMT(INFO, FONT, "Font built from BDF font. %d glyphs read. Glyph bitmap buffer size=%llu\n",
 		num_glyphs_read,
 		compact_size);
+
+	const struct cx_font_glyph* p_space_glyph;
+	if (cx_font_find_glyph(p_out, (uint32_t)' ', &p_space_glyph)) {
+		p_out->space_adv_ = p_space_glyph->metrics_.adv_x;
+	} else {
+		p_out->space_adv_ = p_out->max_glyph_width_;
+	}
 }
 
 void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font) {
@@ -91,6 +98,23 @@ void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font) {
 		p_font->glyphs_[i].bitmap_.p_pos = 0;
 		p_font->glyphs_[i].bitmap_.bit_offset = 0;
 	}
+}
+
+int cx_font_find_glyph(const struct cx_font* p_font, uint32_t codepoint, const struct cx_font_glyph** pp_out) {
+	if (codepoint >= CX_FONT_NUM_GLYPHS) {
+		*pp_out = 0;
+		return 0;
+	}
+
+	const struct cx_font_glyph* p_glyph = &p_font->glyphs_[codepoint];
+
+	if (!p_glyph->codepoint_) {
+		*pp_out = 0;
+		return 0;
+	}
+
+	*pp_out = p_glyph;
+	return 1;
 }
 
 void cx_font_create_atlas(
@@ -146,20 +170,22 @@ void cx_font_create_atlas(
 	for (size_t i = 0; i < CX_FONT_NUM_GLYPHS; ++i) {
 		const struct cx_font_glyph_atlas_dst* p_dst = &glyph_atlas_dsts[i];
 
+		const size_t glyph_index = glyph_atlas_dsts[i].p_glyph - p_font->glyphs_;
+		
 		if (!glyph_atlas_dsts[i].p_glyph->codepoint_ ||
 			glyph_atlas_dsts[i].p_glyph->metrics_.width == 0 ||
 			glyph_atlas_dsts[i].p_glyph->metrics_.height == 0) {
-			p_out_layout->p_entries[i] = (struct cx_texture_atlas_entry){0};
+			p_out_layout->p_entries[glyph_index] = (struct cx_texture_atlas_entry){0};
 			continue;
 		}
 
 		const struct cx_font_glyph* p_glyph = p_dst->p_glyph;
 		
-		p_out_layout->p_entries[i] = (struct cx_texture_atlas_entry) {
+		p_out_layout->p_entries[glyph_index] = (struct cx_texture_atlas_entry) {
 			.u0 = (float)(p_dst->x) / width,
 			.u1 = (float)(p_dst->x + p_glyph->metrics_.width) / width,
-			.v0 = (float)(p_dst->y) / height,
-			.v1 = (float)(p_dst->y + p_glyph->metrics_.height) / height
+			.v0 = 1.0f - (float)(p_dst->y + p_glyph->metrics_.height) / height,
+			.v1 = 1.0f - (float)(p_dst->y) / height
 		};
 
 		for (size_t y = 0; y < p_glyph->metrics_.height; ++y) {

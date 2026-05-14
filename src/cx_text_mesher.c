@@ -76,8 +76,8 @@ void cx_text_mesher_generate(
 			tx, ty, tz, 1
 		};
 
-		uint32_t pen_x = 0;
-		uint32_t pen_baseline = p_descs[i].font_data.p_font->glyph_baseline_;
+		int32_t pen_x = 0;
+		int32_t pen_baseline = 0;
 
 		for(const char* p = p_descs[i].s_text; *p; p++) {
 			const uint32_t codepoint = (uint32_t)*p;
@@ -98,7 +98,7 @@ void cx_text_mesher_generate(
 
 			if (*p == '\n') {
 				pen_x = 0;
-				pen_baseline += p_descs[i].font_data.p_font->max_glyph_height_;
+				pen_baseline -= p_descs[i].font_data.p_font->line_height_;
 				continue;
 			}
 
@@ -113,13 +113,13 @@ void cx_text_mesher_generate(
 			const struct cx_texture_atlas_entry* p_atlas_entry =
 				&p_descs->font_data.p_glyph_atlas_layout->p_entries[glyph_index];
 
-			float x = pen_x;
-			float y = pen_baseline;
+			float x = pen_x + p_glyph->metrics_.off_x;
+			float y = pen_baseline + p_glyph->metrics_.off_y;
 			
 			// topleft
 
 			p_v[0] = x;
-			p_v[1] = y;
+			p_v[1] = y + p_glyph->metrics_.height;
 			p_v[2] = 0;
 			p_v[3] = 1;
 			matrix_multiply_vec4(transform, p_v, p_v);
@@ -135,10 +135,10 @@ void cx_text_mesher_generate(
 			// bottomleft
 
 			p_v[ 9] = x;
-			p_v[10] = y + p_glyph->metrics_.height;
+			p_v[10] = y;
 			p_v[11] = 0;
 			p_v[12] = 1;
-			matrix_multiply_vec4(transform, p_v, p_v);
+			matrix_multiply_vec4(transform, p_v + 9, p_v + 9);
 
 			p_v[12] = p_atlas_entry->u0;
 			p_v[13] = p_atlas_entry->v0;
@@ -151,10 +151,10 @@ void cx_text_mesher_generate(
 			// top right
 
 			p_v[18] = x + p_glyph->metrics_.width;
-			p_v[19] = y;
+			p_v[19] = y + p_glyph->metrics_.height;
 			p_v[20] = 0;
 			p_v[21] = 1;
-			matrix_multiply_vec4(transform, p_v, p_v);
+			matrix_multiply_vec4(transform, p_v + 18, p_v + 18);
 
 			p_v[21] = p_atlas_entry->u1;
 			p_v[22] = p_atlas_entry->v1;
@@ -167,10 +167,10 @@ void cx_text_mesher_generate(
 			// bottom right
 
 			p_v[27] = x + p_glyph->metrics_.width;
-			p_v[28] = y + p_glyph->metrics_.height;
+			p_v[28] = y;
 			p_v[29] = 0;
 			p_v[30] = 1;
-			matrix_multiply_vec4(transform, p_v, p_v);
+			matrix_multiply_vec4(transform, p_v + 27, p_v + 27);
 
 			p_v[30] = p_atlas_entry->u1;
 			p_v[31] = p_atlas_entry->v0;
@@ -199,7 +199,7 @@ void cx_text_mesher_generate(
         .p_vertex_buffers   = (void*)p_buffer,
         .num_vertex_buffers = 1,
         .p_attributes       = (void*)(p_buffer + primitive_vertex_buffers_size),
-        .num_attributes     = 2,
+        .num_attributes     = 3,
         .vertex_count       = num_vertices,
         .index_buffer = {
             .p_bytes = p_indices,
@@ -230,7 +230,7 @@ void cx_text_mesher_generate(
         .index               = 1,
         .vertex_buffer_index = 0,
         .layout = {
-            .offset          = sizeof(float) * 2,
+            .offset          = sizeof(float) * 3,
             .stride          = vertex_size,
             .component_count = 2,
             .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
@@ -241,7 +241,7 @@ void cx_text_mesher_generate(
         .index               = 2,
         .vertex_buffer_index = 0,
         .layout = {
-            .offset          = sizeof(float) * 4,
+            .offset          = sizeof(float) * 5,
             .stride          = vertex_size,
             .component_count = 4,
             .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
