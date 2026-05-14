@@ -17,7 +17,7 @@
 #include "skeletal_animation.h"
 #include "static_mesh.h"
 #include "stb_image.h"
-#include "texture.h"
+#include "cx_texture.h"
 #include "transform_animation.h"
 
 struct gltf_importer {
@@ -154,11 +154,11 @@ void import_gltf_image(struct gltf_importer* p_importer, size_t gltf_image_index
 void import_gltf_texture(struct gltf_importer* p_importer, size_t gltf_texture_index) {
     const struct gltf_texture* p_gltf_texture = &p_importer->p_gltf->p_textures[gltf_texture_index];
 
-    struct texture* p_texture = malloc(sizeof(struct texture));
+    struct cx_texture* p_texture = malloc(sizeof(struct cx_texture));
 
 	asset_handle p_source_image = p_importer->p_result->p_images[p_gltf_texture->source_image_index];
 
-    *p_texture = (struct texture){
+    *p_texture = (struct cx_texture){
         .p_source_image = p_source_image,
         .sampler_settings = {
             .mag_filter_mode = gltf_enum_to_texture_filter_mag(p_gltf_texture->sampler_mag_filter),

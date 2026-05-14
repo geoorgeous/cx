@@ -12,7 +12,7 @@
 
 #define ASSET_TYPE_SCENE 5
 
-struct texture;
+struct cx_texture;
 struct static_mesh;
 
 struct scene_entity {

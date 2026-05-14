@@ -25,7 +25,7 @@
 #include "platform_window.h"
 #include "scene.h"
 #include "static_mesh.h"
-#include "texture.h"
+#include "cx_texture.h"
 #include "transform.h"
 #include "vector.h"
 
@@ -275,7 +275,7 @@ int main(int argc, const char* argv[]) {
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
     register_asset_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
-    register_asset_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct texture), 0, 0, 0);
+    register_asset_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, 0);
     register_asset_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
     register_asset_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void*)static_mesh_free);
     register_asset_type(ASSET_TYPE_SCENE, "scene", sizeof(struct scene), 0, 0, (void*)scene_destroy);
@@ -522,8 +522,8 @@ int main(int argc, const char* argv[]) {
                     if (p_mesh->p_materials[j]) {
                         const struct material* p_material = p_mesh->p_materials[j]->asset_.p_data_;
                         if (p_material->p_texture) {
-                            struct texture* p_texture = p_material->p_texture->asset_.p_data_;
-                            texture_load_gfx_texture(p_texture, 0);
+                            struct cx_texture* p_texture = p_material->p_texture->asset_.p_data_;
+                            cx_texture_load_gfx_texture(p_texture, 0);
 							p_gfx_texture = &p_texture->gfx_texture_;
                         }
                     }

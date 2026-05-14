@@ -1,5 +1,5 @@
-#ifndef TEXTURE_H
-#define TEXTURE_H
+#ifndef CX_TEXTURE_H
+#define CX_TEXTURE_H
 
 #include "asset.h"
 #include "cx_gfx_texture.h"
@@ -8,7 +8,7 @@
 
 #define ASSET_TYPE_TEXTURE 2
 
-struct texture {
+struct cx_texture {
     asset_handle                       p_source_image;
     struct cx_texture_sampler_settings sampler_settings;
 	int                                b_loaded_;
@@ -16,7 +16,7 @@ struct texture {
     struct cx_gfx_texture              gfx_texture_;
 };
 
-void texture_load_gfx_texture(struct texture* p_texture, int b_force_load);
-void texture_unload_gfx_texture(struct texture* p_texture);
+void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_load);
+void cx_texture_unload_gfx_texture(struct cx_texture* p_texture);
 
 #endif
