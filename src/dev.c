@@ -8,6 +8,7 @@
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
 #include "cx_logging.h"
+#include "cx_mesh_gen.h"
 #include "dev.h"
 #include "gltf.h"
 #include "half_edge.h"
@@ -16,7 +17,6 @@
 #include "input.h"
 #include "math_utils.h"
 #include "matrix.h"
-#include "mesh_factory.h"
 #include "mesh.h"
 #include "mesh_id_capturer.h"
 #include "physics.h"
@@ -330,21 +330,21 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	
 	struct mesh_primitive mesh_primitive;
 
-	mesh_factory_make_sphere(0.5f, 8, 16, &mesh_primitive);
+	cx_mesh_gen_sphere(0.5f, 8, 16, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_sphere, &mesh_primitive);
-	mesh_factory_free_primitive(&mesh_primitive);
+	cx_mesh_gen_free(&mesh_primitive);
 
-	mesh_factory_make_cylinder(0.5f, 0.5f, 0.5f, 16, 0, 0, &mesh_primitive);
+	cx_mesh_gen_cylinder(0.5f, 0.5f, 0.5f, 16, 0, 0, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_mid, &mesh_primitive);
-	mesh_factory_free_primitive(&mesh_primitive);
+	cx_mesh_gen_free(&mesh_primitive);
 
-	mesh_factory_make_hemisphere(0.5f, 4, 16, &mesh_primitive);
+	cx_mesh_gen_hemisphere(0.5f, 4, 16, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_cap, &mesh_primitive);
-	mesh_factory_free_primitive(&mesh_primitive);
+	cx_mesh_gen_free(&mesh_primitive);
 
-	mesh_factory_make_quad((const float[]){ 0.5f, 0.5f }, &mesh_primitive);
+	cx_mesh_gen_quad((const float[]){ 0.5f, 0.5f }, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_plane, &mesh_primitive);
-	mesh_factory_free_primitive(&mesh_primitive);
+	cx_mesh_gen_free(&mesh_primitive);
 
 	hashtable_init(&g_dev.physics_hull_meshes, sizeof(struct cx_gfx_mesh));
 
@@ -907,12 +907,12 @@ void draw_physics(void) {
 					quickhull(p_hull->verts.p_buffer_, p_hull->verts.length_, &he_mesh);
 
 					struct mesh_primitive mesh_primitive;
-					mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive);
+					cx_mesh_gen_from_halfedge_mesh(&he_mesh, &mesh_primitive);
 
 					cx_gfx_mesh_create(p_hull_mesh, &mesh_primitive);
 
 					quickhull_free(&he_mesh);
-					mesh_factory_free_primitive(&mesh_primitive);
+					cx_mesh_gen_free(&mesh_primitive);
 				} else {
 					p_hull_mesh = itr.p_value;
 				}
@@ -1401,17 +1401,17 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
 
         if (he_mesh.p_buffer) {
             quickhull_free(&he_mesh);
-            mesh_factory_free_primitive(&mesh_primitive);
+            cx_mesh_gen_free(&mesh_primitive);
             cx_gfx_mesh_destroy(&gfx_mesh);
             cx_gfx_mesh_destroy(&gfx_mesh_outline);
         }
 
         quickhull_static_mesh((const struct static_mesh*)g_dev.p_selected_entity->p_mesh->asset_.p_data_, &he_mesh);
         
-        mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive);
+        cx_mesh_gen_from_halfedge_mesh(&he_mesh, &mesh_primitive);
         cx_gfx_mesh_create(&gfx_mesh, &mesh_primitive);
     
-        mesh_factory_make_from_halfedge_mesh(&he_mesh, &mesh_primitive_outline);
+        cx_mesh_gen_from_halfedge_mesh(&he_mesh, &mesh_primitive_outline);
         cx_gfx_mesh_create(&gfx_mesh_outline, &mesh_primitive_outline);
     }
 

@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cx_mesh_gen.h"
 #include "darr.h"
 #include "half_edge.h"
-#include "mesh_factory.h"
 #include "mesh.h"
 #include "vector.h"
 
 #define CX_M_TAU 6.28318531
 
-void mesh_factory_make_quad(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
+void cx_mesh_gen_quad(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
     const float vertices[] = {
         -p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
          p_half_size[0], 0,  p_half_size[1], 0, 1, 0,
@@ -66,7 +66,7 @@ void mesh_factory_make_quad(const float p_half_size[3], struct mesh_primitive* p
     };
 }
 
-void mesh_factory_make_box(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
+void cx_mesh_gen_box(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
     const float vertices[] = {
         -p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
         -p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
@@ -162,7 +162,7 @@ void mesh_factory_make_box(const float p_half_size[3], struct mesh_primitive* p_
     };
 }
 
-void mesh_factory_make_sphere(
+void cx_mesh_gen_sphere(
 	const float radius,
 	const unsigned int rings,
 	const unsigned int segments,
@@ -304,7 +304,7 @@ void mesh_factory_make_sphere(
     };
 }
 
-void mesh_factory_make_hemisphere(
+void cx_mesh_gen_hemisphere(
 	const float radius,
 	const unsigned int rings, const unsigned int segments,
 	struct mesh_primitive* p_out_mesh_primitive) {
@@ -428,7 +428,7 @@ void mesh_factory_make_hemisphere(
     };
 }
 
-void mesh_factory_make_cylinder(
+void cx_mesh_gen_cylinder(
 	const float radius_a, const float radius_b, const float half_length,
 	const unsigned int segments,
 	const int b_cap_a, const int b_cap_b,
@@ -579,7 +579,7 @@ void mesh_factory_make_cylinder(
     };
 }
 
-void mesh_factory_make_from_halfedge_mesh(
+void cx_mesh_gen_from_halfedge_mesh(
 	const struct he_mesh* p_he_mesh,
 	struct mesh_primitive* p_out_mesh_primitive) {
     
@@ -663,7 +663,7 @@ void mesh_factory_make_from_halfedge_mesh(
     };
 }
 
-void mesh_factory_free_primitive(struct mesh_primitive* p_out_mesh_primitive) {
+void cx_mesh_gen_free(struct mesh_primitive* p_out_mesh_primitive) {
     free(p_out_mesh_primitive->p_vertex_buffers[0].p_bytes);
     free(p_out_mesh_primitive->p_vertex_buffers);
     free(p_out_mesh_primitive->p_attributes);

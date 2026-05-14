@@ -1,7 +1,7 @@
 #include "cx_gfx_mesh.h"
+#include "cx_mesh_gen.h"
 #include "gl_program.h"
 #include "matrix.h"
-#include "mesh_factory.h"
 #include "mesh.h"
 #include "skeletal_animation_debug.h"
 #include "skeleton.h"
@@ -44,7 +44,7 @@ void debug_draw_skeleton(const struct skeleton* p_skeleton, const float* p_proje
 
 static void init_rendering(void) {
     struct mesh_primitive joint_mesh;
-    mesh_factory_make_sphere(0.0175f, 4, 8, &joint_mesh);
+    cx_mesh_gen_sphere(0.0175f, 4, 8, &joint_mesh);
     cx_gfx_mesh_create(&g_rendering.joint_mesh, &joint_mesh);
 
     const float hw = 0.1f;
