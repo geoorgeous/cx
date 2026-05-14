@@ -13,7 +13,7 @@ DBG_DIR     := dbg
 # We include these types of files in platform-agnostic translation units.
 # For example for Windows builds, the file 'foo.win32.c' will be included and built
 # as part of the 'foo.c' translation unit.
-SRC_IGNORE_WILDCARDS := *.nix_x11.* *.win32.* *.gl.*
+SRC_IGNORE_WILDCARDS := *.nix.* *.nix_x11.* *.win32.* *.gl.*
 
 CFLAGS := $(CCSTD) $(CFLAGS_WARN) $(CFLAGS_NOWARN)
 
