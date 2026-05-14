@@ -5,6 +5,8 @@
 #define FLT_CMP(A, B) (fabsf(A - B) < FLT_EPSILON)
 #define FLT_ISZERO(A) (fabsf(A) < FLT_EPSILON)
 
+#include <stdint.h>
+
 int ray_plane_intersection(const float* p_ray_origin, const float* p_ray_dir, const float* p_plane_norm, float plane_offset, float* p_result);
 
 void compute_compliment_axes(const float* p_forward, float* p_side, float* p_up);
@@ -16,5 +18,7 @@ float segment_point_dist_sq(const float* p_p0, const float* p_p1, const float* p
 int signf(float x);
 
 float clampf(const float x, const float min, const float max);
+
+uint32_t next_pow2_uint32(uint32_t x);
 
 #endif

@@ -68,3 +68,13 @@ float clampf(const float x, const float min, const float max) {
 	const float t = x < min ? min : x;
 	return t > max ? max : t;
 }
+
+uint32_t next_pow2_uint32(uint32_t x) {
+	--x;
+	x |= x >> 1;
+	x |= x >> 2;
+	x |= x >> 4;
+	x |= x >> 8;
+	x |= x >> 16;
+	return x + 1;
+}
