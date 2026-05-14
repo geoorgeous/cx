@@ -17,15 +17,6 @@
 #define GET_ASSET_TYPE(ID) ((uint8_t)((ID) >> 24))
 #define GET_ASSET_IDN(ID) (((uint32_t)(ID)) & ASSET_IDN_MASK)
 
-#define ASSET_STRUCT(NAME)\
-int  NAME##_serialize(FILE* p_file, const void* p_##NAME);\
-int  NAME##_deserialize(FILE* p_file, void* p_##NAME);\
-void NAME##_free(void* p_##NAME);\
-struct NAME
-
-#define ASSET_REGISTER_TYPE(NAME, TYPE_ID)\
-register_asset_type(TYPE_ID, #NAME, sizeof(struct NAME), NAME##_serialize, NAME##_deserialize, NAME##_free)
-
 typedef uint32_t asset_id;
 
 struct asset {
