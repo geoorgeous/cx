@@ -1,6 +1,7 @@
 #include "gl.h"
 #include <GL/glx.h>
 
+#include <GL/glxext.h>
 #include <string.h>
 #include <X11/Xlib.h>
 
@@ -38,6 +39,9 @@ glXCreateContextAttribsARB_fn* glXCreateContextAttribsARB;
 #define GL_CONTEXT_FLAG_DEBUG_BIT             0x00000002
 #endif
 
+typedef void glXSwapIntervalEXT_fn(Display*, GLXDrawable, int);
+glXSwapIntervalEXT_fn* glXSwapInterfalEXT;
+
 #ifndef NDEBUG
 
 typedef void (*glDebugProcARB_fn)(GLenum, GLenum, GLuint, GLenum, GLsizei, const char*, const void*);
@@ -68,8 +72,6 @@ glDebugMessageControlARB_fn* glDebugMessageControlARB;
 
 #define GL_DEBUG_OUTPUT                           0x92E0
 #define GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB           0x8242
-
-#define GL_EXT
 
 static void gl_debug_message_callback(
 	GLenum source,
@@ -108,9 +110,9 @@ enum cx_error cx_gfx_context_create(
 		return CX_ERROR_api_glx;
 	}
 
-	// const int screen = DefaultScreen(p_window_internals->p_display);
-	// const char* s_extension_list = glXQueryExtensionsString(p_window_internals->p_display, screen);
-	// CX_LOG_FMT(TRACE, GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
+	const int screen = DefaultScreen(p_window_internals->p_display);
+	const char* s_extension_list = glXQueryExtensionsString(p_window_internals->p_display, screen);
+	CX_LOG_FMT(TRACE, GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
 
 	if (get_glx_proc("glXCreateContextAttribsARB", (void**)&glXCreateContextAttribsARB)) {
 		int glx_context_flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -164,6 +166,8 @@ enum cx_error cx_gfx_context_create(
 
     p_context_internals->p_window = p_window;
 
+	get_glx_proc("glXSwapIntervalEXT", (void**)&glXSwapInterfalEXT);
+
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
 	
@@ -200,6 +204,32 @@ enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context
 		(const void*)p_context_internals->p_window->bytes_;
     glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
     return CX_ERROR_none;
+}
+
+unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_context) {
+    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+	const struct platform_window_nix_x11_internals* p_platform_window_internals =
+		(const void*)p_context_internals->p_window->bytes_;
+	unsigned int interval;
+	glXQueryDrawable(
+		p_platform_window_internals->p_display,
+		p_platform_window_internals->window,
+		GLX_SWAP_INTERVAL_EXT,
+		&interval);
+	return (int)interval;
+}
+
+enum cx_error cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
+	if (glXSwapInterfalEXT) {
+    	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+		const struct platform_window_nix_x11_internals* p_platform_window_internals =
+			(const void*)p_context_internals->p_window->bytes_;
+		glXSwapInterfalEXT(p_platform_window_internals->p_display, p_platform_window_internals->window, (int)interval);
+		CX_LOG_FMT(INFO, GFX_CORE, "Swap interval set to %d\n", interval);
+		return CX_ERROR_none;
+	}
+	CX_LOG(INFO, GFX_CORE, "Failed to set swap interval: Relevant API proc not found\n");
+	return CX_ERROR_not_supported;
 }
 
 #ifndef NDEBUG

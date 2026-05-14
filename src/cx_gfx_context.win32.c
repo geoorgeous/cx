@@ -39,7 +39,10 @@ wglChoosePixelFormatARB_fn* wglChoosePixelFormatARB;
 #define WGL_FULL_ACCELERATION_ARB                 0x2027
 
 typedef BOOL APIENTRY wglSwapIntervalEXT_fn(int);
-wglSwapIntervalEXT_fn* wglSwapIntervalExt;
+wglSwapIntervalEXT_fn* wglSwapIntervalEXT;
+
+typedef INT APIENTRY wglGetSwapIntervalEXT_fn(void);
+wglGetSwapIntervalEXT_fn* wglGetSwapIntervalEXT;
 
 #ifndef NDEBUG
 
@@ -201,6 +204,22 @@ enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
 	return CX_ERROR_api_wgl;
 }
 
+unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context *p_context) {
+	return (unsigned int)wglGetSwapInterval();
+}
+
+enum error cx_gfx_context_set_swap_interval(const struct cx_gfx_context *p_context, unsigned int interval) {
+	if (wglSwapIntervalEXT) {
+		if (wglSwapIntervalEXT(interval)) {
+			CX_LOG_FMT(INFO, GFX_CORE, "Set swap interval to %d\n", interval);
+			return CX_ERROR_none;
+		}
+		return CX_ERROR_api_wgl;
+	}
+	CX_LOG(INFO, GFX_CORE, "Failed to set swap interval: Relevant API proc not found\n");
+	return CX_ERROR_not_supported;
+}
+
 enum error win32_load_gl_functions(void) {
     static int b_loaded = 0;
 
@@ -294,7 +313,8 @@ enum error win32_load_gl_functions(void) {
 	wglGetExtensionsStringARB = (wglGetExtensionsStringARB_fn*)wglGetProcAddress("wglGetExtensionsStringARB");
 	wglCreateContextAttribsARB = (wglCreateContextAttribsARB_fn*)wglGetProcAddress("wglCreateContextAttribsARB");
 	wglChoosePixelFormatARB = (wglChoosePixelFormatARB_fn*)wglGetProcAddress("wglChoosePixelFormatARB");
-	wglSwapIntervalExt = (wglSwapIntervalEXT_fn*)wglGetProcAddress("wglSwapIntervalEXT");
+	wglGetSwapIntervalEXT (wglGetSwapIntervalEXT_fn*)wglGetProcAddress("wglGetSwapIntervalEXT");
+	wglSwapIntervalEXT = (wglSwapIntervalEXT_fn*)wglGetProcAddress("wglSwapIntervalEXT");
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
