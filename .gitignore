@@ -51,8 +51,8 @@
 .vscode/
 
 .cache/
-res/
-!res/builtin/*
+res/*
+!res/builtin/
 !makefile
 compile_commands.json
 
