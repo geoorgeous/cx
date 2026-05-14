@@ -3,10 +3,10 @@
 
 #include "asset.h"
 #include "asset.h"
+#include "cx_image.h"
 #include "cx_pixel_format.h"
 #include "cx_texture_sampler_settings.h"
 #include "gltf.h"
-#include "image.h"
 #include "import_gltf.h"
 #include "cx_logging.h"
 #include "material.h"
@@ -122,7 +122,7 @@ void import_gltf_image(struct gltf_importer* p_importer, size_t gltf_image_index
         size = p_gltf_buffer_view->byte_length;
     }
 
-    struct image* p_image = malloc(sizeof(struct image));
+    struct cx_image* p_image = malloc(sizeof(struct cx_image));
 
     int x, y, comp;
     p_image->p_pixel_data = stbi_load_from_memory(p_bytes, size, &x, &y, &comp, 0);
@@ -166,7 +166,7 @@ void import_gltf_texture(struct gltf_importer* p_importer, size_t gltf_texture_i
             .address_mode_u = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_s),
             .address_mode_v = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_t)
         },
-		.gfx_texture_format = ((const struct image*)p_source_image->asset_.p_data_)->pixel_data_format.pixel_format
+		.gfx_texture_format = ((const struct cx_image*)p_source_image->asset_.p_data_)->pixel_data_format.pixel_format
     };
 
     asset_handle handle = asset_package_new_record(p_importer->p_asset_package, ASSET_TYPE_TEXTURE);

@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <time.h>
+#include <stdlib.h>
 
 #include "asset.h"
 #include "cx_cli.h"
@@ -8,6 +8,8 @@
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
+#include "cx_image.h"
+#include "cx_io.h"
 #include "cx_logging.h"
 #include "dev.h"
 #include "cx_error.h"
@@ -15,7 +17,6 @@
 #include "gltf.h"
 #include "input.h"
 #include "keys.h"
-#include "image.h"
 #include "import_gltf.h"
 #include "material.h"
 #include "matrix.h"
@@ -273,7 +274,7 @@ int main(int argc, const char* argv[]) {
 
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
-    register_asset_type(ASSET_TYPE_IMAGE, "image", sizeof(struct image), 0, 0, 0);
+    register_asset_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
     register_asset_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct texture), 0, 0, 0);
     register_asset_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
     register_asset_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void*)static_mesh_free);
@@ -294,7 +295,7 @@ int main(int argc, const char* argv[]) {
     import_gltf_free(&import_gltf_result);
 
     uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
-    struct image white_image = {
+    struct cx_image white_image = {
 		.width = 1,
 		.height = 1,
 		.pixel_data_format = {
@@ -372,12 +373,16 @@ int main(int argc, const char* argv[]) {
     dev_init(&platform_window, p_scene, &physics_world);
 	dev_mode_enable();
 
-    clock_t old_frame_start = clock();
+    uint64_t old_frame_start = cx_platform_time_now();
 
     while (platform_window_is_open(&platform_window)) {
-        const clock_t frame_start = clock();
-        const float frame_delta_seconds = (float)(frame_start - old_frame_start) / CLOCKS_PER_SEC;
-        old_frame_start = frame_start;
+        const uint64_t frame_start = cx_platform_time_now();
+        const double frame_delta_seconds = cx_platform_time_delta_seconds(old_frame_start, frame_start);
+
+		//CX_DBG(CX_LOG_FMT(INFO, DONTCARE, "FRAME TIME = %fms\n",
+		//	cx_platform_time_delta_milliseconds(old_frame_start, frame_start)));
+        
+		old_frame_start = frame_start;
 
         input_frame_reset();
         platform_window_poll_events(&platform_window);
