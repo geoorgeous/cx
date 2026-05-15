@@ -125,9 +125,9 @@ void matrix_make_orthographic_projection(float left, float right, float top, flo
 	const float height = top - bottom;
 	const float depth = f - n;
 	
-	p_result[ 0] = 2 / width;
-	p_result[ 5] = 2 / height;
-	p_result[10] = -2 / depth;
+	p_result[ 0] = 2.0f / width;
+	p_result[ 5] = 2.0f / height;
+	p_result[10] = -2.0f / depth;
     
 	p_result[12] = -(right + left) / width;
 	p_result[13] = -(top + bottom) / height;
@@ -136,7 +136,7 @@ void matrix_make_orthographic_projection(float left, float right, float top, flo
 	p_result[ 1] = p_result[ 2] = p_result[ 3] =
 	p_result[ 4] = p_result[ 6] = p_result[ 7] =
     p_result[ 8] = p_result[ 9] = p_result[11] = 0;
-	p_result[15] = 1;
+	p_result[15] = 1.0f;
 }
 
 void matrix_make_perspective_projection(float vfov, float aspect, float n, float f, float* p_result) {

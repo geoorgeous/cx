@@ -2,7 +2,10 @@
 #include <stdlib.h>
 
 #include "asset.h"
+#include "cx_bdf.h"
 #include "cx_cli.h"
+#include "cx_color.h"
+#include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
@@ -11,6 +14,10 @@
 #include "cx_image.h"
 #include "cx_io.h"
 #include "cx_logging.h"
+#include "cx_pixel_format.h"
+#include "cx_platform_time.h"
+#include "cx_text_mesher.h"
+#include "cx_texture_atlas_layout.h"
 #include "dev.h"
 #include "cx_error.h"
 #include "gl.h"
@@ -20,6 +27,7 @@
 #include "import_gltf.h"
 #include "material.h"
 #include "matrix.h"
+#include "mesh.h"
 #include "mouse_buttons.h"
 #include "physics.h"
 #include "platform_window.h"
@@ -141,15 +149,15 @@ int main(int argc, const char* argv[]) {
 	//cx_log_cat_set(CX_LOG_CAT_PLATFORM_WINDOW, CX_LOG_LEVEL_TRACE);
 	//cx_log_cat_set(CX_LOG_CAT_HASHTABLE, CX_LOG_LEVEL_TRACE);
 	//cx_log_cat_set(CX_LOG_CAT_ALL,         CX_LOG_LEVEL_WARNING);
-	//cx_log_cat_set(CX_LOG_CAT_ASSET,       CX_LOG_LEVEL_WARNING);
-	//cx_log_cat_set(CX_LOG_CAT_GFX_PROGRAM, CX_LOG_LEVEL_WARNING);
-	//cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE, CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_ASSET,       CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_GFX_PROGRAM, CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE, CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_GLTF,        CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_SCENE,       CX_LOG_LEVEL_WARNING);
 
 	enum cx_error err;
 
-    unsigned int window_size[] = { 1200, 900 };
+    unsigned int window_size[] = { 1600, 1200 };
 
     struct platform_window platform_window;
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
@@ -160,6 +168,8 @@ int main(int argc, const char* argv[]) {
 
     struct cx_gfx_context gl_context;
     err = cx_gfx_context_create(&platform_window, &gl_context);
+
+	cx_gfx_context_set_swap_interval(&gl_context, 0);
 
 	if (err != CX_ERROR_none) {
 		return err;
@@ -246,6 +256,57 @@ int main(int argc, const char* argv[]) {
 	cx_gfx_program_param_buffer_create(&program_pbuffer_object, program_pblock_object.size_);
 	cx_gfx_program_param_buffer_create(&program_pbuffer_material, program_pblock_material.size_);
 
+	// create text shader program
+	
+	struct cx_gfx_program_source program_text_source = {
+		.s_vertex_stage_source = "#version 330 core\n"
+			"layout(std140) uniform blk_camera {"
+				"mat4 u_projection_matrix;"
+				"mat4 u_view_matrix;"
+			"};"
+			"layout(std140) uniform blk_object {"
+				"mat4 u_vertex_matrix;"
+			"};"
+			"layout (location=0) in vec3 a_pos;"
+			"layout (location=1) in vec2 a_texcoords;"
+			"layout (location=2) in vec4 a_color;"
+			"out vec2 v_texcoords;"
+			"out vec4 v_color;"
+			"void main() {"
+				"v_texcoords = a_texcoords;"
+				"v_color = a_color;"
+				"gl_Position = u_projection_matrix * u_view_matrix * u_vertex_matrix * vec4(a_pos, 1.0);"
+			"}",
+		.s_fragment_stage_source = "#version 330 core\n"
+			"uniform sampler2D u_texture_albedo;"
+			"in vec2 v_texcoords;"
+			"in vec4 v_color;"
+			"out vec4 f_color;"
+			"void main() {"
+				"float r = texture(u_texture_albedo, v_texcoords).r;"
+				"f_color = vec4(v_color.r, v_color.g, v_color.b, v_color.a * r);"
+			"}"
+	};
+
+	struct cx_gfx_program program_text;
+
+	cx_gfx_program_create(&program_text);
+	cx_gfx_program_build(&program_text, &program_text_source);
+
+	struct cx_gfx_program_param_block program_text_pblock_camera;
+	struct cx_gfx_program_param_block program_text_pblock_object;
+	struct cx_gfx_program_opaque_param program_text_opaque_texture_albedo;
+
+	cx_gfx_program_refl_param_block(&program_text, "blk_camera", &program_text_pblock_camera);
+	cx_gfx_program_refl_param_block(&program_text, "blk_object", &program_text_pblock_object);
+	cx_gfx_program_refl_opaque_param(&program_text, "u_texture_albedo", &program_text_opaque_texture_albedo);
+
+	struct cx_gfx_program_param_buffer program_text_pbuffer_camera;
+	struct cx_gfx_program_param_buffer program_text_pbuffer_object;
+
+	cx_gfx_program_param_buffer_create(&program_text_pbuffer_camera, program_text_pblock_camera.size_);
+	cx_gfx_program_param_buffer_create(&program_text_pbuffer_object, program_text_pblock_object.size_);
+
     // create screen shader program
 	
 	struct cx_gfx_program_source program_screen_source = {
@@ -282,6 +343,47 @@ int main(int argc, const char* argv[]) {
 
     struct asset_package asset_package;
     asset_package_init(&asset_package);
+
+	void* p_bdf_buf;
+	size_t bdf_buf_size;
+	cx_io_file_read_all("res/builtin/font_dbg_8x14.bdf", &p_bdf_buf, &bdf_buf_size);
+
+	struct cx_bdf bdf;
+	cx_bdf_parse(p_bdf_buf, &bdf);
+	cx_io_file_free(p_bdf_buf);
+
+	struct cx_font font;
+	cx_font_build_from_bdf(&bdf, &font);
+	cx_bdf_free(&bdf);
+
+	struct cx_image font_atlas_image;
+	struct cx_texture_atlas_layout font_atlas_layout;
+	font_atlas_layout.p_entries = malloc(sizeof(*font_atlas_layout.p_entries) * CX_FONT_NUM_GLYPHS);
+	cx_font_create_atlas(&font, &font_atlas_image, &font_atlas_layout);
+	cx_font_free_glyph_bitmap_buffer(&font);
+
+	struct cx_gfx_texture font_atlas_texture;
+	cx_gfx_texture_create(&font_atlas_texture, font_atlas_image.width, font_atlas_image.height, CX_PIXEL_FORMAT_red);
+	cx_gfx_texture_set_data(&font_atlas_texture, font_atlas_image.p_pixel_data, &font_atlas_image.pixel_data_format);
+	free(font_atlas_image.p_pixel_data);
+
+	struct cx_text_mesh_desc text_mesh_desc = {
+		.s_text = "Hello, World...\ncx engine demo!",
+		.color = { .rgba = { 1, 1, 1, 1 } },
+		.position = { 5, 20, 0 },
+		.scale = 1,
+		.font_data = {
+			.p_font = &font,
+			.p_glyph_atlas_layout = &font_atlas_layout,
+			.p_glyph_texture = &font_atlas_texture
+		}
+	};
+	struct mesh_primitive text_mesh_primitive;
+	cx_text_mesher_generate(&text_mesh_desc, 1, &text_mesh_primitive);
+
+	struct cx_gfx_mesh text_mesh;
+	cx_gfx_mesh_create(&text_mesh, &text_mesh_primitive);
+	cx_text_mesher_free(&text_mesh_primitive);
 
     struct gltf gltf;
     gltf_load_from_file("res/Industrial_exterior_v2.glb", &gltf);
@@ -534,6 +636,34 @@ int main(int argc, const char* argv[]) {
             }
 
         	dev_draw(&framebuffer, fb_width, fb_height, camera.projection_matrix, camera.view_matrix);
+
+			cx_gfx_framebuffer_bind(&framebuffer);
+
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			float text_transform[16];
+			matrix_make_identity(text_transform);
+
+			cx_gfx_program_bind(&program_text);
+			
+			cx_gfx_program_param_block_bind_buffer(&program_text_pblock_camera, &program_text_pbuffer_camera, 0, 0);
+			cx_gfx_program_param_block_bind_buffer(&program_text_pblock_object, &program_text_pbuffer_object, 0, 0);
+
+			struct {
+				float projection_matrix[16];
+				float view_matrix[16];
+			} ui_camera;
+
+			matrix_make_orthographic_projection(0, fb_width, fb_height, 0, -1, 1, ui_camera.projection_matrix);
+			matrix_make_identity(ui_camera.view_matrix);
+
+			cx_gfx_program_param_buffer_set(&program_text_pbuffer_camera, 0, 0, &ui_camera);
+			cx_gfx_program_param_buffer_set(&program_text_pbuffer_object, 0, 0, text_transform);
+
+			cx_gfx_program_opaque_param_bind_resource(&program_text_opaque_texture_albedo, &font_atlas_texture);
+			cx_gfx_mesh_draw(&text_mesh);
 
             // SCREEN QUAD
             {
