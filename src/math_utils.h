@@ -2,8 +2,9 @@
 #define MATH_UTILS_H
 
 #include <float.h>
-#define FLT_CMP(A, B) (fabsf(A - B) < FLT_EPSILON)
-#define FLT_ISZERO(A) (fabsf(A) < FLT_EPSILON)
+#include <math.h>
+#define FLT_CMP(A, B) (fabs(A - B) < FLT_EPSILON)
+#define FLT_ISZERO(A) (fabs(A) < FLT_EPSILON)
 
 #include <stdint.h>
 
