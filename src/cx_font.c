@@ -26,7 +26,8 @@ void cx_font_build_from_bdf(const struct cx_bdf* p_bdf, struct cx_font* p_out) {
 	*p_out = (struct cx_font) {
 		.max_glyph_width_ = p_bdf->max_glyph_width_,
 		.max_glyph_height_ = p_bdf->max_glyph_height_,
-		.line_height_ = p_bdf->line_height_
+		.line_height_ = p_bdf->line_height_,
+		.descent_ = p_bdf->descent_
 	};
 
 	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7) / 8;

@@ -28,6 +28,7 @@ struct cx_font {
 	unsigned short       max_glyph_width_;
 	unsigned short       max_glyph_height_;
 	unsigned short       line_height_;
+	unsigned short       descent_;
 	unsigned short       space_adv_;
 	void*                p_glyph_bitmap_buf;
 	};

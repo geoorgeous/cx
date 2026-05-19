@@ -113,7 +113,8 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_ASCENT)) {
 			p_out_bdf->line_height_ += cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_DESCENT)) {
-			p_out_bdf->line_height_ += cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->descent_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->line_height_ += p_out_bdf->descent_;
 		}
 	}
 
