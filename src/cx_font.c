@@ -163,7 +163,7 @@ void cx_font_create_atlas(
 		row_right += glyph_atlas_dsts[i].p_glyph->metrics_.width;
 	}
 
-	const uint8_t height = next_pow2_uint32(row_top + row_height);
+	const uint32_t height = next_pow2_uint32(row_top + row_height);
 
 	uint8_t* p_pixels = calloc(1, width * height);
 
