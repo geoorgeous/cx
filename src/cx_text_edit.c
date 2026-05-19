@@ -51,7 +51,7 @@ void cx_text_edit_delete(struct cx_text_edit* p_text_edit, int n) {
 		src_start = t;
 	}
 
-	size_t src_n = (p_text_edit->len - src_start) + 1;
+	const size_t src_n = (p_text_edit->len - src_start) + 1;
 	memmove(p_text_edit->p_buf + dst_start, p_text_edit->p_buf + src_start, src_n);
 	p_text_edit->len = dst_start + (src_n - 1);
 	p_text_edit->cursor_pos = dst_start;
