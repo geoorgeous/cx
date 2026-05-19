@@ -21,7 +21,7 @@ struct cx_text_mesh_desc {
 	struct cx_color_f32 color;
 	float               position[3];
 	float               scale;
-	const struct cx_font_render_data font_data;
+	struct cx_font_render_data font_data;
 };
 
 void cx_text_mesher_measure(const struct cx_text_mesh_desc* p_desc);
