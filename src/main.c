@@ -180,8 +180,8 @@ int main(int argc, const char* argv[]) {
 
     // create framebuffer
 
-	uint32_t fb_width = window_size[0] / 2;
-	uint32_t fb_height = window_size[1] / 2;
+	uint32_t fb_width = window_size[0] * 0.5f;
+	uint32_t fb_height = window_size[1] * 0.5f;
 
 	struct cx_gfx_texture texture_fb_color;
 	struct cx_gfx_texture texture_fb_depth_stencil;
