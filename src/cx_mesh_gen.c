@@ -25,12 +25,12 @@ void cx_mesh_gen_quad(float half_width, float half_height, const float* p_normal
 
     const float vertices[] = {
          -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
+          tx - bx,  ty - by,  tz - bz, p_normal[0], p_normal[1], p_normal[2],
           tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
-          tx + bx,  ty - by,  tz - bz, p_normal[0], p_normal[1], p_normal[2],
 
           tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
-         -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
          -tx + bx, -ty + by, -tz + bz, p_normal[0], p_normal[1], p_normal[2],
+         -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
     };
     
     const size_t num_vertices  = 6;

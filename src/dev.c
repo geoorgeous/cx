@@ -1004,11 +1004,10 @@ void compute_physics_collider_mesh_trs_capsule(
 
 void compute_physics_collider_mesh_trs_plane(const struct scene_entity* p_entity, float* p_out_trs) {
 	const float s = 10.0f;
-
 	matrix_make_trs(
 		p_entity->transform.world_position,
 		p_entity->transform.world_rotation,
-		(const float[]){ s, 1, s }, p_out_trs);
+		(const float[]){ s, s, s }, p_out_trs);
 }
 
 void draw_gizmo(void) {
