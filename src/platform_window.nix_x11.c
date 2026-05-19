@@ -514,9 +514,11 @@ enum key x11_keycode_to_key(unsigned int keycode) {
 		case 76:  return KEY_f10;
 		case 95:  return KEY_f11;
 		case 96:  return KEY_f12;
+		case 110: return KEY_home;
 		case 111: return KEY_up;
 		case 113: return KEY_left;
 		case 114: return KEY_right;
+		case 115: return KEY_end;
 		case 116: return KEY_down;
 		case 119: return KEY_delete;
         default:  return KEY_unknown;

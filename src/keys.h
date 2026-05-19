@@ -65,6 +65,8 @@ enum key {
 	KEY_delete,
 	KEY_grave,
 	KEY_escape,
+	KEY_home,
+	KEY_end,
 	KEY_MAX_
 
 	// todo: the rest...
