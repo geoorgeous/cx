@@ -49,7 +49,7 @@ struct cx_color_f32 {
 	};
 };
 
-inline void cx_color_u8_from_color_f32(struct cx_color_u8* p_color, const struct cx_color_f32* p_color_f32) {
+static inline void cx_color_u8_from_f32(struct cx_color_u8* p_color, const struct cx_color_f32* p_color_f32) {
 	*p_color = (struct cx_color_u8) {
 		.r = CX_U8_FROM_F32_PERCENT(p_color_f32->r),
 		.g = CX_U8_FROM_F32_PERCENT(p_color_f32->g),
@@ -58,7 +58,7 @@ inline void cx_color_u8_from_color_f32(struct cx_color_u8* p_color, const struct
 	};
 }
 
-inline void cx_color_f32_from_color_u8(struct cx_color_f32* p_color, const struct cx_color_u8* p_color_u8) {
+static inline void cx_color_f32_from_u8(struct cx_color_f32* p_color, const struct cx_color_u8* p_color_u8) {
 	*p_color = (struct cx_color_f32) {
 		.r = CX_F32_PERCENT_FROM_U8(p_color_u8->r),
 		.g = CX_F32_PERCENT_FROM_U8(p_color_u8->g),
@@ -67,7 +67,7 @@ inline void cx_color_f32_from_color_u8(struct cx_color_f32* p_color, const struc
 	};
 }
 
-inline void cx_color_f32_from_u32_r8g8b8a8(struct cx_color_f32* p_color, u32_r8g8b8a8 r8g8b8a8) {
+static inline void cx_color_f32_from_u32(struct cx_color_f32* p_color, u32_r8g8b8a8 r8g8b8a8) {
 	*p_color = (struct cx_color_f32) {
 		.r = CX_F32_PERCENT_FROM_U8(CX_U32_R8G8B8A8_R(r8g8b8a8)),
 		.g = CX_F32_PERCENT_FROM_U8(CX_U32_R8G8B8A8_G(r8g8b8a8)),
