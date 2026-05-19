@@ -8,9 +8,62 @@
 #include "matrix.h"
 #include "mesh.h"
 
-void cx_text_mesher_measure(const struct cx_text_mesh_desc* p_desc) {
-	// todo
-	(void)p_desc;
+#define CX_TAB_SPACE_COUNT 4
+
+void cx_text_mesher_measure(
+	const char* s,
+	size_t n,
+	const struct cx_font_render_data* p_font_render_data,
+	float scale,
+	float* p_out_x, float* p_out_y) {
+	
+	float x = 0;
+	float y = p_font_render_data->p_font->line_height_;
+
+	float line_x = x;
+
+	for(const char* p = s; *p && n; p++, --n) {
+		const uint32_t codepoint = (uint32_t)*p;
+
+		if (codepoint >= CX_FONT_NUM_GLYPHS) {
+			continue;
+		}
+
+		if (*p == ' ') {
+			line_x += p_font_render_data->p_font->max_glyph_width_;
+			continue;	
+		}
+
+		if (*p == '\t') {
+			line_x += p_font_render_data->p_font->max_glyph_width_ * CX_TAB_SPACE_COUNT;
+			continue;
+		}
+
+		if (*p == '\n') {
+			if (line_x > x) {
+				x = line_x;
+			}
+			line_x = 0;
+			y += p_font_render_data->p_font->line_height_;
+			continue;
+		}
+
+		const struct cx_font_glyph* p_glyph = &p_font_render_data->p_font->glyphs_[codepoint];
+
+		if (!p_glyph->codepoint_) {
+			// missing glyph
+			continue;
+		}
+
+		line_x += p_glyph->metrics_.adv_x;
+	}
+
+	if (line_x > x) {
+		x = line_x;
+	}
+			
+	*p_out_x = x * scale;
+	*p_out_y = y * scale;
 }
 
 void cx_text_mesher_generate(
@@ -92,7 +145,7 @@ void cx_text_mesher_generate(
 			}
 
 			if (*p == '\t') {
-				pen_x += p_descs[i].font_data.p_font->max_glyph_width_ * 4;
+				pen_x += p_descs[i].font_data.p_font->max_glyph_width_ * CX_TAB_SPACE_COUNT;
 				continue;
 			}
 

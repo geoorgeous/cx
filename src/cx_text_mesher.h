@@ -24,7 +24,12 @@ struct cx_text_mesh_desc {
 	struct cx_font_render_data font_data;
 };
 
-void cx_text_mesher_measure(const struct cx_text_mesh_desc* p_desc);
+void cx_text_mesher_measure(
+	const char* s,
+	size_t n,
+	const struct cx_font_render_data* p_font_render_data,
+	float scale,
+	float* p_out_x, float* p_out_y);
 
 struct mesh_primitive;
 
