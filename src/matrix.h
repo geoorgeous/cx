@@ -12,6 +12,7 @@ void matrix_make_rotation_x(float r, float* p_result);
 void matrix_make_rotation_y(float r, float* p_result);
 void matrix_make_rotation_z(float r, float* p_result);
 void matrix_make_rotation_from_quaternion(const float* p_quaternion, float* p_result);
+void matrix_make_ts(const float* p_t_xyz, const float* p_s_xyz, float* p_out);
 void matrix_make_trs(const float* p_t_xyz, const float* p_r_xyzw, const float* p_s_xyz, float* p_result);
 void matrix_make_orthographic_projection(float left, float right, float top, float bottom, float n, float f, float* p_result);
 void matrix_make_perspective_projection(float vfov, float aspect, float n, float f, float* p_result);
