@@ -1,0 +1,7 @@
+#ifndef CX_MACRO_H
+#define CX_MACRO_H
+
+#define CX_STRINGIFY_INTERNAL(X) #X
+#define CX_STRINGIFY(X) CX_STRINGIFY_INTERNAL(X)
+
+#endif
