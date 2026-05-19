@@ -342,7 +342,7 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_capsule_cap, &mesh_primitive);
 	cx_mesh_gen_free(&mesh_primitive);
 
-	cx_mesh_gen_quad((const float[]){ 0.5f, 0.5f }, &mesh_primitive);
+	cx_mesh_gen_quad(0.5f, 0.5f, (float[]){ 0, 1, 0 }, &mesh_primitive);
 	cx_gfx_mesh_create(&g_dev.physics_collider_mesh_plane, &mesh_primitive);
 	cx_mesh_gen_free(&mesh_primitive);
 

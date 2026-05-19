@@ -10,15 +10,27 @@
 
 #define CX_M_TAU 6.28318531
 
-void cx_mesh_gen_quad(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive) {
-    const float vertices[] = {
-        -p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
-         p_half_size[0], 0,  p_half_size[1], 0, 1, 0,
-         p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
+void cx_mesh_gen_quad(float half_width, float half_height, const float* p_normal, struct mesh_primitive* p_out_mesh_primitive) {
+	float tangent[3];
+	float bitangent[3];
+	vec3_orthonormal_basis(p_normal, tangent, bitangent);
 
-         p_half_size[0], 0,  p_half_size[1], 0, 1, 0,
-        -p_half_size[0], 0, -p_half_size[1], 0, 1, 0,
-        -p_half_size[0], 0,  p_half_size[1], 0, 1, 0
+	const float tx = half_width * tangent[0];
+	const float ty = half_width * tangent[1];
+	const float tz = half_width * tangent[2];
+
+	const float bx = half_height * bitangent[0];
+	const float by = half_height * bitangent[1];
+	const float bz = half_height * bitangent[2];
+
+    const float vertices[] = {
+         -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
+          tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
+          tx + bx,  ty - by,  tz - bz, p_normal[0], p_normal[1], p_normal[2],
+
+          tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
+         -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
+         -tx + bx, -ty + by, -tz + bz, p_normal[0], p_normal[1], p_normal[2],
     };
     
     const size_t num_vertices  = 6;
@@ -35,9 +47,16 @@ void cx_mesh_gen_quad(const float p_half_size[3], struct mesh_primitive* p_out_m
         .num_attributes     = 2,
         .vertex_count       = num_vertices,
         .draw_mode          = MESH_PRIMITIVE_DRAW_MODE_triangles,
-        .bounds_min         = { -p_half_size[0], 0, -p_half_size[1] },
-        .bounds_max         = {  p_half_size[0],  0, p_half_size[1] }
+        .bounds_min         = {
+			-(fabsf(tx) + fabsf(bx))
+			-(fabsf(ty) + fabsf(by))
+			-(fabsf(tz) + fabsf(bz))
+		},
     };
+
+	p_out_mesh_primitive->bounds_max[0] = -p_out_mesh_primitive->bounds_min[0];
+	p_out_mesh_primitive->bounds_max[1] = -p_out_mesh_primitive->bounds_min[1];
+	p_out_mesh_primitive->bounds_max[2] = -p_out_mesh_primitive->bounds_min[2];
 
     *p_out_mesh_primitive->p_vertex_buffers = (struct vertex_buffer) {
         .p_bytes = p_vertices,

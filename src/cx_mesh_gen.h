@@ -4,7 +4,11 @@
 struct he_mesh;
 struct mesh_primitive;
 
-void cx_mesh_gen_quad(const float p_half_size[3], struct mesh_primitive* p_out_mesh_primitive);
+void cx_mesh_gen_quad(
+	float half_width,
+	float half_height,
+	const float* p_normal,
+	struct mesh_primitive* p_out_mesh_primitive);
 
 void cx_mesh_gen_box(const float p_hald_size[3], struct mesh_primitive* p_out_mesh_primitive);
 
