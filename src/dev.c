@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "asset.h"
-#include "cx_commands.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
@@ -159,8 +158,6 @@ static void send_gizmo_to_mesh_id_capturer(void);
 static void send_gizmo_control_to_mesh_id_capturer(const struct gizmo_control* p_control);
 
 static void draw_hull_DEBUGDEBUGDEBUG(void);
-
-static void cmd_toggle_draw_physics_colliders(const struct cx_command_context* p_context);
 
 void dev_mode_enable(void) {
 	CX_DBG(CX_LOG(INFO, DEV, "Dev mode enabled\n"));
@@ -347,11 +344,6 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	cx_mesh_gen_free(&mesh_primitive);
 
 	hashtable_init(&g_dev.physics_hull_meshes, sizeof(struct cx_gfx_mesh));
-
-	cx_commands_register(&(struct cx_command_info){
-		.s_id = "physics.tgl_draw_dbg",
-		.s_description = "Toggle debug rendering of physics colliders."
-	}, cmd_toggle_draw_physics_colliders);
 }
 
 void dev_shutdown(void) {
@@ -1425,9 +1417,4 @@ void draw_hull_DEBUGDEBUGDEBUG(void) {
     float color_wf[] = { 1, 0, 0 };
 	cx_gfx_program_param_buffer_set(&g_dev.program_pbuffer_material, 0, 0, color_wf);
     cx_gfx_mesh_draw(&gfx_mesh_outline);
-}
-
-void cmd_toggle_draw_physics_colliders(const struct cx_command_context* p_context){
-	(void)p_context;
-	toggle_draw_physics_colliders();
 }

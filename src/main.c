@@ -3,8 +3,8 @@
 
 #include "asset.h"
 #include "cx_bdf.h"
-#include "cx_cli.h"
-#include "cx_color.h"
+#include "cx_console.h"
+#include "cx_console_view.h"
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
@@ -126,7 +126,8 @@ void on_key(const void* p_e, void* p_user_ptr) {
 
 	switch (p_key_event->key) {
 		case KEY_grave: {
-			(cx_cli_is_enabled() ? cx_cli_disable : cx_cli_enable)();
+			struct cx_console* p_console = cx_console_get();
+			cx_console_set_is_input_enabled(p_console, !p_console->b_is_input_enabled);
 			break;
 		}
 
@@ -154,10 +155,12 @@ int main(int argc, const char* argv[]) {
 	cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE, CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_GLTF,        CX_LOG_LEVEL_WARNING);
 	//cx_log_cat_set(CX_LOG_CAT_SCENE,       CX_LOG_LEVEL_WARNING);
+	
+	cx_console_init(cx_console_get());
 
 	enum cx_error err;
 
-    unsigned int window_size[] = { 1600, 1200 };
+    unsigned int window_size[] = { 1200, 900 };
 
     struct platform_window platform_window;
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
@@ -177,8 +180,8 @@ int main(int argc, const char* argv[]) {
 
     // create framebuffer
 
-	uint32_t fb_width = 800;
-	uint32_t fb_height = 600;
+	uint32_t fb_width = window_size[0] / 2;
+	uint32_t fb_height = window_size[1] / 2;
 
 	struct cx_gfx_texture texture_fb_color;
 	struct cx_gfx_texture texture_fb_depth_stencil;
@@ -637,33 +640,28 @@ int main(int argc, const char* argv[]) {
 
         	dev_draw(&framebuffer, fb_width, fb_height, camera.projection_matrix, camera.view_matrix);
 
-			cx_gfx_framebuffer_bind(&framebuffer);
+			if (cx_console_get()->b_is_input_enabled) {
+				cx_gfx_framebuffer_bind(&framebuffer);
 
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glClear(GL_DEPTH_BUFFER_BIT);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glClear(GL_DEPTH_BUFFER_BIT);
 
-			float text_transform[16];
-			matrix_make_identity(text_transform);
+				struct {
+					float projection_matrix[16];
+					float view_matrix[16];
+				} ui_camera;
 
-			cx_gfx_program_bind(&program_text);
-			
-			cx_gfx_program_param_block_bind_buffer(&program_text_pblock_camera, &program_text_pbuffer_camera, 0, 0);
-			cx_gfx_program_param_block_bind_buffer(&program_text_pblock_object, &program_text_pbuffer_object, 0, 0);
+				matrix_make_orthographic_projection(0, fb_width, fb_height, 0, -1, 1, ui_camera.projection_matrix);
+				matrix_make_identity(ui_camera.view_matrix);
 
-			struct {
-				float projection_matrix[16];
-				float view_matrix[16];
-			} ui_camera;
-
-			matrix_make_orthographic_projection(0, fb_width, fb_height, 0, -1, 1, ui_camera.projection_matrix);
-			matrix_make_identity(ui_camera.view_matrix);
-
-			cx_gfx_program_param_buffer_set(&program_text_pbuffer_camera, 0, 0, &ui_camera);
-			cx_gfx_program_param_buffer_set(&program_text_pbuffer_object, 0, 0, text_transform);
-
-			cx_gfx_program_opaque_param_bind_resource(&program_text_opaque_texture_albedo, &font_atlas_texture);
-			cx_gfx_mesh_draw(&text_mesh);
+				struct cx_font_render_data font_render_data = {
+					.p_font = &font,
+					.p_glyph_texture = &font_atlas_texture,
+					.p_glyph_atlas_layout = &font_atlas_layout
+				};
+				cx_console_view_draw(cx_console_get(), &font_render_data, ui_camera.projection_matrix, ui_camera.view_matrix);
+			}
 
             // SCREEN QUAD
             {
