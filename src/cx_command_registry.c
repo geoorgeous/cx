@@ -7,14 +7,13 @@
 #include "cx_logging.h"
 #include "cx_macro.h"
 
-#define CX_COMMAND_REGISTRY_INITIAL_SIZE 8
 #define CX_COMMAND_REGISTRY_MAX_NAME_LEN 48
 
-int cmp_command(const void* p_a, const void* p_b);
-int cx_command_registry_find_index(
-	const struct cx_command_registry* p_registry,
-	const char* s,
-	size_t* p_out_index);
+#define CX_COMMAND_CMP_KEY(P_COMMAND, KEY) (strcmp((P_COMMAND)->s_name, KEY))
+
+#define CX_COMMAND_ALIAS_CMP_KEY(P_COMMAND_ALIAS, KEY) (strcmp((P_COMMAND_ALIAS)->s_name, KEY))
+
+static int cx_command_registry_add_validate_name(const char* s_name);
 
 void cx_command_registry_free(struct cx_command_registry* p_registry) {
 	free(p_registry->p_commands_);
@@ -25,13 +24,12 @@ void cx_command_registry_add(
 	struct cx_command_registry* p_registry,
 	const struct cx_command* p_command) {
 
-	if (!p_command->s_name || p_command->s_name[0] == '\0') {
-		CX_LOG(INFO, COMMAND, "Failed to register command: missing name\n");
+	if (!cx_command_registry_add_validate_name(p_command->s_name)) {
 		return;
 	}
 
-	if (strlen(p_command->s_name) > CX_COMMAND_REGISTRY_MAX_NAME_LEN) {
-		CX_LOG(INFO, COMMAND, "Failed to register command: name too long\n");
+	if (!p_command->f) {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register command '%s': missing callback\n", p_command->s_name);
 		return;
 	}
 
@@ -40,25 +38,6 @@ void cx_command_registry_add(
 			"Failed to register command '%s':"
 			"parameter count (%d) exceeded maximum of " CX_STRINGIFY(CX_COMMAND_MAX_PARAMS),
 			p_command->s_name, p_command->num_params);
-	}
-
-	for (const char* p = p_command->s_name; *p; p++) {
-		if (isalnum(*p) || *p == '_' || *p == '-' || *p == '.') {
-			continue;
-		}
-		CX_LOG_FMT(INFO, COMMAND,
-			"Failed to register command '%s':"
-			"name may only contain letters, numbers, underscores, hypens, and periods\n",
-			p_command->s_name);
-		return;
-	}
-
-	if (!p_command->f) {
-		CX_LOG_FMT(INFO, COMMAND,
-			"Failed to register command '%s':"
-			"missing callback\n",
-			p_command->s_name);
-		return;
 	}
 
 	for (size_t i = 1; i < p_command->num_params; ++i) {
@@ -73,49 +52,55 @@ void cx_command_registry_add(
 	}
 
 	// todo: make sure param names are valid and unique 
-
+	
 	size_t index;
-	if (cx_command_registry_find_index(p_registry, p_command->s_name, &index)) {
-		CX_LOG_FMT(INFO, COMMAND, "Failed to register command '%s': name already taken\n", p_command->s_name);
+	int b_found;
+
+	CX_BSEARCH(
+		p_registry->p_aliases_,
+		p_registry->num_aliases_,
+		p_command->s_name,
+		CX_COMMAND_ALIAS_CMP_KEY,
+		&index, &b_found);
+
+	if (b_found) {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register command '%s': name taken by alias\n", p_command->s_name);
 		return;
 	}
 
-	if (p_registry->commands_cap_ == p_registry->num_commands_) {
-		p_registry->commands_cap_ =
-			p_registry->commands_cap_ ?
-			p_registry->commands_cap_ * 2 :
-			CX_COMMAND_REGISTRY_INITIAL_SIZE;
-		const size_t new_size = p_registry->commands_cap_ * sizeof(*p_registry->p_commands_);
-		p_registry->p_commands_ = realloc(p_registry->p_commands_, new_size);
-	}
-	
-	if (index < p_registry->num_commands_) {
-		void* p_dst = p_registry->p_commands_ + index + 1;
-		void* p_src = p_registry->p_commands_ + index;
-		size_t size = sizeof(*p_registry->p_commands_) * (p_registry->num_commands_ - index);
-		memmove(p_dst, p_src, size);
+	CX_BSEARCH(
+		p_registry->p_commands_,
+		p_registry->num_commands_,
+		p_command->s_name,
+		CX_COMMAND_CMP_KEY,
+		&index, &b_found);
+
+	if (b_found) {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register command '%s': name taken\n", p_command->s_name);
+		return;
 	}
 
-	++p_registry->num_commands_;
-	p_registry->p_commands_[index] = p_command;
+	CX_SORTED_ADD(p_registry->p_commands_, &p_registry->num_commands_, &p_registry->commands_cap_, index, p_command);
 
 	CX_LOG_FMT(INFO, COMMAND, "New command registered: %s\n", p_registry->p_commands_[index]->s_name);
 }
 
 void cx_command_registry_remove(struct cx_command_registry* p_registry, const char* s_command_name) {
 	size_t index;
-	if (!cx_command_registry_find_index(p_registry, s_command_name, &index)) {
+	int b_found;
+
+	CX_BSEARCH(
+		p_registry->p_commands_,
+		p_registry->num_commands_,
+		s_command_name,
+		CX_COMMAND_CMP_KEY,
+		&index, &b_found);
+
+	if (!b_found) {
 		return;
 	}
 
-	--p_registry->num_commands_;
-
-	void* p_dst = p_registry->p_commands_ + index;
-	void* p_src = p_registry->p_commands_ + index + 1;
-	size_t size = sizeof(*p_registry->p_commands_) * (p_registry->num_commands_ - index);
-	memmove(p_dst, p_src, size);
-
-	// todo: shrink buffer?
+	CX_SORTED_REMOVE(p_registry->p_commands_, &p_registry->num_commands_, index);
 }
 
 int cx_command_registry_find(
@@ -124,15 +109,95 @@ int cx_command_registry_find(
 	const struct cx_command** pp_out_command) {
 	
 	size_t index;
-	const int b_success = cx_command_registry_find_index(p_registry, s_command_name, &index);
+	int b_found;
 
-	if (!b_success) {
-		*pp_out_command = 0;
-		return 0;
+	CX_BSEARCH(
+		p_registry->p_commands_,
+		p_registry->num_commands_,
+		s_command_name,
+		CX_COMMAND_CMP_KEY,
+		&index, &b_found);
+
+	*pp_out_command = b_found ? p_registry->p_commands_[index] : 0;
+	return b_found;
+}
+
+void cx_command_registry_add_alias(struct cx_command_registry* p_registry, const struct cx_command_alias* p_alias) {
+	if (!cx_command_registry_add_validate_name(p_alias->s_name)) {
+		return;
 	}
 
-	*pp_out_command = p_registry->p_commands_[index];
-	return 1;
+	if (!p_alias->s_expansion || p_alias->s_expansion[0] == '\0') {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': missing expansion\n", p_alias->s_name);
+	}
+
+	size_t index;
+	int b_found;
+
+	CX_BSEARCH(
+		p_registry->p_commands_,
+		p_registry->num_commands_,
+		p_alias->s_name,
+		CX_COMMAND_CMP_KEY,
+		&index, &b_found);
+
+	if (b_found) {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name taken by command\n", p_alias->s_name);
+		return;
+	}
+
+	CX_BSEARCH(
+		p_registry->p_aliases_,
+		p_registry->num_aliases_,
+		p_alias->s_name,
+		CX_COMMAND_ALIAS_CMP_KEY,
+		&index, &b_found);
+
+	if (b_found) {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name taken\n", p_alias->s_name);
+		return;
+	}
+
+	CX_SORTED_ADD(p_registry->p_aliases_, &p_registry->num_aliases_, &p_registry->aliases_cap_, index, p_alias);
+
+	CX_LOG_FMT(INFO, COMMAND, "New alias registered: %s\n", p_registry->p_commands_[index]->s_name);
+}
+
+void cx_command_registry_remove_alias(struct cx_command_registry* p_registry, const char* s_alias_name) {
+	size_t index;
+	int b_found;
+
+	CX_BSEARCH(
+		p_registry->p_aliases_,
+		p_registry->num_aliases_,
+		s_alias_name,
+		CX_COMMAND_ALIAS_CMP_KEY,
+		&index, &b_found);
+
+	if (!b_found) {
+		return;
+	}
+
+	CX_SORTED_REMOVE(p_registry->p_aliases_, &p_registry->num_aliases_, index);
+}
+
+int cx_command_registry_find_alias(
+	struct cx_command_registry* p_registry,
+	const char* s_alias_name,
+	const struct cx_command_alias** pp_out_alias) {
+
+	size_t index;
+	int b_found;
+
+	CX_BSEARCH(
+		p_registry->p_aliases_,
+		p_registry->num_aliases_,
+		s_alias_name,
+		CX_COMMAND_ALIAS_CMP_KEY,
+		&index, &b_found);
+
+	*pp_out_alias = b_found ? p_registry->p_aliases_[index] : 0;
+	return b_found;
 }
 
 int cx_command_registry_execute(
@@ -165,9 +230,18 @@ int cx_command_registry_execute(
 	const size_t name_len = p - s_command_name;
 	memcpy(name_buf, s_command_name, name_len);
 	name_buf[name_len] = '\0';
-
+	
 	size_t index;
-	if (!cx_command_registry_find_index(p_registry, name_buf, &index)) {
+	int b_found;
+
+	CX_BSEARCH(
+		p_registry->p_commands_,
+		p_registry->num_commands_,
+		s_command_name,
+		CX_COMMAND_CMP_KEY,
+		&index, &b_found);
+
+	if (!b_found) {
 		CX_LOG_FMT(INFO, COMMAND, "command not found: %s\n", name_buf);
 		return 0;
 	}
@@ -190,36 +264,28 @@ int cx_command_registry_execute(
 	return p_command->f(&args, &context);
 }
 
-void cx_command_registry_alias(struct cx_command_registry* p_registry, const char* s_alias, const char* s_command) {
-	
-}
-
-int cmp_command(const void* p_a, const void* p_b) {
-	const struct cx_command* const* p_command_a = p_a;
-	const struct cx_command* const* p_command_b = p_b;
-	return strcmp((*p_command_a)->s_name, (*p_command_b)->s_name);
-}
-
-int cx_command_registry_find_index(
-	const struct cx_command_registry* p_registry,
-	const char* s,
-	size_t* p_out_index) {
-
-	size_t lo = 0;
-	size_t hi = p_registry->num_commands_;
-	while(lo < hi) {
-		const size_t mid = lo + (hi - lo) / 2;
-		const int cmp = strcmp(p_registry->p_commands_[mid]->s_name, s);
-		if (cmp < 0) {
-			lo = mid + 1;
-		} else if (cmp > 0) {
-			hi = mid;
-		} else {
-			*p_out_index = mid;
-			return 1;
-		}
+int cx_command_registry_add_validate_name(const char* s_name) {
+	if (!s_name || s_name[0] == '\0') {
+		CX_LOG(INFO, COMMAND, "Failed to register: missing name\n");
+		return 0;
 	}
 
-	*p_out_index = lo;
-	return 0;
+	const char* p;
+	for (p = s_name; *p; p++) {
+		if (isalnum(*p) || *p == '_' || *p == '-' || *p == '.') {
+			continue;
+		}
+		CX_LOG_FMT(INFO, COMMAND,
+			"Failed to register '%s':"
+			"name may only contain letters [a-z,A-Z], numbers [0-9], underscores '_', hyphens '-', and periods '.'\n",
+			s_name);
+		return 0;
+	}
+
+	if (p - s_name > CX_COMMAND_REGISTRY_MAX_NAME_LEN) {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name too long\n", s_name);
+		return 0;
+	}
+
+	return 1;
 }
