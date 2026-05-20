@@ -10,9 +10,12 @@
 
 #define CX_COMMAND_MAX_PARAMS 16
 
-#define CX_COMMAND_PARAM(DESC, B_REQUIRED) ((struct cx_command_param){\
+#define CX_COMMAND_PARAM_REQUIRED 1
+#define CX_COMMAND_PARAM_OPTIONAL 0
+
+#define CX_COMMAND_PARAM(DESC, REQUIRED) ((struct cx_command_param){\
 	.desc = CX_VAR_DESC_##DESC,\
-	.b_required = B_REQUIRED,\
+	.b_required = CX_COMMAND_PARAM_##REQUIRED,\
 })
 
 struct cx_command_param {
@@ -21,7 +24,7 @@ struct cx_command_param {
 };
 
 struct cx_command_args {
-	union cx_var_value p[CX_COMMAND_MAX_PARAMS];
+	union cx_var_value list[CX_COMMAND_MAX_PARAMS];
 	size_t count;
 };
 

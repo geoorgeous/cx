@@ -37,7 +37,7 @@ int cx_command_resolve_args(
 			if (cx_var_parse(
 					&p_command->p_params[argc].desc,
 					s_arg, p - s_arg,
-					&p_out_args->p[argc]) != CX_VAR_PARSE_RESULT_success) {
+					&p_out_args->list[argc]) != CX_VAR_PARSE_RESULT_success) {
 				CX_DBG(CX_LOG(INFO, COMMAND, "argument parse failure\n"));
 				return 0;
 			}
