@@ -11,12 +11,12 @@
 
 #define CX_COMMAND_CMP_KEY(P_COMMAND, KEY) (strcmp((P_COMMAND)->s_name, KEY))
 
-#define CX_COMMAND_ALIAS_CMP_KEY(P_COMMAND_ALIAS, KEY) (strcmp((P_COMMAND_ALIAS)->s_name, KEY))
+#define CX_COMMAND_ALIAS_CMP_KEY(COMMAND_ALIAS, KEY) (strcmp((COMMAND_ALIAS).s_name, KEY))
 
 static int cx_command_registry_add_validate_name(const char* s_name);
 
 void cx_command_registry_free(struct cx_command_registry* p_registry) {
-	free(p_registry->p_commands_);
+	free(p_registry->pp_commands_);
 	*p_registry = (struct cx_command_registry){0};
 }
 
@@ -69,7 +69,7 @@ void cx_command_registry_add(
 	}
 
 	CX_BSEARCH(
-		p_registry->p_commands_,
+		p_registry->pp_commands_,
 		p_registry->num_commands_,
 		p_command->s_name,
 		CX_COMMAND_CMP_KEY,
@@ -80,9 +80,9 @@ void cx_command_registry_add(
 		return;
 	}
 
-	CX_SORTED_ADD(p_registry->p_commands_, &p_registry->num_commands_, &p_registry->commands_cap_, index, p_command);
+	CX_SORTED_ADD(p_registry->pp_commands_, &p_registry->num_commands_, &p_registry->commands_cap_, index, p_command);
 
-	CX_LOG_FMT(INFO, COMMAND, "New command registered: %s\n", p_registry->p_commands_[index]->s_name);
+	CX_LOG_FMT(INFO, COMMAND, "New command registered: %s\n", p_registry->pp_commands_[index]->s_name);
 }
 
 void cx_command_registry_remove(struct cx_command_registry* p_registry, const char* s_command_name) {
@@ -90,7 +90,7 @@ void cx_command_registry_remove(struct cx_command_registry* p_registry, const ch
 	int b_found;
 
 	CX_BSEARCH(
-		p_registry->p_commands_,
+		p_registry->pp_commands_,
 		p_registry->num_commands_,
 		s_command_name,
 		CX_COMMAND_CMP_KEY,
@@ -100,7 +100,7 @@ void cx_command_registry_remove(struct cx_command_registry* p_registry, const ch
 		return;
 	}
 
-	CX_SORTED_REMOVE(p_registry->p_commands_, &p_registry->num_commands_, index);
+	CX_SORTED_REMOVE(p_registry->pp_commands_, &p_registry->num_commands_, index);
 }
 
 int cx_command_registry_find(
@@ -112,55 +112,67 @@ int cx_command_registry_find(
 	int b_found;
 
 	CX_BSEARCH(
-		p_registry->p_commands_,
+		p_registry->pp_commands_,
 		p_registry->num_commands_,
 		s_command_name,
 		CX_COMMAND_CMP_KEY,
 		&index, &b_found);
 
-	*pp_out_command = b_found ? p_registry->p_commands_[index] : 0;
+	*pp_out_command = b_found ? p_registry->pp_commands_[index] : 0;
 	return b_found;
 }
 
-void cx_command_registry_add_alias(struct cx_command_registry* p_registry, const struct cx_command_alias* p_alias) {
-	if (!cx_command_registry_add_validate_name(p_alias->s_name)) {
+void cx_command_registry_add_alias(
+	struct cx_command_registry* p_registry,
+	const char* s_name,
+	const char* s_expansion) {
+
+	if (!cx_command_registry_add_validate_name(s_name)) {
 		return;
 	}
 
-	if (!p_alias->s_expansion || p_alias->s_expansion[0] == '\0') {
-		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': missing expansion\n", p_alias->s_name);
+	if (!s_expansion || s_expansion[0] == '\0') {
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': missing expansion\n", s_name);
 	}
 
 	size_t index;
 	int b_found;
 
 	CX_BSEARCH(
-		p_registry->p_commands_,
+		p_registry->pp_commands_,
 		p_registry->num_commands_,
-		p_alias->s_name,
+		s_name,
 		CX_COMMAND_CMP_KEY,
 		&index, &b_found);
 
 	if (b_found) {
-		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name taken by command\n", p_alias->s_name);
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name taken by command\n", s_name);
 		return;
 	}
 
 	CX_BSEARCH(
 		p_registry->p_aliases_,
 		p_registry->num_aliases_,
-		p_alias->s_name,
+		s_name,
 		CX_COMMAND_ALIAS_CMP_KEY,
 		&index, &b_found);
 
 	if (b_found) {
-		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name taken\n", p_alias->s_name);
+		CX_LOG_FMT(INFO, COMMAND, "Failed to register '%s': name taken\n", s_name);
 		return;
 	}
 
-	CX_SORTED_ADD(p_registry->p_aliases_, &p_registry->num_aliases_, &p_registry->aliases_cap_, index, p_alias);
+	CX_SORTED_ADD(
+		p_registry->p_aliases_,
+		&p_registry->num_aliases_,
+		&p_registry->aliases_cap_,
+		index,
+		(struct cx_command_alias){0});
 
-	CX_LOG_FMT(INFO, COMMAND, "New alias registered: %s\n", p_registry->p_commands_[index]->s_name);
+	p_registry->p_aliases_[index].s_name = strdup(s_name);
+	p_registry->p_aliases_[index].s_expansion = strdup(s_expansion);
+
+	CX_LOG_FMT(INFO, COMMAND, "New alias registered: %s\n", p_registry->p_aliases_[index].s_name);
 }
 
 void cx_command_registry_remove_alias(struct cx_command_registry* p_registry, const char* s_alias_name) {
@@ -177,6 +189,9 @@ void cx_command_registry_remove_alias(struct cx_command_registry* p_registry, co
 	if (!b_found) {
 		return;
 	}
+
+	free(p_registry->p_aliases_[index].s_name);
+	free(p_registry->p_aliases_[index].s_expansion);
 
 	CX_SORTED_REMOVE(p_registry->p_aliases_, &p_registry->num_aliases_, index);
 }
@@ -196,7 +211,7 @@ int cx_command_registry_find_alias(
 		CX_COMMAND_ALIAS_CMP_KEY,
 		&index, &b_found);
 
-	*pp_out_alias = b_found ? p_registry->p_aliases_[index] : 0;
+	*pp_out_alias = b_found ? &p_registry->p_aliases_[index] : 0;
 	return b_found;
 }
 
@@ -242,13 +257,13 @@ int cx_command_registry_execute(
 		&index, &b_found);
 
 	if (b_found) {
-		const struct cx_command_alias* p_alias = p_registry->p_aliases_[index];
+		const struct cx_command_alias* p_alias = &p_registry->p_aliases_[index];
 		cx_command_registry_execute(p_registry, p_alias->s_expansion, p_flogger);
 		return 0;
 	}
 
 	CX_BSEARCH(
-		p_registry->p_commands_,
+		p_registry->pp_commands_,
 		p_registry->num_commands_,
 		name_buf,
 		CX_COMMAND_CMP_KEY,
@@ -259,22 +274,21 @@ int cx_command_registry_execute(
 		return 0;
 	}
 
-	const struct cx_command* p_command = p_registry->p_commands_[index];
+	const struct cx_command* p_command = p_registry->pp_commands_[index];
 	
 	struct cx_command_args args;
 	if (!cx_command_resolve_args(p_command, s_args, CX_COMMAND_MAX_PARAMS, &args)) {
-		CX_LOG_FMT(INFO, COMMAND, "bad arguments for command: %s\n", name_buf);
 		return 0;
 	}
-
-	CX_LOG_FMT(INFO, COMMAND, "executing command '%s' with %d arguments\n", name_buf, args.count);
 
 	const struct cx_command_context context = {
 		.p_command = p_command,
 		.p_flogger = p_flogger
 	};
 
-	return p_command->f(&args, &context);
+	int ret = p_command->f(&args, &context);
+	CX_LOG_FMT(INFO, COMMAND, "command \"%s, argc=%d, args=%s\" returned %d\n", p_command->s_name, args.count, s_args, ret);
+	return ret;
 }
 
 int cx_command_registry_add_validate_name(const char* s_name) {

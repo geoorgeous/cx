@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define CX_NEW_COMMAND(NAME, DESC, F, ...) do {\
+#define CX_NEW_COMMAND(NAME, DESC, F, P_USER, ...) do {\
 	const static struct cx_command_param NAME##_command_params[] = {\
 		__VA_ARGS__\
 	};\
@@ -12,29 +12,26 @@
 		.s_desc = DESC,\
 		.p_params = NAME##_command_params,\
 		.num_params = sizeof(NAME##_command_params) / sizeof(struct cx_command_param),\
-		.f = F\
+		.f = F,\
+		.p_user_ptr = P_USER\
 	};\
 	cx_command_registry_add(&cx_console_get()->command_registry, &NAME##_command); } while(0)
 
-#define CX_NEW_COMMAND_ALIAS(NAME, EXPANSION) do {\
-	const static struct cx_command_alias NAME##_alias = {\
-		.s_name = #NAME,\
-		.s_expansion = EXPANSION\
-	};\
-	cx_command_registry_add_alias(&cx_console_get()->command_registry, &NAME##_alias); } while(0)
+#define CX_NEW_COMMAND_ALIAS(S_NAME, S_EXPANSION) \
+	cx_command_registry_add_alias(&cx_console_get()->command_registry, S_NAME, S_EXPANSION)
 
 struct cx_command;
 
 struct cx_command_alias {
-	const char* s_name;
-	const char* s_expansion;
+	char* s_name;
+	char* s_expansion;
 };
 
 struct cx_command_registry {
-	const struct cx_command** p_commands_;
+	const struct cx_command** pp_commands_;
 	size_t commands_cap_;
 	size_t num_commands_;
-	const struct cx_command_alias** p_aliases_;
+	struct cx_command_alias* p_aliases_;
 	size_t aliases_cap_;
 	size_t num_aliases_;
 };
@@ -52,7 +49,10 @@ int cx_command_registry_find(
 	const char* s_command_name,
 	const struct cx_command** pp_out_command);
 
-void cx_command_registry_add_alias(struct cx_command_registry* p_registry, const struct cx_command_alias* p_alias);
+void cx_command_registry_add_alias(
+	struct cx_command_registry* p_registry,
+	const char* s_name,
+	const char* s_expansion);
 
 void cx_command_registry_remove_alias(struct cx_command_registry* p_registry, const char* s_alias_name);
 
