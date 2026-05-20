@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define CX_VAR_MUTABILITY_READWRITE 0
+#define CX_VAR_MUTABILITY_READONLY 1
+
 #define CX_VAR_DESC_BOOL(NAME, DESC) ((struct cx_var_desc){\
 	.s_name = NAME,\
 	.s_desc = DESC,\
@@ -47,10 +50,10 @@
 	}\
 })
 
-#define CX_VAR(DESC, P, B_READONLY) ((struct cx_var){\
+#define CX_VAR(DESC, P, READONLY) ((struct cx_var){\
 	.desc = CX_VAR_DESC_##DESC,\
 	.p = P,\
-	.b_readonly = B_READONLY,\
+	.b_readonly = CX_VAR_MUTABILITY_##READONLY,\
 })
 
 enum cx_var_type {
@@ -105,12 +108,6 @@ union cx_var_value {
 	const char* s_as_str;
 };
 
-struct cx_var_registry {
-	struct cx_var** p_vars;
-	size_t num_vars;
-	size_t cap_vars;
-};
-
 enum cx_var_parse_result {
 	CX_VAR_PARSE_RESULT_success,
 	CX_VAR_PARSE_RESULT_expected_bool,
@@ -127,15 +124,8 @@ enum cx_var_parse_result cx_var_parse(
 
 const char* cx_var_parse_errstr(enum cx_var_parse_result result);
 
-void cx_var_to_str(const struct cx_var* p_var, char* p_buf, size_t size);
+void cx_var_try_set(const struct cx_var* p_var, const char* p_buf, size_t size);
 
-void cx_var_registry_add(struct cx_var_registry* p_registry, const struct cx_var* p_var);
-void cx_var_registry_remove(struct cx_var_registry* p_registry, const char* s_var_name);
-void cx_var_registry_find(
-	const struct cx_var_registry* p_registry,
-	const char* s_var_name,
-	const struct cx_var** pp_out_var);
-int cx_var_registry_get(const struct cx_var_registry* p_registry, const char* s_var_name, void** pp_out_value);
-int cx_var_registry_set(const struct cx_var_registry* p_registry, const char* s_var_name_and_value);
+void cx_var_to_str(const struct cx_var* p_var, char* p_buf, size_t size);
 
 #endif

@@ -1,5 +1,7 @@
+#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "cx_var.h"
 #include "math_utils.h"
@@ -75,4 +77,60 @@ const char* cx_var_parse_errstr(enum cx_var_parse_result result) {
 		"Value outside of expected range"
 	};
 	return strs[result];
+}
+
+void cx_var_try_set(const struct cx_var* p_var, const char* p_buf, size_t size) {
+	if (p_var->b_readonly) {
+		return;
+	}
+
+	union cx_var_value val;
+	const enum cx_var_parse_result r = cx_var_parse(&p_var->desc, p_buf, size, &val);
+
+	if (r != CX_VAR_PARSE_RESULT_success) {
+		return;
+	}
+
+	switch(p_var->desc.type) {
+		case CX_VAR_TYPE_string: {
+			strncpy(p_var->p, val.s_as_str, size - 1);
+			break;
+		}
+		case CX_VAR_TYPE_float: {
+			*((double*)p_var->p) = val.as_float;
+			break;
+		}
+		case CX_VAR_TYPE_int: {
+			*((int64_t*)p_var->p) = val.as_int;
+			break;
+		}
+		case CX_VAR_TYPE_bool: {
+			*((int*)p_var->p) = val.b_as_bool;
+			break;
+		}
+	}
+}
+
+void cx_var_to_str(const struct cx_var* p_var, char* p_buf, size_t size) {
+	switch(p_var->desc.type) {
+		case CX_VAR_TYPE_string: {
+			strncpy(p_buf, p_var->p, size - 1);
+			break;
+		}
+		case CX_VAR_TYPE_float: {
+			const double* p_d = p_var->p;
+			snprintf(p_buf, size - 1, "%g", *p_d);
+			break;
+		}
+		case CX_VAR_TYPE_int: {
+			const int64_t* p_i = p_var->p;
+			snprintf(p_buf, size - 1, "%"PRId64, *p_i);
+			break;
+		}
+		case CX_VAR_TYPE_bool: {
+			const int* p_b = p_var->p;
+			strncpy(p_buf, *p_b ? "true" : "false", size - 1);
+			break;
+		}
+	}
 }
