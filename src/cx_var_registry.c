@@ -7,8 +7,6 @@
 #include "cx_var.h"
 #include "cx_var_registry.h"
 
-#define CX_LOG_CAT_VAR "var"
-
 #define CX_VAR_REGISTRY_MAX_NAME_LEN 48
 
 #define CX_VAR_CMP_KEY(P_VAR, KEY) (strcmp((P_VAR)->desc.s_name, KEY))
