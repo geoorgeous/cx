@@ -6,21 +6,11 @@
 #include "input.h"
 #include "keys.h"
 
-	// command_name <boolean_param:b> <string_param> <enum_pram:val0|val1|val2}> [int_param:i] [float_param:f]
-	// 
-	// Description blah blah this command does something really useful and cool and powerful
-	// 
-	//  > boolean_param (bool): Description
-	//  > string_param (string): Description
-	//  > enum_param (val0|val1|val2): Description
-	//  - int_param (int): Description
-	//  - float_param (float): Description
-
 static struct cx_console console;
 
 static void cx_console_on_key(const void*, void*);
 static void cx_console_on_char(const void*, void*);
-static int cx_console_command_help(size_t argc, const union cx_command_arg* p_args, struct cx_flogger* p_flogger);
+static int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 struct cx_console* cx_console_get(void) {
 	return &console;
@@ -135,7 +125,42 @@ void cx_console_on_char(const void* p_event, void* p_user_ptr) {
 	cx_text_edit_insert(&p_console->input.text, &c, 1);
 }
 
-int cx_console_command_help(size_t argc, const union cx_command_arg* p_args, struct cx_flogger* p_flogger) {
-	CX_LOG(INFO, CONSOLE, "Help command\n");
+int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	// command_name <boolean_param:b> <string_param> <enum_pram:val0|val1|val2}> [int_param:i] [float_param:f]
+	// 
+	// Description blah blah this command does something really useful and cool and powerful
+	// 
+	//  > boolean_param (bool): Description
+	//  > string_param (string): Description
+	//  > enum_param (val0|val1|val2): Description
+	//  - int_param (int): Description
+	//  - float_param (float): Description
+	//
+	const struct cx_command_registry* p_reg = &console.command_registry;
+	
+	if (p_args->count > 0) {
+		CX_LOG_FMT(INFO, CONSOLE, "help called with '%s'\n", p_args->p[0].s_as_str);
+	} else {
+		CX_LOG(INFO, CONSOLE, "help command\n");
+
+		cx_flogf(p_context->p_flogger, 0,
+				"Commands (%d)\n", p_reg->num_commands_);
+		cx_flog(p_context->p_flogger, 0,
+				"------------------------------------------------------------\n");
+
+		for (size_t i = 0; i < p_reg->num_commands_; ++i) {
+			const struct cx_command* p_command = p_reg->p_commands_[i];
+			cx_flog(p_context->p_flogger, 0, p_command->s_name);
+			cx_flog(p_context->p_flogger, 0, "  -  ");
+			cx_flog(p_context->p_flogger, 0, p_command->s_desc);
+		}
+
+		cx_flog(p_context->p_flogger, 0,
+				"------------------------------------------------------------\n"
+				"type: help \"<command>\" for details\n");
+
+		cx_flog_end(p_context->p_flogger);
+	}
+
 	return 0;
 }
