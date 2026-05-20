@@ -27,7 +27,6 @@
 #include "import_gltf.h"
 #include "material.h"
 #include "matrix.h"
-#include "mesh.h"
 #include "mouse_buttons.h"
 #include "physics.h"
 #include "platform_window.h"
@@ -369,24 +368,6 @@ int main(int argc, const char* argv[]) {
 	cx_gfx_texture_create(&font_atlas_texture, font_atlas_image.width, font_atlas_image.height, CX_PIXEL_FORMAT_red);
 	cx_gfx_texture_set_data(&font_atlas_texture, font_atlas_image.p_pixel_data, &font_atlas_image.pixel_data_format);
 	free(font_atlas_image.p_pixel_data);
-
-	struct cx_text_mesh_desc text_mesh_desc = {
-		.s_text = "Hello, World...\ncx engine demo!",
-		.color = { .rgba = { 1, 1, 1, 1 } },
-		.position = { 5, 20, 0 },
-		.scale = 1,
-		.font_data = {
-			.p_font = &font,
-			.p_glyph_atlas_layout = &font_atlas_layout,
-			.p_glyph_texture = &font_atlas_texture
-		}
-	};
-	struct mesh_primitive text_mesh_primitive;
-	cx_text_mesher_generate(&text_mesh_desc, 1, &text_mesh_primitive);
-
-	struct cx_gfx_mesh text_mesh;
-	cx_gfx_mesh_create(&text_mesh, &text_mesh_primitive);
-	cx_text_mesher_free(&text_mesh_primitive);
 
     struct gltf gltf;
     gltf_load_from_file("res/Industrial_exterior_v2.glb", &gltf);

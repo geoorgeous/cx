@@ -32,6 +32,37 @@ static struct cx_gfx_mesh text_mesh;
 static struct cx_gfx_mesh quad_mesh;
 
 static int cx_console_view_init(void);
+static void cx_console_view_draw_quads(
+	const struct cx_console* p_console,
+	const struct cx_font_render_data* p_font_render_data,
+	const struct cx_color_f32* p_color_bg,
+	const struct cx_color_f32* p_color_fg,
+	float left,
+	float bottom,
+	float width,
+	float padding_x,
+	float padding_y,
+	float line_height);
+static void cx_console_view_draw_text(
+	const struct cx_font_render_data* p_font_render_data,
+	float left,
+	float bottom,
+	float padding_x,
+	float padding_y);
+static void cx_console_view_draw_log_quads(
+	const struct cx_color_f32* p_color_bg,
+	float left,
+	float bottom,
+	float width,
+	float padding_x,
+	float padding_y,
+	float line_height);
+static void cx_console_view_draw_log_text(
+	const struct cx_font_render_data* p_font_render_data,
+	float left,
+	float bottom,
+	float padding_x,
+	float padding_y);
 
 void cx_console_view_draw(
 	const struct cx_console* p_console,
@@ -43,6 +74,22 @@ void cx_console_view_draw(
 		return;
 	}
 
+	const struct cx_text_mesher_input text_mesher_input = {
+		.s_text = p_console->input.input_buf,
+		.style = {
+			.p_font_render_data = p_font_render_data,
+			.scale = 1,
+			.color = { .rgba = { 0.8f, 0.8f, 0.8f, 1 } }
+		}
+	};
+	
+	struct cx_text_mesher_output text_mesher_output;
+	size_t num_text_meshes;
+	cx_text_mesher_generate(&text_mesher_input, 1, &text_mesher_output, &num_text_meshes);
+
+	cx_gfx_mesh_create(&text_mesh, &text_mesher_output.primitive);
+	cx_text_mesher_free(&text_mesher_output, 1);
+
 	struct {
 		float projection_matrix[16];
 		float view_matrix[16];
@@ -50,52 +97,15 @@ void cx_console_view_draw(
 	matrix_copy(p_projection_matrix, camera.projection_matrix);
 	matrix_copy(p_view_matrix, camera.view_matrix);
 
-	const struct cx_text_mesh_desc desc = {
-		.s_text = p_console->input.input_buf,
-		.scale = 1,
-		.color = { .rgba = { 0.8f, 0.8f, 0.8f, 1 } },
-		.font_data = *p_font_render_data,
-	};
-	
-	struct mesh_primitive text_mesh_primitive;
-	cx_text_mesher_generate(&desc, 1, &text_mesh_primitive);
-
-	cx_gfx_mesh_create(&text_mesh, &text_mesh_primitive);
-	cx_text_mesher_free(&text_mesh_primitive);
-
-	float transform[16];
-	
-	const float bg_left = 5;
-	const float bg_bottom = 5;
+	const float left = 5;
+	const float bottom = 5;
 	const float padding_x = 2;
 	const float padding_y = 2;
-	const float chars_per_line = 70;
-
-	const float bg_width = p_font_render_data->p_font->max_glyph_width_ * chars_per_line + (padding_x * 2);
-	const float bg_height = p_font_render_data->p_font->max_glyph_height_ + (padding_y * 2);
-	const float bg_x = bg_left + (int)(bg_width * 0.5f);
-	const float bg_y = bg_bottom + (int)(bg_height * 0.5f);
-
-	const float text_x = bg_left + padding_x;
-	const float text_baseline = bg_bottom + padding_y + p_font_render_data->p_font->descent_;
-	
-	float pre_cursor_text_width;
-	float pre_cursor_text_height;
-	cx_text_mesher_measure(
-		p_console->input.input_buf,
-		p_console->input.text.cursor_pos,
-		p_font_render_data,
-		1,
-		&pre_cursor_text_width,
-		&pre_cursor_text_height);
-
-	const float cursor_width = 1;
-	const float cursor_height = p_font_render_data->p_font->max_glyph_height_;
-	const float cursor_x = text_x + pre_cursor_text_width - (cursor_width * 0.5f);
-	const float cursor_y = bg_bottom + padding_y + cursor_height * 0.5f;
+	const float width = 400;
+	const float line_height = p_font_render_data->p_font->max_glyph_height_;
 
 	const struct cx_color_f32 bg_color = { .rgba = { 0, 0, 0, 0.5f } };
-
+	
 	// quads
 
 	cx_gfx_program_bind(&program_flat);
@@ -104,28 +114,16 @@ void cx_console_view_draw(
 	cx_gfx_program_param_block_bind_buffer(&program_flat_pblock_mtl, &program_flat_pbuffer_mtl, 0, 0);
 	
 	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_camera, 0, 0, &camera);
-	
-	// background
 
-	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ bg_width, bg_height, 1 }, transform);
+	cx_console_view_draw_quads(
+		p_console,
+		p_font_render_data, 
+		&bg_color, &text_mesher_input.style.color,
+		left, bottom, width,
+		padding_x, padding_y,
+		line_height);
 
-	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
-	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, &bg_color);
-
-	cx_gfx_mesh_draw(&quad_mesh);
-	
-	// cursor
-
-	matrix_make_ts((float[]){ cursor_x, cursor_y, 1 }, (float[]){ cursor_width, cursor_height, 1 }, transform);
-
-	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
-	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, &desc.color);
-
-	cx_gfx_mesh_draw(&quad_mesh);
-	
-	// draw input
-	
-	matrix_make_translation(text_x, text_baseline, 1, transform);
+	// text
 
 	cx_gfx_program_bind(&program_text);
 	cx_gfx_program_param_block_bind_buffer(&program_text_pblock_camera, &program_text_pbuffer_camera, 0, 0);
@@ -135,10 +133,8 @@ void cx_console_view_draw(
 	
 	cx_gfx_program_opaque_param_bind_resource(&program_text_opaque_texture_atlas, p_font_render_data->p_glyph_texture);
 
-	cx_gfx_program_param_buffer_set(&program_text_pbuffer_object, 0, 0, transform);
+	cx_console_view_draw_text(p_font_render_data, left, bottom, padding_x, padding_y);
 	
-	cx_gfx_mesh_draw(&text_mesh);
-
 	cx_gfx_mesh_destroy(&text_mesh);
 }
 
@@ -199,4 +195,112 @@ int cx_console_view_init(void) {
 	cx_mesh_gen_free(&quad_mesh_prim);
 
 	return (b_init = 1);
+}
+
+void cx_console_view_draw_quads(
+	const struct cx_console* p_console,
+	const struct cx_font_render_data* p_font_render_data,
+	const struct cx_color_f32* p_color_bg,
+	const struct cx_color_f32* p_color_fg,
+	float left,
+	float bottom,
+	float width,
+	float padding_x,
+	float padding_y,
+	float line_height) {
+
+	const float bg_width = width + (padding_x * 2);
+	const float bg_height = line_height + (padding_y * 2);
+	const float bg_x = left + (int)(bg_width * 0.5f);
+	const float bg_y = bottom + (int)(bg_height * 0.5f);
+	
+	float pre_cursor_text_width;
+	float pre_cursor_text_height;
+	cx_text_mesher_measure(
+		p_console->input.input_buf,
+		p_console->input.text.cursor_pos,
+		p_font_render_data,
+		1,
+		&pre_cursor_text_width,
+		&pre_cursor_text_height);
+
+	const float cursor_width = 1;
+	const float cursor_height = line_height;
+	const float cursor_x = left + padding_x + pre_cursor_text_width - (cursor_width * 0.5f);
+	const float cursor_y = bottom + padding_y + cursor_height * 0.5f;
+
+	float transform[16];
+
+	// background
+
+	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ bg_width, bg_height, 1 }, transform);
+
+	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
+	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, p_color_bg);
+
+	cx_gfx_mesh_draw(&quad_mesh);
+	
+	// cursor
+
+	matrix_make_ts((float[]){ cursor_x, cursor_y, 1 }, (float[]){ cursor_width, cursor_height, 1 }, transform);
+
+	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
+	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, p_color_fg);
+
+	cx_gfx_mesh_draw(&quad_mesh);
+	
+	cx_console_view_draw_log_quads(p_color_bg, left, bottom + bg_height + padding_y, width, padding_x, padding_y, line_height);
+}
+
+void cx_console_view_draw_text(
+	const struct cx_font_render_data* p_font_render_data,
+	float left,
+	float bottom,
+	float padding_x,
+	float padding_y) {
+
+	const float text_x = left + padding_x;
+	const float text_baseline = bottom + padding_y + p_font_render_data->p_font->descent_;
+
+	float transform[16];
+	matrix_make_translation(text_x, text_baseline, 1, transform);
+
+	cx_gfx_program_param_buffer_set(&program_text_pbuffer_object, 0, 0, transform);
+	
+	cx_gfx_mesh_draw(&text_mesh);
+
+	cx_console_view_draw_log_text(p_font_render_data, left, bottom, padding_x, padding_y);
+}
+
+void cx_console_view_draw_log_quads(
+	const struct cx_color_f32* p_color_bg,
+	float left,
+	float bottom,
+	float width,
+	float padding_x,
+	float padding_y,
+	float line_height) {
+
+	const float num_lines = 20;
+	const float bg_width = width + (padding_x * 2);
+	const float bg_height = line_height * num_lines + (padding_y * 2);
+	const float bg_x = left + (int)(bg_width * 0.5f);
+	const float bg_y = bottom + (int)(bg_height * 0.5f);
+	
+	float transform[16];
+
+	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ bg_width, bg_height, 1 }, transform);
+
+	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
+	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, p_color_bg);
+
+	cx_gfx_mesh_draw(&quad_mesh);
+}
+
+void cx_console_view_draw_log_text(
+	const struct cx_font_render_data* p_font_render_data,
+	float left,
+	float bottom,
+	float padding_x,
+	float padding_y) {
 }
