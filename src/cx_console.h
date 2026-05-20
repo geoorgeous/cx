@@ -4,11 +4,10 @@
 #include "cx_command_registry.h"
 #include "cx_flog.h"
 #include "cx_text_edit.h"
-
+#include "cx_var_registry.h"
 
 // console log view (log drawing, view state)
 // console log view navigation
-
 
 // todo:
 //
@@ -41,6 +40,7 @@ struct cx_console_input {
 struct cx_console {
 	int b_is_input_enabled;
 	struct cx_command_registry command_registry;
+	struct cx_var_registry var_registry;
 	struct cx_console_input input;
 	struct cx_flogger flogger;
 };
