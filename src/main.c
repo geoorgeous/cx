@@ -3,6 +3,7 @@
 
 #include "asset.h"
 #include "cx_bdf.h"
+#include "cx_command.h"
 #include "cx_console.h"
 #include "cx_console_view.h"
 #include "cx_font.h"
@@ -58,6 +59,8 @@ static void platform_window_on_mouse_move(struct platform_window*, void*, int, i
 static void platform_window_on_char(struct platform_window*, void*, unsigned int);
 
 static void on_key(const void* p_e, void* p_user_ptr);
+
+static int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 void platform_window_on_created(struct platform_window* p_window, void* p_user_ptr) {
 	(void)p_user_ptr;
@@ -161,8 +164,11 @@ int main(int argc, const char* argv[]) {
 
     unsigned int window_size[] = { 1200, 900 };
 
-    struct platform_window platform_window;
+    static struct platform_window platform_window;
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
+	
+	CX_NEW_COMMAND(quit, "Close application", console_command_quit, &platform_window);
+	CX_NEW_COMMAND_ALIAS("q", "quit");
 
 	if (err != CX_ERROR_none) {
 		return err;
@@ -669,4 +675,10 @@ int main(int argc, const char* argv[]) {
     }
 
     return 0;
+}
+
+int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	(void)p_args;
+	platform_window_destroy(p_context->p_command->p_user_ptr);
+	return 0;
 }
