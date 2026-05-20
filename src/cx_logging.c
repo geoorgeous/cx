@@ -20,11 +20,11 @@ static int  is_log_visible(const char* s_cat, int level);
 static void print_prefix(FILE* p_file, int log_level, const char* s_category);
 
 static const char* k_log_level_strings[] = {
-	CX_LOG_LABEL_UNDEFINED,
     CX_LOG_LABEL_TRACE,
     CX_LOG_LABEL_INFO,
     CX_LOG_LABEL_WARNING,
     CX_LOG_LABEL_ERROR,
+	CX_LOG_LABEL_UNDEFINED
 };
 
 static char              log_cat_str_buf[CX_LOG_CAT_STR_BUF_LEN];

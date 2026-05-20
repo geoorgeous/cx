@@ -82,17 +82,17 @@
 
 #define CX_LOG_LEVEL_SILENT   -1
 #define CX_LOG_LEVEL_ALL       0
-#define CX_LOG_LEVEL_UNDEFINED 0
-#define CX_LOG_LEVEL_TRACE     1
-#define CX_LOG_LEVEL_INFO      2
-#define CX_LOG_LEVEL_WARNING   3
-#define CX_LOG_LEVEL_ERROR     4
+#define CX_LOG_LEVEL_TRACE     0
+#define CX_LOG_LEVEL_INFO      1
+#define CX_LOG_LEVEL_WARNING   2
+#define CX_LOG_LEVEL_ERROR     3
+#define CX_LOG_LEVEL_UNDEFINED 4
 
-#define CX_LOG_LABEL_UNDEFINED "  *  *  "
 #define CX_LOG_LABEL_TRACE     "   trace"
 #define CX_LOG_LABEL_INFO      "    info"
 #define CX_LOG_LABEL_WARNING   " warning"
 #define CX_LOG_LABEL_ERROR     "   ERROR"
+#define CX_LOG_LABEL_UNDEFINED "        "
 
 #define CX_LOG_CAT_ALL      0
 #define CX_LOG_CAT_DONTCARE 0
