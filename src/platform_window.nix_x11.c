@@ -200,7 +200,7 @@ void platform_window_destroy(struct platform_window* p_window) {
 void platform_window_poll_events(struct platform_window* p_window) {
     struct platform_window_nix_x11_internals* p_internals = (void*)p_window->bytes_;
 
-    while (XPending(p_internals->p_display) > 0) {
+    while (p_internals->p_display && XPending(p_internals->p_display) > 0) {
         XEvent event = {0};
         XNextEvent(p_internals->p_display, &event);
 
