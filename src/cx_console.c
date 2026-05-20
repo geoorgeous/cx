@@ -1,8 +1,11 @@
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cx_command.h"
 #include "cx_console.h"
 #include "cx_logging.h"
+#include "cx_var.h"
 #include "input.h"
 #include "keys.h"
 
@@ -11,6 +14,10 @@ static struct cx_console console;
 static void cx_console_on_key(const void*, void*);
 static void cx_console_on_char(const void*, void*);
 static int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static int cx_console_command_alias(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static int cx_console_command_unalias(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static int cx_console_command_var(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static int cx_console_command_test(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 struct cx_console* cx_console_get(void) {
 	return &console;
@@ -26,17 +33,47 @@ void cx_console_init(struct cx_console* p_console) {
 
 	cx_flog_init(&p_console->flogger);
 
-	const static struct cx_command_param params[] = {
-		CX_COMMAND_PARAM(STRING("command", "Name of command"), 0)
+	CX_NEW_COMMAND(help,
+		"List all commands, or the details of a single command",
+		cx_console_command_help, &console.command_registry,
+		CX_COMMAND_PARAM(STRING("name", "Command to list detail of"), OPTIONAL));
+	CX_NEW_COMMAND_ALIAS("h", "help");
+
+	CX_NEW_COMMAND(alias,
+		"List, create, or query aliases",
+		cx_console_command_alias, &console.command_registry,
+		CX_COMMAND_PARAM(STRING("name", "Alias name"), OPTIONAL),
+		CX_COMMAND_PARAM(STRING("expansion", "Expansion to execute"), OPTIONAL));
+
+	CX_NEW_COMMAND(unalias,
+		"Delete an alias",
+		cx_console_command_unalias, &console.command_registry,
+		CX_COMMAND_PARAM(STRING("name", "Name of the alias to delete"), REQUIRED));
+
+	CX_NEW_COMMAND(var,
+		"List, query, or assign vars",
+		cx_console_command_var, &console.var_registry,
+		CX_COMMAND_PARAM(STRING("name", "Name of the variable to get/set"), OPTIONAL),
+		CX_COMMAND_PARAM(STRING("value", "Value to assign to the variable"), OPTIONAL));
+
+	static const struct cx_var_enum_map_entry entries[] = {
+		{ "eone",   0 },
+		{ "etwo",   1 },
+		{ "ethree", 2 },
+		{ "efour",  3 },
+		{ "efive",  4 }
 	};
-	const static struct cx_command help = {
-		.s_name = "help",
-		.s_desc = "Help command",
-		.p_params = params,
-		.num_params = 1,
-		.f = cx_console_command_help,
-	};
-	cx_command_registry_add(&p_console->command_registry, &help);
+
+	CX_NEW_COMMAND(test,
+		"Testing, tesing, one, two, three",
+		cx_console_command_test, 0,
+		CX_COMMAND_PARAM(STRING("one", "First parameter"), REQUIRED),
+		CX_COMMAND_PARAM(INT("two", "Second parameter"), REQUIRED),
+		CX_COMMAND_PARAM(INT_RANGE("two", "Second parameter", 0, 100), REQUIRED),
+		CX_COMMAND_PARAM(FLOAT("three", "Third parameter"), REQUIRED),
+		CX_COMMAND_PARAM(FLOAT_RANGE("three", "Third parameter", -0.5f, 0.5f), REQUIRED),
+		CX_COMMAND_PARAM(BOOL("four", "Four parameter"), REQUIRED),
+		CX_COMMAND_PARAM(ENUM("seven", "", entries, 5), REQUIRED));
 }
 
 void cx_console_set_is_input_enabled(struct cx_console* p_console, int b_is_input_enabled) {
@@ -126,41 +163,122 @@ void cx_console_on_char(const void* p_event, void* p_user_ptr) {
 }
 
 int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
-	// command_name <boolean_param:b> <string_param> <enum_pram:val0|val1|val2}> [int_param:i] [float_param:f]
-	// 
-	// Description blah blah this command does something really useful and cool and powerful
-	// 
-	//  > boolean_param (bool): Description
-	//  > string_param (string): Description
-	//  > enum_param (val0|val1|val2): Description
-	//  - int_param (int): Description
-	//  - float_param (float): Description
-	//
-	const struct cx_command_registry* p_reg = &console.command_registry;
+	const struct cx_command_registry* p_registry = p_context->p_command->p_user_ptr;
 	
 	if (p_args->count > 0) {
-		CX_LOG_FMT(INFO, CONSOLE, "help called with '%s'\n", p_args->p[0].s_as_str);
+		CX_LOG_FMT(INFO, CONSOLE, "help called with '%.*s'\n", p_args->list[0].as_str.len, p_args->list[0].as_str.p);
 	} else {
-		CX_LOG(INFO, CONSOLE, "help command\n");
+		CX_LOG_FMT(INFO, CONSOLE, "Commands (%d)\n", p_registry->num_commands_);
+		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
 
-		cx_flogf(p_context->p_flogger, 0,
-				"Commands (%d)\n", p_reg->num_commands_);
-		cx_flog(p_context->p_flogger, 0,
-				"------------------------------------------------------------\n");
-
-		for (size_t i = 0; i < p_reg->num_commands_; ++i) {
-			const struct cx_command* p_command = p_reg->p_commands_[i];
-			cx_flog(p_context->p_flogger, 0, p_command->s_name);
-			cx_flog(p_context->p_flogger, 0, "  -  ");
-			cx_flog(p_context->p_flogger, 0, p_command->s_desc);
+		for (size_t i = 0; i < p_registry->num_commands_; ++i) {
+			const struct cx_command* p_command = p_registry->pp_commands_[i];
+			CX_LOG_FMT(INFO, COMMAND, " %s\n", p_command->s_name);
 		}
-
-		cx_flog(p_context->p_flogger, 0,
-				"------------------------------------------------------------\n"
-				"type: help \"<command>\" for details\n");
-
-		cx_flog_end(p_context->p_flogger);
+		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		CX_LOG(INFO, COMMAND, "type: help \"<command>\" for details\n");
 	}
 
+	return 0;
+}
+
+int cx_console_command_alias(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	struct cx_command_registry* p_registry = p_context->p_command->p_user_ptr;
+
+	if (p_args->count == 0) {
+		CX_LOG_FMT(INFO, COMMAND, "Aliases (%d)\n", p_registry->num_aliases_);
+
+		if (p_registry->num_aliases_ == 0) {
+			return 0;
+		}
+
+		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		for (size_t i = 0; i < p_registry->num_aliases_; ++i) {
+			const struct cx_command_alias* p_alias = &p_registry->p_aliases_[i];
+			CX_LOG_FMT(INFO, COMMAND, " %s -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
+		}
+		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		return 0;
+	}
+
+	char* p_alias_name = strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
+
+	const struct cx_command_alias* p_alias;
+	const int b_found = cx_command_registry_find_alias(p_registry, p_alias_name, &p_alias);
+
+	if (p_args->count == 1) {
+		if (!b_found) {
+			CX_LOG_FMT(INFO, COMMAND, "alias %s not found\n", p_alias_name);
+			free(p_alias_name);
+			return 1;
+		}
+		CX_LOG_FMT(INFO, COMMAND, "alias: (%s) -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
+		free(p_alias_name);
+		return 0;
+	}
+
+	if (b_found) {
+		// already exists
+		free(p_alias_name);
+		return 2;	
+	}
+
+	char* p_alias_expansion = strndup(p_args->list[1].as_str.p, p_args->list[1].as_str.len);
+
+	cx_command_registry_add_alias(p_registry, p_alias_name, p_alias_expansion);
+
+	free(p_alias_name);
+	free(p_alias_expansion);
+
+	return 0;
+}
+
+int cx_console_command_unalias(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	struct cx_command_registry* p_registry = p_context->p_command->p_user_ptr;
+	char* p_alias_name = strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
+	cx_command_registry_remove_alias(p_registry, p_alias_name);
+	free(p_alias_name);
+	return 0;
+}
+
+int cx_console_command_var(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	struct cx_var_registry* p_registry = p_context->p_command->p_user_ptr;
+
+	if (p_args->count == 0) {
+		// list vars
+		return 0;
+	}
+	
+	char* p_var_name = strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
+
+	const struct cx_var* p_var;
+	if (!cx_var_registry_find(p_registry, p_var_name, &p_var)) {
+		// var not found
+		free(p_var_name);
+		return -1;
+	}
+
+	if (p_args->count == 1) {
+		free(p_var_name);
+		return 0;
+	}
+
+	cx_var_try_set(p_var, p_args->list[1].as_str.p, p_args->list[1].as_str.len);
+
+	free(p_var_name);
+
+	return 0;
+}
+
+int cx_console_command_test(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	(void)p_context;
+	CX_LOG_FMT(INFO, COMMAND, "test args: \"%.*s\", %d, %d, %g, %g, %d, %s(%d)\n",
+		p_args->list[0].as_str.len, p_args->list[0].as_str.p,
+		p_args->list[1].as_int,
+		p_args->list[2].as_int,
+		p_args->list[3].as_float,
+		p_args->list[4].as_float,
+		p_args->list[5].b_as_bool,
+		p_args->list[6].p_as_enum->s_name, p_args->list[6].p_as_enum->value);
 	return 0;
 }
