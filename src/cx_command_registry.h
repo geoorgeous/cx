@@ -16,6 +16,13 @@
 	};\
 	cx_command_registry_add(&cx_console_get()->command_registry, &NAME##_command); } while(0)
 
+#define CX_NEW_COMMAND_ALIAS(NAME, EXPANSION) do {\
+	const static struct cx_command_alias NAME##_alias = {\
+		.s_name = #NAME,\
+		.s_expansion = EXPANSION\
+	};\
+	cx_command_registry_add_alias(&cx_console_get()->command_registry, &NAME##_alias); } while(0)
+
 struct cx_command;
 
 struct cx_command_alias {

@@ -235,9 +235,22 @@ int cx_command_registry_execute(
 	int b_found;
 
 	CX_BSEARCH(
+		p_registry->p_aliases_,
+		p_registry->num_aliases_,
+		name_buf,
+		CX_COMMAND_ALIAS_CMP_KEY,
+		&index, &b_found);
+
+	if (b_found) {
+		const struct cx_command_alias* p_alias = p_registry->p_aliases_[index];
+		cx_command_registry_execute(p_registry, p_alias->s_expansion, p_flogger);
+		return 0;
+	}
+
+	CX_BSEARCH(
 		p_registry->p_commands_,
 		p_registry->num_commands_,
-		s_command_name,
+		name_buf,
 		CX_COMMAND_CMP_KEY,
 		&index, &b_found);
 
