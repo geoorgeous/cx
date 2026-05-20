@@ -1,20 +1,34 @@
 #ifndef CX_CONSOLE_H
 #define CX_CONSOLE_H
 
-#include "cx_command.h"
+#include "cx_command_registry.h"
 #include "cx_flog.h"
 #include "cx_text_edit.h"
 
-// console input drawing
 
 // console log view (log drawing, view state)
 // console log view navigation
 
-// console command/arg autocompletion
-// if multiple candidates: show them
-// else if one candidate: autocomplete
-// if candidates already shown: autocomplete next candidate
+
+// todo:
 //
+// command history:
+//    list management
+//    navigation
+//    drawing and tracking
+//
+// output log:
+//    cache lines for easy indexing
+//    navigation
+//    drawing
+//
+// auto-completion
+//    command name candidates
+//    param candidates
+//    candidate list drawing
+//    candidate auto-complete
+//    candidate cycling
+
 #define CX_LOG_CAT_CONSOLE "console"
 
 #define CX_CONSOLE_MAX_INPUT_LEN 1024

@@ -1,5 +1,6 @@
 #include <ctype.h>
 
+#include "cx_command.h"
 #include "cx_console.h"
 #include "cx_logging.h"
 #include "input.h"
@@ -36,14 +37,14 @@ void cx_console_init(struct cx_console* p_console) {
 	cx_flog_init(&p_console->flogger);
 
 	const static struct cx_command_param params[] = {
-		CX_COMMAND_PARAM_STRING("command", "Name of command", 0)
+		CX_COMMAND_PARAM(STRING("command", "Name of command"), 0)
 	};
 	const static struct cx_command help = {
 		.s_name = "help",
 		.s_desc = "Help command",
 		.p_params = params,
 		.num_params = 1,
-		.f = cx_console_command_help
+		.f = cx_console_command_help,
 	};
 	cx_command_registry_add(&p_console->command_registry, &help);
 }
