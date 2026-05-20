@@ -22,7 +22,7 @@
 		}\
 	} } while(0)
 
-#define CX_SORTED_ADD(P_ARRAY, P_NUM, P_CAP, INDEX, P_VAL) do {\
+#define CX_SORTED_ADD(P_ARRAY, P_NUM, P_CAP, INDEX, VAL) do {\
 	if (*(P_CAP) == *(P_NUM)) {\
 		*(P_CAP) = (*(P_CAP)) ? *(P_CAP) * 2 : 8;\
 		const size_t new_size = *(P_CAP) * sizeof(*(P_ARRAY));\
@@ -31,11 +31,11 @@
 	if ((INDEX) < *(P_NUM)) {\
 		void* p_dst = (P_ARRAY) + (INDEX) + 1;\
 		const void* p_src = (P_ARRAY) + (INDEX);\
-		const size_t size = sizeof(*(P_ARRAY)) * *((P_NUM) - INDEX);\
+		const size_t size = sizeof(*(P_ARRAY)) * (*(P_NUM) - INDEX);\
 		memmove(p_dst, p_src, size);\
 	}\
 	++(*P_NUM);\
-	(P_ARRAY)[INDEX] = (P_VAL);\
+	(P_ARRAY)[INDEX] = (VAL);\
 } while(0)
 
 #define CX_SORTED_REMOVE(P_ARRAY, P_NUM, INDEX) do {\
