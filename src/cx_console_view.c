@@ -54,7 +54,6 @@ static void cx_console_view_draw_log_quads(
 	float left,
 	float bottom,
 	float width,
-	float padding_x,
 	float padding_y,
 	float line_height);
 static void cx_console_view_draw_log_text(
@@ -67,6 +66,7 @@ static void cx_console_view_draw_log_text(
 void cx_console_view_draw(
 	const struct cx_console* p_console,
 	const struct cx_font_render_data* p_font_render_data,
+	unsigned int max_width,
 	const float* p_projection_matrix,
 	const float* p_view_matrix) {
 
@@ -97,11 +97,11 @@ void cx_console_view_draw(
 	matrix_copy(p_projection_matrix, camera.projection_matrix);
 	matrix_copy(p_view_matrix, camera.view_matrix);
 
-	const float left = 5;
-	const float bottom = 5;
+	const float margin_x = 5;
+	const float margin_y = 5;
 	const float padding_x = 2;
 	const float padding_y = 2;
-	const float width = 400;
+	const float width = max_width - margin_x * 2;
 	const float line_height = p_font_render_data->p_font->max_glyph_height_;
 
 	const struct cx_color_f32 bg_color = { .rgba = { 0, 0, 0, 0.5f } };
@@ -119,7 +119,7 @@ void cx_console_view_draw(
 		p_console,
 		p_font_render_data, 
 		&bg_color, &text_mesher_input.style.color,
-		left, bottom, width,
+		margin_x, margin_y, width,
 		padding_x, padding_y,
 		line_height);
 
@@ -133,7 +133,7 @@ void cx_console_view_draw(
 	
 	cx_gfx_program_opaque_param_bind_resource(&program_text_opaque_texture_atlas, p_font_render_data->p_glyph_texture);
 
-	cx_console_view_draw_text(p_font_render_data, left, bottom, padding_x, padding_y);
+	cx_console_view_draw_text(p_font_render_data, margin_x, margin_y, padding_x, padding_y);
 	
 	cx_gfx_mesh_destroy(&text_mesh);
 }
@@ -209,9 +209,8 @@ void cx_console_view_draw_quads(
 	float padding_y,
 	float line_height) {
 
-	const float bg_width = width + (padding_x * 2);
 	const float bg_height = line_height + (padding_y * 2);
-	const float bg_x = left + (int)(bg_width * 0.5f);
+	const float bg_x = left + (int)(width * 0.5f);
 	const float bg_y = bottom + (int)(bg_height * 0.5f);
 	
 	float pre_cursor_text_width;
@@ -233,7 +232,7 @@ void cx_console_view_draw_quads(
 
 	// background
 
-	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ bg_width, bg_height, 1 }, transform);
+	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ width, bg_height, 1 }, transform);
 
 	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
 	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, p_color_bg);
@@ -249,7 +248,7 @@ void cx_console_view_draw_quads(
 
 	cx_gfx_mesh_draw(&quad_mesh);
 	
-	cx_console_view_draw_log_quads(p_color_bg, left, bottom + bg_height + padding_y, width, padding_x, padding_y, line_height);
+	cx_console_view_draw_log_quads(p_color_bg, left, bottom + bg_height + padding_y, width, padding_y, line_height);
 }
 
 void cx_console_view_draw_text(
@@ -277,19 +276,17 @@ void cx_console_view_draw_log_quads(
 	float left,
 	float bottom,
 	float width,
-	float padding_x,
 	float padding_y,
 	float line_height) {
 
 	const float num_lines = 20;
-	const float bg_width = width + (padding_x * 2);
 	const float bg_height = line_height * num_lines + (padding_y * 2);
-	const float bg_x = left + (int)(bg_width * 0.5f);
+	const float bg_x = left + (int)(width * 0.5f);
 	const float bg_y = bottom + (int)(bg_height * 0.5f);
 	
 	float transform[16];
 
-	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ bg_width, bg_height, 1 }, transform);
+	matrix_make_ts((float[]){ bg_x, bg_y, 0 }, (float[]){ width, bg_height, 1 }, transform);
 
 	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_object, 0, 0, transform);
 	cx_gfx_program_param_buffer_set(&program_flat_pbuffer_mtl, 0, 0, p_color_bg);

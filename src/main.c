@@ -185,8 +185,8 @@ int main(int argc, const char* argv[]) {
 
     // create framebuffer
 
-	uint32_t fb_width = window_size[0] * 0.5f;
-	uint32_t fb_height = window_size[1] * 0.5f;
+	uint32_t fb_width = window_size[0] * 1.0f;
+	uint32_t fb_height = window_size[1] * 1.0f;
 
 	struct cx_gfx_texture texture_fb_color;
 	struct cx_gfx_texture texture_fb_depth_stencil;
@@ -649,7 +649,7 @@ int main(int argc, const char* argv[]) {
 					.p_glyph_texture = &font_atlas_texture,
 					.p_glyph_atlas_layout = &font_atlas_layout
 				};
-				cx_console_view_draw(cx_console_get(), &font_render_data, ui_camera.projection_matrix, ui_camera.view_matrix);
+				cx_console_view_draw(cx_console_get(), &font_render_data, fb_width, ui_camera.projection_matrix, ui_camera.view_matrix);
 			}
 
             // SCREEN QUAD
