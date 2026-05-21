@@ -220,6 +220,8 @@ int cx_command_registry_execute(
 	const char* s_command,
 	struct cx_flogger* p_flogger) {
 
+	CX_LOG_FMT(INFO, COMMAND, "> %s\n", s_command);
+
 	const char* p = s_command;
 	const char* s_command_name = 0;
 	const char* s_args = 0;
@@ -276,6 +278,7 @@ int cx_command_registry_execute(
 
 	const struct cx_command* p_command = p_registry->pp_commands_[index];
 	
+
 	struct cx_command_args args;
 	if (!cx_command_resolve_args(p_command, s_args, CX_COMMAND_MAX_PARAMS, &args)) {
 		return 0;
