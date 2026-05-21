@@ -56,6 +56,7 @@ enum key {
 	KEY_ctrl_right,
 	KEY_shift_left,
 	KEY_shift_right,
+	KEY_tab,
 	KEY_enter,
 	KEY_backspace,
 	KEY_left,

@@ -472,6 +472,7 @@ enum key x11_keycode_to_key(unsigned int keycode) {
         case 18:  return KEY_9;
         case 19:  return KEY_0;
 		case 22:  return KEY_backspace;
+		case 23:  return KEY_tab;
         case 24:  return KEY_q;
         case 25:  return KEY_w;
         case 26:  return KEY_e;
