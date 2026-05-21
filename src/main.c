@@ -129,7 +129,7 @@ void on_key(const void* p_e, void* p_user_ptr) {
 	switch (p_key_event->key) {
 		case KEY_grave: {
 			struct cx_console* p_console = cx_console_get();
-			cx_console_set_is_input_enabled(p_console, !p_console->b_is_input_enabled);
+			cx_console_set_is_input_enabled(p_console, 1);
 			break;
 		}
 

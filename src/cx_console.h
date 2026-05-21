@@ -6,9 +6,6 @@
 #include "cx_text_edit.h"
 #include "cx_var_registry.h"
 
-// console log view (log drawing, view state)
-// console log view navigation
-
 // todo:
 //
 // command history:

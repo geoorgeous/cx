@@ -146,6 +146,9 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			cx_text_edit_clear(&p_console->input.text);
 			break;
 		}
+		case KEY_escape: {
+			cx_console_set_is_input_enabled(p_console, 0);
+		}
 		default: break;
 	}
 }

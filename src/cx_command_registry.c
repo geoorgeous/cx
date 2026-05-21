@@ -226,7 +226,7 @@ int cx_command_registry_execute(
 	const char* s_command_name = 0;
 	const char* s_args = 0;
 	for(; *p; p++) {
-		if (isspace(*p)) {
+		if (isspace((unsigned char)*p)) {
 			if (s_command_name) {
 				s_args = p;
 				break;

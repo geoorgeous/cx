@@ -78,5 +78,3 @@ int cx_command_resolve_args(
 
 	return 1;
 }
-
-

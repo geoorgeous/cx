@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -79,7 +80,32 @@ void cx_text_edit_cursor_set(struct cx_text_edit* p_text_edit, size_t cursor) {
 }
 
 void cx_text_edit_cursor_next_word(struct cx_text_edit* p_text_edit) {
+	if (p_text_edit->cursor_pos == p_text_edit->len) {
+		return;
+	}
+
+	for (; p_text_edit->cursor_pos <= p_text_edit->len; ++p_text_edit->cursor_pos) {
+		const char* p_0 = p_text_edit->p_buf + p_text_edit->cursor_pos;
+		const char* p_1 = p_text_edit->p_buf + p_text_edit->cursor_pos + 1;
+		if (isspace((unsigned char)*p_0) && !isspace((unsigned char)*p_1)) {
+			++p_text_edit->cursor_pos;
+			break;
+		}
+	}
 }
 
 void cx_text_edit_cursor_prev_word(struct cx_text_edit* p_text_edit) {
+	if (p_text_edit->cursor_pos == 0) {
+		return;
+	}
+
+	--p_text_edit->cursor_pos;
+
+	for (; p_text_edit->cursor_pos > 0; --p_text_edit->cursor_pos) {
+		const char* p_0 = p_text_edit->p_buf + p_text_edit->cursor_pos;
+		const char* p_1 = p_text_edit->p_buf + p_text_edit->cursor_pos - 1;
+		if (!isspace((unsigned char)*p_0) && isspace((unsigned char)*p_1)) {
+			break;
+		}
+	}
 }
