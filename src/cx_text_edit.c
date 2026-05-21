@@ -4,6 +4,16 @@
 
 #include "cx_text_edit.h"
 
+void cx_text_edit_set_buf(struct cx_text_edit* p_text_edit, char* p_buf, size_t size) {
+	const size_t len = strnlen(p_buf, size);
+	*p_text_edit = (struct cx_text_edit) {
+		.p_buf = p_buf,
+		.buf_size = size,
+		.len = len,
+		.cursor_pos = len
+	};
+}
+
 void cx_text_edit_insert(struct cx_text_edit* p_text_edit, const char* p_input, size_t n) {
 	if (p_text_edit->len + n >= p_text_edit->buf_size) {
 		n = p_text_edit->buf_size - p_text_edit->len - 1;

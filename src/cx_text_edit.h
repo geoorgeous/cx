@@ -10,6 +10,7 @@ struct cx_text_edit {
 	size_t cursor_pos;
 };
 
+void cx_text_edit_set_buf(struct cx_text_edit* p_text_edit, char* p_buf, size_t size);
 void cx_text_edit_insert(struct cx_text_edit* p_text_edit, const char* p_input, size_t n);
 void cx_text_edit_delete(struct cx_text_edit* p_text_edit, int n);
 void cx_text_edit_clear(struct cx_text_edit* p_text_edit);
