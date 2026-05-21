@@ -460,6 +460,7 @@ enum key x11_keycode_to_key(unsigned int keycode) {
     CX_DBG(CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "keycode=%u\n", keycode));
 
     switch (keycode) {
+		case  9:  return KEY_escape;
         case 10:  return KEY_1;
         case 11:  return KEY_2;
         case 12:  return KEY_3;
