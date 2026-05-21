@@ -487,34 +487,36 @@ int main(int argc, const char* argv[]) {
 				0.01f, 1000.0f,
 				camera.projection_matrix);
 
-            float move_direction[3] = {0};
-            if (input_frame_is_key_down(KEY_a)) {
-                move_direction[0] -= 1;
-            }
-            if (input_frame_is_key_down(KEY_d)) {
-                move_direction[0] += 1;
-            }
-            if (input_frame_is_key_down(KEY_s)) {
-                move_direction[2] += 1;
-            }
-            if (input_frame_is_key_down(KEY_w)) {
-                move_direction[2] -= 1;
-            }
-            if (input_frame_is_key_down(KEY_space)) {
-                move_direction[1] += 1;
-            }
-            if (input_frame_is_key_down(KEY_ctrl_left)) {
-                move_direction[1] -= 1;
-            }
+			float move_direction[3] = {0};
+			if (!cx_console_get()->b_is_input_enabled) {
+				if (input_frame_is_key_down(KEY_a)) {
+					move_direction[0] -= 1;
+				}
+				if (input_frame_is_key_down(KEY_d)) {
+					move_direction[0] += 1;
+				}
+				if (input_frame_is_key_down(KEY_s)) {
+					move_direction[2] += 1;
+				}
+				if (input_frame_is_key_down(KEY_w)) {
+					move_direction[2] -= 1;
+				}
+				if (input_frame_is_key_down(KEY_space)) {
+					move_direction[1] += 1;
+				}
+				if (input_frame_is_key_down(KEY_ctrl_left)) {
+					move_direction[1] -= 1;
+				}
 
-            if (input_frame_is_mouse_button_down(MOUSE_BUTTON_right)) {
-                int mouse_delta_x;
-                int mouse_delta_y;
-                input_frame_mouse_delta(&mouse_delta_x, &mouse_delta_y);
+				if (input_frame_is_mouse_button_down(MOUSE_BUTTON_right)) {
+					int mouse_delta_x;
+					int mouse_delta_y;
+					input_frame_mouse_delta(&mouse_delta_x, &mouse_delta_y);
 
-                camera_pitch += mouse_delta_y * 0.01f;
-                camera_yaw += mouse_delta_x * 0.01f;
-            }
+					camera_pitch += mouse_delta_y * 0.01f;
+					camera_yaw += mouse_delta_x * 0.01f;
+				}
+			}
             
             float pitch_rotation_matrix[16];
             matrix_make_rotation_x(camera_pitch, pitch_rotation_matrix);
