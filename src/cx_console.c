@@ -11,6 +11,7 @@
 
 static struct cx_console console;
 
+static void cx_console_history_set(struct cx_console* p_console, int index);
 static void cx_console_on_key(const void*, void*);
 static void cx_console_on_char(const void*, void*);
 static int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
@@ -30,11 +31,8 @@ struct cx_console* cx_console_get(void) {
 
 void cx_console_init(struct cx_console* p_console) {
 	p_console->command_registry = (struct cx_command_registry){0};
-
-	p_console->input.text = (struct cx_text_edit) {
-		.p_buf = p_console->input.primary_buf,
-		.buf_size = CX_CONSOLE_MAX_INPUT_LEN
-	};
+	
+	cx_text_edit_set_buf(&p_console->input.text, p_console->input.buf, CX_CONSOLE_MAX_INPUT_LEN);
 
 	p_console->history.ring = (struct cx_alloc_ring) {
 		.p_buf = p_console->history.history_buf,
@@ -134,11 +132,11 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			break;
 		}
 		case KEY_up: {
-			// history back
+			cx_console_history_set(p_console, p_console->history.index + 1);
 			break;
 		}
 		case KEY_down: {
-			// history forward
+			cx_console_history_set(p_console, p_console->history.index - 1);
 			break;
 		}
 		case KEY_backspace: {
@@ -163,6 +161,7 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 				&p_console->command_registry,
 				p_console->input.text.p_buf,
 				&p_console->flogger);
+			cx_console_history_set(p_console, -1);
 			cx_text_edit_clear(&p_console->input.text);
 			break;
 		}
@@ -317,4 +316,28 @@ int cx_console_command_test(const struct cx_command_args* p_args, const struct c
 		p_args->list[5].b_as_bool,
 		p_args->list[6].p_as_enum->s_name, p_args->list[6].p_as_enum->value);
 	return 0;
+}
+
+void cx_console_history_set(struct cx_console* p_console, int index) {
+	if (index > (int)p_console->history.ring.entries_count_ - 1) {
+		index = p_console->history.ring.entries_count_ - 1;
+	}
+	if (index < 0) {
+		index = -1;
+	}
+	if (index == p_console->history.index) {
+		return;
+	}
+	p_console->history.index = index;
+
+	if (p_console->history.index == -1) {
+		cx_text_edit_set_buf(&p_console->input.text, p_console->input.buf, CX_CONSOLE_MAX_INPUT_LEN);
+		return;
+	}
+
+	size_t size;
+	const char* s_history = cx_alloc_ring_get(&p_console->history.ring, index, &size);
+	strcpy(p_console->history.history_draf_buf, s_history);
+
+	cx_text_edit_set_buf(&p_console->input.text, p_console->history.history_draf_buf, CX_CONSOLE_MAX_INPUT_LEN);
 }
