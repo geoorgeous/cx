@@ -75,7 +75,7 @@ void cx_console_view_draw(
 	}
 
 	const struct cx_text_mesher_input text_mesher_input = {
-		.s_text = p_console->input.input_buf,
+		.s_text = p_console->input.text.p_buf,
 		.style = {
 			.p_font_render_data = p_font_render_data,
 			.scale = 1,
@@ -216,7 +216,7 @@ void cx_console_view_draw_quads(
 	float pre_cursor_text_width;
 	float pre_cursor_text_height;
 	cx_text_mesher_measure(
-		p_console->input.input_buf,
+		p_console->input.text.p_buf,
 		p_console->input.text.cursor_pos,
 		p_font_render_data,
 		1,

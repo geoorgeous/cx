@@ -15,8 +15,13 @@ static void cx_console_on_key(const void*, void*);
 static void cx_console_on_char(const void*, void*);
 static int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 static int cx_console_command_alias(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
-static int cx_console_command_unalias(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static int cx_console_command_unalias(
+	const struct cx_command_args* p_args,
+	const struct cx_command_context* p_context);
 static int cx_console_command_var(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static int cx_console_command_history(
+	const struct cx_command_args* p_args,
+	const struct cx_command_context* p_context);
 static int cx_console_command_test(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 struct cx_console* cx_console_get(void) {
@@ -27,8 +32,15 @@ void cx_console_init(struct cx_console* p_console) {
 	p_console->command_registry = (struct cx_command_registry){0};
 
 	p_console->input.text = (struct cx_text_edit) {
-		.p_buf = p_console->input.input_buf,
+		.p_buf = p_console->input.primary_buf,
 		.buf_size = CX_CONSOLE_MAX_INPUT_LEN
+	};
+
+	p_console->history.ring = (struct cx_alloc_ring) {
+		.p_buf = p_console->history.history_buf,
+		.buf_cap = sizeof(p_console->history.history_buf),
+		.p_entries_ = p_console->history.entries,
+		.entries_cap_ = sizeof(p_console->history.entries) / sizeof(*p_console->history.entries)
 	};
 
 	cx_flog_init(&p_console->flogger);
@@ -55,6 +67,10 @@ void cx_console_init(struct cx_console* p_console) {
 		cx_console_command_var, &console.var_registry,
 		CX_COMMAND_PARAM(STRING("name", "Name of the variable to get/set"), OPTIONAL),
 		CX_COMMAND_PARAM(STRING("value", "Value to assign to the variable"), OPTIONAL));
+
+	CX_NEW_COMMAND(history,
+		"List command history",
+		cx_console_command_history, &console.history);
 
 	static const struct cx_var_enum_map_entry entries[] = {
 		{ "eone",   0 },
@@ -142,7 +158,11 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			break;
 		}
 		case KEY_enter: {
-			cx_command_registry_execute(&p_console->command_registry, p_console->input.input_buf, &p_console->flogger);
+			cx_alloc_ring_push(&p_console->history.ring, p_console->input.text.p_buf, p_console->input.text.len + 1);
+			cx_command_registry_execute(
+				&p_console->command_registry,
+				p_console->input.text.p_buf,
+				&p_console->flogger);
 			cx_text_edit_clear(&p_console->input.text);
 			break;
 		}
@@ -270,6 +290,19 @@ int cx_console_command_var(const struct cx_command_args* p_args, const struct cx
 
 	free(p_var_name);
 
+	return 0;
+}
+
+int cx_console_command_history(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	(void)p_args;
+
+	const struct cx_console_history* p_history = p_context->p_command->p_user_ptr;
+	CX_LOG_FMT(INFO, COMMAND, "Command history (%d)\n", p_history->ring.entries_count_);
+	for (size_t i = 1; i < p_history->ring.entries_count_; ++i) {
+		size_t size;
+		const char* s_history_entry = cx_alloc_ring_get(&p_history->ring, i, &size);
+		CX_LOG_FMT(INFO, COMMAND, "(%d) %s\n", i, s_history_entry);
+	}
 	return 0;
 }
 

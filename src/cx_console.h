@@ -1,6 +1,7 @@
 #ifndef CX_CONSOLE_H
 #define CX_CONSOLE_H
 
+#include "cx_alloc.h"
 #include "cx_command_registry.h"
 #include "cx_flog.h"
 #include "cx_text_edit.h"
@@ -27,18 +28,33 @@
 
 #define CX_LOG_CAT_CONSOLE "console"
 
-#define CX_CONSOLE_MAX_INPUT_LEN 1024
+#define CX_CONSOLE_MAX_INPUT_LEN 256
+#define CX_CONSOLE_MAX_HISTORY_LEN 64
 
 struct cx_console_input {
-	char input_buf[CX_CONSOLE_MAX_INPUT_LEN];
+	char primary_buf[CX_CONSOLE_MAX_INPUT_LEN];
+	char secondary_buf[CX_CONSOLE_MAX_INPUT_LEN];
 	struct cx_text_edit text;
 };
+
+struct cx_console_history {
+	struct cx_alloc_ring_entry entries[CX_CONSOLE_MAX_HISTORY_LEN];
+	char history_buf[CX_CONSOLE_MAX_HISTORY_LEN][CX_CONSOLE_MAX_INPUT_LEN];
+	struct cx_alloc_ring ring;
+};
+
+// up - previous history, set secondary buffer to history item
+// down - next history, set secondary buffer to history item
+// edit while history index >= 0 - edit history item in secondary buffer
+// edit while history index < 0 - edit input in primary buffer
+// enter: push history, execute, clear buffer
 
 struct cx_console {
 	int b_is_input_enabled;
 	struct cx_command_registry command_registry;
 	struct cx_var_registry var_registry;
 	struct cx_console_input input;
+	struct cx_console_history history;
 	struct cx_flogger flogger;
 };
 
