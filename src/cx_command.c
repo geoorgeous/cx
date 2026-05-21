@@ -18,11 +18,9 @@ int cx_command_resolve_args(
 	size_t argc = 0;
 
 	for(const char* p = s_args; p && *p; p++) {
-		if (isspace(*p)) {
+		if (isspace((unsigned char)*p)) {
 			continue;
 		}
-
-		s_arg = p;
 
 		if (argc == p_command->num_params) {
 			CX_DBG(CX_LOG_FMT(INFO, COMMAND, "usage error: too many arguments, expected %d\n", p_command->num_params));
@@ -34,12 +32,29 @@ int cx_command_resolve_args(
 			return 0;
 		}
 
-		while (p[1] && !isspace(p[1])) {
-			// todo: check for quotes here to preserve spces
+		size_t len;
+
+		const int b_quoted = *p == '\"';
+
+		if (b_quoted) {
+			s_arg = p + 1;
+			while(p[1] && p[1] != '\"') {
+				p++;
+			}
+			if (p[1] != '\"') {
+				CX_LOG(INFO, COMMAND, "usage error: unmatched quotes\n");
+				return 0;
+			}
+			len = p - s_arg + 1;
 			p++;
+		} else {
+			s_arg = p;
+			while (p[1] && !isspace((unsigned char)p[1])) {
+				p++;
+			}
+			len = p - s_arg + 1;
 		}
 
-		const size_t len = p - s_arg + 1;
 		if (cx_var_parse(
 				&p_command->p_params[argc].desc,
 				s_arg, len,
