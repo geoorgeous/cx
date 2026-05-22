@@ -58,4 +58,6 @@ void cx_alloc_ring_pop(struct cx_alloc_ring* p_ring);
 
 const void* cx_alloc_ring_get(const struct cx_alloc_ring* p_ring, size_t age, size_t* p_out_size);
 
+void cx_alloc_ring_clear(struct cx_alloc_ring* p_ring);
+
 #endif

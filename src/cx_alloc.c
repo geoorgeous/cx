@@ -62,3 +62,9 @@ const void* cx_alloc_ring_get(const struct cx_alloc_ring* p_ring, size_t age, si
 	*p_out_size = p_entry->size;
 	return (char*)p_ring->p_buf + p_entry->offset;
 }
+
+void cx_alloc_ring_clear(struct cx_alloc_ring* p_ring) {
+	p_ring->buf_head_ = p_ring->buf_tail_ = 0;
+	p_ring->entries_head_ = p_ring->entries_tail_ = 0;
+	p_ring->entries_count_ = 0;
+}
