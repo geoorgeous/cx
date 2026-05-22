@@ -10,11 +10,14 @@
 #include "input.h"
 #include "keys.h"
 
+#define CX_CONSOLE_LOG_LINE_BREAK "------------------------------------------------------------"
+
 static struct cx_console console;
 
 static void cx_console_history_set(struct cx_console* p_console, int index);
 static void cx_console_on_key(const void*, void*);
 static void cx_console_on_char(const void*, void*);
+static int cx_console_command_clear(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 static int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 static int cx_console_command_alias(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 static int cx_console_command_unalias(
@@ -56,6 +59,10 @@ void cx_console_init(struct cx_console* p_console) {
 		&p_console->flogger.ring_entries_,
 		p_console->flogger_storage.ring_entries_buf_,
 		p_console->flogger_storage.ring_entries_entries_buf_);
+
+	CX_NEW_COMMAND(clear,
+		"Clear the console output",
+		cx_console_command_clear, 0);
 
 	CX_NEW_COMMAND(help,
 		"List all commands, or the details of a single command",
@@ -205,22 +212,88 @@ void cx_console_on_char(const void* p_event, void* p_user_ptr) {
 	cx_text_edit_insert(&p_console->input.text, &c, 1);
 }
 
+static int cx_console_command_clear(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	(void)p_args;
+	cx_alloc_ring_clear(&p_context->p_flogger->ring_entries_);
+	cx_alloc_ring_clear(&p_context->p_flogger->ring_strings_);
+	cx_alloc_ring_clear(&p_context->p_flogger->ring_styles_);
+	cx_alloc_ring_clear(&p_context->p_flogger->ring_spans_);
+	return 0;
+}
+
 int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	const struct cx_command_registry* p_registry = p_context->p_command->p_user_ptr;
 	
+	char flog_str_buf[1024];
+	struct cx_flog_style flog_style_buf[2];
+	struct cx_flog_span flog_span_buf[8];
+	struct cx_flog_builder flog = {
+		.p_buf = flog_str_buf,
+		.p_styles = flog_style_buf,
+		.p_spans = flog_span_buf
+	};
+
 	if (p_args->count > 0) {
-		CX_LOG_FMT(INFO, CONSOLE, "help called with '%.*s'\n", p_args->list[0].as_str.len, p_args->list[0].as_str.p);
+		const struct cx_command* p_command;
+		if (!cx_command_registry_find(p_registry, p_args->list[0].as_str.p, &p_command)) {
+			cx_flog_append_fmt(&flog, "command %s not found", p_args->list[0].as_str);
+		} else {
+			cx_flog_append_fmt(&flog,
+				"%s\n"
+				CX_CONSOLE_LOG_LINE_BREAK"\n"
+				"%s\n\n"
+				"Usage:\n"
+				"  %s ", p_command->s_name, p_command->s_desc, p_command->s_name);
+
+			const char lbr[] = { '[', '<' };
+			const char rbr[] = { ']', '>' };
+
+			size_t max_len = 0;
+			for (size_t i = 0; i < p_command->num_params; ++i) {
+				const struct cx_command_param* p_param = p_command->p_params + i;
+				
+				// calculate longest name for later padding
+				size_t len = strlen(p_param->desc.s_name);
+				if (len > max_len) {
+					max_len = len;
+				}
+
+				cx_flog_append_fmt(&flog, "%c%s%c ",
+					lbr[p_param->b_required], p_param->desc.s_name, rbr[p_param->b_required]);
+			}
+
+			if (p_command->num_params > 0) {
+				cx_flog_append(&flog, "\n\nParams: (> required, - optional)");
+
+				for (size_t i = 0; i < p_command->num_params; ++i) {
+					const struct cx_command_param* p_param = p_command->p_params + i;
+					cx_flog_append_fmt(&flog, "\n  %c %-*s  %-6s  %s",
+						p_param->b_required ? '>' : '-',
+						max_len, p_param->desc.s_name,
+						cx_var_type_str(p_param->desc.type),
+						p_param->desc.s_desc);
+
+					// todo: print enum values, numeric constraints
+					if (p_param->desc.type == CX_VAR_TYPE_int) {
+					} else if (p_param->desc.type == CX_VAR_TYPE_float) {
+					} else if (p_param->desc.type == CX_VAR_TYPE_enum) {
+					}
+				}
+			}
+		}
 	} else {
-		CX_LOG_FMT(INFO, CONSOLE, "Commands (%d)\n", p_registry->num_commands_);
-		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		cx_flog_append_fmt(&flog, "Commands (%d)\n", p_registry->num_commands_);
+		cx_flog_append(&flog, CX_CONSOLE_LOG_LINE_BREAK"\n");
 
 		for (size_t i = 0; i < p_registry->num_commands_; ++i) {
 			const struct cx_command* p_command = p_registry->pp_commands_[i];
-			CX_LOG_FMT(INFO, COMMAND, " %s\n", p_command->s_name);
+			cx_flog_append_fmt(&flog, " %s\n", p_command->s_name);
 		}
-		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
-		CX_LOG(INFO, COMMAND, "type: help \"<command>\" for details\n");
+		cx_flog_append(&flog, CX_CONSOLE_LOG_LINE_BREAK"\n"
+			" type: help <command> for details");
 	}
+
+	cx_flog_end(p_context->p_flogger, &flog);
 
 	return 0;
 }
@@ -239,22 +312,18 @@ int cx_console_command_alias(const struct cx_command_args* p_args, const struct 
 
 	if (p_args->count == 0) {
 		cx_flog_append_fmt(&flog, "Aliases (%d)\n", p_registry->num_aliases_);
-		CX_LOG_FMT(INFO, COMMAND, "Aliases (%d)\n", p_registry->num_aliases_);
 
 		if (p_registry->num_aliases_ == 0) {
 			cx_flog_end(p_context->p_flogger, &flog);
 			return 0;
 		}
 
-		cx_flog_append(&flog, "------------------------------------------------------------\n");
-		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		cx_flog_append(&flog, CX_CONSOLE_LOG_LINE_BREAK"\n");
 		for (size_t i = 0; i < p_registry->num_aliases_; ++i) {
 			const struct cx_command_alias* p_alias = &p_registry->p_aliases_[i];
 			cx_flog_append_fmt(&flog, " %s -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
-			CX_LOG_FMT(INFO, COMMAND, " %s -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
 		}
-		cx_flog_append(&flog, "------------------------------------------------------------\n");
-		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		cx_flog_append(&flog, CX_CONSOLE_LOG_LINE_BREAK);
 		cx_flog_end(p_context->p_flogger, &flog);
 		return 0;
 	}
@@ -266,14 +335,12 @@ int cx_console_command_alias(const struct cx_command_args* p_args, const struct 
 
 	if (p_args->count == 1) {
 		if (!b_found) {
-			cx_flog_append_fmt(&flog, "alias %s not found\n", p_alias_name);
-			CX_LOG_FMT(INFO, COMMAND, "alias %s not found\n", p_alias_name);
+			cx_flog_append_fmt(&flog, "alias %s not found", p_alias_name);
 			free(p_alias_name);
 			cx_flog_end(p_context->p_flogger, &flog);
 			return 1;
 		}
-		cx_flog_append_fmt(&flog, "alias: (%s) -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
-		CX_LOG_FMT(INFO, COMMAND, "alias: (%s) -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
+		cx_flog_append_fmt(&flog, "alias: %s -> \"%s\"", p_alias->s_name, p_alias->s_expansion);
 		free(p_alias_name);
 		cx_flog_end(p_context->p_flogger, &flog);
 		return 0;
@@ -335,13 +402,25 @@ int cx_console_command_var(const struct cx_command_args* p_args, const struct cx
 int cx_console_command_history(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	(void)p_args;
 
+	char flog_str_buf[1024];
+	struct cx_flog_builder flog = {
+		.p_buf = flog_str_buf,
+	};
+
 	const struct cx_console_history* p_history = p_context->p_command->p_user_ptr;
-	CX_LOG_FMT(INFO, COMMAND, "Command history (%d)\n", p_history->ring.entries_count_);
-	for (size_t i = 1; i < p_history->ring.entries_count_; ++i) {
-		size_t size;
-		const char* s_history_entry = cx_alloc_ring_get(&p_history->ring, i, &size);
-		CX_LOG_FMT(INFO, COMMAND, "(%d) %s\n", i, s_history_entry);
+	cx_flog_append_fmt(&flog, "Command history (%d)", p_history->ring.entries_count_ - 1);
+	if (p_history->ring.entries_count_ > 1) {
+		cx_flog_append(&flog, "\n"CX_CONSOLE_LOG_LINE_BREAK);
+		for (size_t i = 1; i < p_history->ring.entries_count_; ++i) {
+			size_t size;
+			const char* s_history_entry = cx_alloc_ring_get(&p_history->ring, i, &size);
+			cx_flog_append_fmt(&flog, "\n(%d) %s", i, s_history_entry);
+		}
+		cx_flog_append(&flog, "\n"CX_CONSOLE_LOG_LINE_BREAK);
 	}
+
+	cx_flog_end(p_context->p_flogger, &flog);
+
 	return 0;
 }
 

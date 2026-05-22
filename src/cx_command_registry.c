@@ -4,6 +4,7 @@
 
 #include "cx_command.h"
 #include "cx_command_registry.h"
+#include "cx_flog.h"
 #include "cx_logging.h"
 #include "cx_macro.h"
 
@@ -220,7 +221,18 @@ int cx_command_registry_execute(
 	const char* s_command,
 	struct cx_flogger* p_flogger) {
 
-	CX_LOG_FMT(INFO, COMMAND, "> %s\n", s_command);
+	char flog_str_buf[1024];
+	struct cx_flog_style flog_style_buf[2];
+	struct cx_flog_span flog_span_buf[8];
+	struct cx_flog_builder flog = {
+		.p_buf = flog_str_buf,
+		.p_styles = flog_style_buf,
+		.p_spans = flog_span_buf
+	};
+
+	cx_flog_append(&flog, "> ");
+	cx_flog_append(&flog, s_command);
+	cx_flog_end(p_flogger, &flog);
 
 	const char* p = s_command;
 	const char* s_command_name = 0;
@@ -272,7 +284,9 @@ int cx_command_registry_execute(
 		&index, &b_found);
 
 	if (!b_found) {
-		CX_LOG_FMT(INFO, COMMAND, "command not found: %s\n", name_buf);
+		cx_flog_append(&flog, "command not found: ");
+		cx_flog_append(&flog, name_buf);
+		cx_flog_end(p_flogger, &flog);
 		return 0;
 	}
 
