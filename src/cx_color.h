@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "math_utils.h"
+
 #define CX_U32_R8G8B8A8_R(U32) (((U32) >> 24) & 0xff)
 #define CX_U32_R8G8B8A8_G(U32) (((U32) >> 16) & 0xff)
 #define CX_U32_R8G8B8A8_B(U32) (((U32) >>  8) & 0xff)
@@ -58,6 +60,14 @@ static inline void cx_color_u8_from_f32(struct cx_color_u8* p_color, const struc
 	};
 }
 
+static inline int cx_color_u8_cmp(const struct cx_color_u8* p_a, const struct cx_color_u8* p_b) {
+	return
+		p_a->r == p_b->r &&
+		p_a->g == p_b->g &&
+		p_a->b == p_b->b &&
+		p_a->a == p_b->a;
+}
+
 static inline void cx_color_f32_from_u8(struct cx_color_f32* p_color, const struct cx_color_u8* p_color_u8) {
 	*p_color = (struct cx_color_f32) {
 		.r = CX_F32_PERCENT_FROM_U8(p_color_u8->r),
@@ -74,6 +84,14 @@ static inline void cx_color_f32_from_u32(struct cx_color_f32* p_color, u32_r8g8b
 		.b = CX_F32_PERCENT_FROM_U8(CX_U32_R8G8B8A8_B(r8g8b8a8)),
 		.a = CX_F32_PERCENT_FROM_U8(CX_U32_R8G8B8A8_A(r8g8b8a8))
 	};
+}
+
+static inline int cx_color_f32_cmp(const struct cx_color_f32* p_a, const struct cx_color_f32* p_b) {
+	return
+		FLT_CMP(p_a->r, p_b->r) &&
+		FLT_CMP(p_a->g, p_b->g) &&
+		FLT_CMP(p_a->b, p_b->b) &&
+		FLT_CMP(p_a->a, p_b->a);
 }
 
 #endif
