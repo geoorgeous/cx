@@ -9,11 +9,6 @@
 
 // todo:
 //
-// command history:
-//    list management
-//    navigation
-//    drawing and tracking
-//
 // output log:
 //    cache lines for easy indexing
 //    navigation
@@ -44,6 +39,22 @@ struct cx_console_history {
 	int index;
 };
 
+#define CX_FLOG_ENTRIES_BUF_LEN 1024
+#define CX_FLOG_STRING_BUF_SIZE CX_FLOG_ENTRIES_BUF_LEN * 1024
+#define CX_FLOG_STYLES_BUF_LEN CX_FLOG_ENTRIES_BUF_LEN * 8
+#define CX_FLOG_SPANS_BUF_LEN CX_FLOG_ENTRIES_BUF_LEN * 8
+
+struct cx_console_flogger_storage {
+	struct cx_alloc_ring_entry ring_strings_entries_buf_[CX_FLOG_ENTRIES_BUF_LEN];
+	struct cx_alloc_ring_entry ring_styles_entries_buf_[CX_FLOG_ENTRIES_BUF_LEN];
+	struct cx_alloc_ring_entry ring_spans_entries_buf_[CX_FLOG_ENTRIES_BUF_LEN];
+	struct cx_alloc_ring_entry ring_entries_entries_buf_[CX_FLOG_ENTRIES_BUF_LEN];
+	char ring_strings_buf_[CX_FLOG_STRING_BUF_SIZE];
+	struct cx_flog_style ring_styles_buf_[CX_FLOG_STYLES_BUF_LEN];
+	struct cx_flog_span ring_spans_buf_[CX_FLOG_SPANS_BUF_LEN];
+	struct cx_flog_entry ring_entries_buf_[CX_FLOG_ENTRIES_BUF_LEN];
+};
+
 struct cx_console {
 	int b_is_input_enabled;
 	struct cx_command_registry command_registry;
@@ -51,6 +62,7 @@ struct cx_console {
 	struct cx_console_input input;
 	struct cx_console_history history;
 	struct cx_flogger flogger;
+	struct cx_console_flogger_storage flogger_storage;
 };
 
 struct cx_console* cx_console_get(void);

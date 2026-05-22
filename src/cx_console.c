@@ -5,6 +5,7 @@
 #include "cx_command.h"
 #include "cx_console.h"
 #include "cx_logging.h"
+#include "cx_macro.h"
 #include "cx_var.h"
 #include "input.h"
 #include "keys.h"
@@ -34,14 +35,27 @@ void cx_console_init(struct cx_console* p_console) {
 	
 	cx_text_edit_set_buf(&p_console->input.text, p_console->input.buf, CX_CONSOLE_MAX_INPUT_LEN);
 
-	p_console->history.ring = (struct cx_alloc_ring) {
-		.p_buf = p_console->history.history_buf,
-		.buf_cap = sizeof(p_console->history.history_buf),
-		.p_entries_ = p_console->history.entries,
-		.entries_cap_ = sizeof(p_console->history.entries) / sizeof(*p_console->history.entries)
-	};
+	CX_ALLOC_RING_INIT_ARRAYS(&p_console->history.ring, p_console->history.history_buf, p_console->history.entries);
+	
+	CX_ALLOC_RING_INIT_ARRAYS(
+		&p_console->flogger.ring_strings_,
+		p_console->flogger_storage.ring_strings_buf_,
+		p_console->flogger_storage.ring_strings_entries_buf_);
 
-	cx_flog_init(&p_console->flogger);
+	CX_ALLOC_RING_INIT_ARRAYS(
+		&p_console->flogger.ring_styles_,
+		p_console->flogger_storage.ring_styles_buf_,
+		p_console->flogger_storage.ring_styles_entries_buf_);
+
+	CX_ALLOC_RING_INIT_ARRAYS(
+		&p_console->flogger.ring_spans_,
+		p_console->flogger_storage.ring_spans_buf_,
+		p_console->flogger_storage.ring_spans_entries_buf_);
+
+	CX_ALLOC_RING_INIT_ARRAYS(
+		&p_console->flogger.ring_entries_,
+		p_console->flogger_storage.ring_entries_buf_,
+		p_console->flogger_storage.ring_entries_entries_buf_);
 
 	CX_NEW_COMMAND(help,
 		"List all commands, or the details of a single command",
@@ -156,13 +170,20 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			break;
 		}
 		case KEY_enter: {
-			cx_alloc_ring_push(&p_console->history.ring, p_console->input.text.p_buf, p_console->input.text.len + 1);
+			cx_alloc_ring_push(
+				&p_console->history.ring,
+				p_console->input.text.p_buf,
+				p_console->input.text.len + 1,
+				CX_ALLOC_RING_PUSH_POLICY_auto);
 			cx_command_registry_execute(
 				&p_console->command_registry,
 				p_console->input.text.p_buf,
 				&p_console->flogger);
 			cx_console_history_set(p_console, -1);
 			cx_text_edit_clear(&p_console->input.text);
+			break;
+		}
+		case KEY_tab: {
 			break;
 		}
 		case KEY_escape: {
@@ -207,19 +228,34 @@ int cx_console_command_help(const struct cx_command_args* p_args, const struct c
 int cx_console_command_alias(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	struct cx_command_registry* p_registry = p_context->p_command->p_user_ptr;
 
+	char flog_str_buf[1024];
+	struct cx_flog_style flog_style_buf[8];
+	struct cx_flog_span flog_span_buf[8];
+	struct cx_flog_builder flog = {
+		.p_buf = flog_str_buf,
+		.p_styles = flog_style_buf,
+		.p_spans = flog_span_buf
+	};
+
 	if (p_args->count == 0) {
+		cx_flog_append_fmt(&flog, "Aliases (%d)\n", p_registry->num_aliases_);
 		CX_LOG_FMT(INFO, COMMAND, "Aliases (%d)\n", p_registry->num_aliases_);
 
 		if (p_registry->num_aliases_ == 0) {
+			cx_flog_end(p_context->p_flogger, &flog);
 			return 0;
 		}
 
+		cx_flog_append(&flog, "------------------------------------------------------------\n");
 		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
 		for (size_t i = 0; i < p_registry->num_aliases_; ++i) {
 			const struct cx_command_alias* p_alias = &p_registry->p_aliases_[i];
+			cx_flog_append_fmt(&flog, " %s -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
 			CX_LOG_FMT(INFO, COMMAND, " %s -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
 		}
+		cx_flog_append(&flog, "------------------------------------------------------------\n");
 		CX_LOG(INFO, COMMAND, "------------------------------------------------------------\n");
+		cx_flog_end(p_context->p_flogger, &flog);
 		return 0;
 	}
 
@@ -230,12 +266,16 @@ int cx_console_command_alias(const struct cx_command_args* p_args, const struct 
 
 	if (p_args->count == 1) {
 		if (!b_found) {
+			cx_flog_append_fmt(&flog, "alias %s not found\n", p_alias_name);
 			CX_LOG_FMT(INFO, COMMAND, "alias %s not found\n", p_alias_name);
 			free(p_alias_name);
+			cx_flog_end(p_context->p_flogger, &flog);
 			return 1;
 		}
+		cx_flog_append_fmt(&flog, "alias: (%s) -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
 		CX_LOG_FMT(INFO, COMMAND, "alias: (%s) -> \"%s\"\n", p_alias->s_name, p_alias->s_expansion);
 		free(p_alias_name);
+		cx_flog_end(p_context->p_flogger, &flog);
 		return 0;
 	}
 
