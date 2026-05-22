@@ -62,7 +62,7 @@ void cx_flog_end(struct cx_flogger* p_flogger, struct cx_flog_builder* p_builder
 	};
 
 	CX_LOG(INFO, FLOG, "New entry:\n");
-	CX_LOG_FMT(INFO, DONTCARE, "  content: \"%s\"\n", new_entry.s);
+	CX_LOG_FMT(INFO, DONTCARE, "  content:\n%s\n", new_entry.s);
 	CX_LOG_FMT(INFO, DONTCARE, "  styles: %d\n", new_entry.num_styles);
 
 	for (size_t i = 0; i < new_entry.num_styles; ++i) {
@@ -79,6 +79,12 @@ void cx_flog_end(struct cx_flogger* p_flogger, struct cx_flog_builder* p_builder
 	}
 	
 	cx_alloc_ring_push(&p_flogger->ring_entries_, &new_entry, entry_size, CX_ALLOC_RING_PUSH_POLICY_no);
+
+	*p_builder = (struct cx_flog_builder) {
+		.p_buf = p_builder->p_buf,
+		.p_styles = p_builder->p_styles,
+		.p_spans = p_builder->p_spans
+	};
 }
 
 void cx_flog_append(struct cx_flog_builder* p_builder, const char* s) {

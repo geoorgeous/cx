@@ -43,8 +43,8 @@ void cx_text_mesher_measure(
 			if (line_x > x) {
 				x = line_x;
 			}
-			line_x = 0;
 			y += p_font_render_data->p_font->line_height_;
+			line_x = 0;
 			continue;
 		}
 

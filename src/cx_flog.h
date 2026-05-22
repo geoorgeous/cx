@@ -16,9 +16,9 @@ struct cx_flog_style {
 };
 
 struct cx_flog_span {
-	uint8_t style_id;
 	uint32_t start;
 	uint32_t len;
+	uint8_t style_id;
 };
 
 struct cx_flog_entry {
