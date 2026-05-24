@@ -15,7 +15,7 @@ struct cx_log_cat {
 	int    min_level;
 };
 
-static int  get_log_cat(const char* s_cat, size_t cat_len, struct cx_log_cat** pp_out_cat);
+static int  find_log_cat(const char* s_cat, size_t cat_len, struct cx_log_cat** pp_out_cat);
 static int  is_log_visible(const char* s_cat, int level);
 static void print_prefix(FILE* p_file, int log_level, const char* s_category);
 
@@ -76,47 +76,55 @@ void cx_log_fmt(int level, const char* s_cat, const char* s_fmt, ...) {
 }
 
 void cx_log_cat_set(const char *s_cat, int min_level) {
+
+	const char* s_log_level_label;
+	switch (min_level) {
+		case CX_LOG_LEVEL_SILENT:  s_log_level_label = "silent"; break;
+		case CX_LOG_LEVEL_TRACE:   s_log_level_label = "trace"; break;
+		case CX_LOG_LEVEL_INFO:    s_log_level_label = "info"; break;
+		case CX_LOG_LEVEL_WARNING: s_log_level_label = "warning"; break;
+		case CX_LOG_LEVEL_ERROR:   s_log_level_label = "error"; break;
+		default:                   s_log_level_label = "undefined"; break;
+	};
+
 	if (!s_cat) {
 		log_cat_global_min_level = min_level;
-		CX_LOG_FMT(INFO, LOGGING, "Log category minimum level set: (Global) -> %d\n", min_level);
+		CX_LOG_FMT(INFO, LOGGING, "Global log level set to: %s\n", s_log_level_label);
 		return;
 	}
 
 	struct cx_log_cat* p_cat;
 
-	if (get_log_cat(s_cat, 0, &p_cat)) {
-		p_cat->min_level = min_level;
-		CX_LOG_FMT(INFO, LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
-		return;
+	if (!find_log_cat(s_cat, 0, &p_cat)) {
+		if (log_cat_count == CX_MAX_LOG_CATS) {
+			CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': limit exceeded.\n", s_cat);
+			return;
+		}
+
+		const size_t cat_len = strlen(s_cat);
+		const size_t log_cat_str_buf_available = (p_log_cat_str_buf_next - log_cat_str_buf) - CX_LOG_CAT_STR_BUF_LEN;
+
+		if (log_cat_str_buf_available < cat_len) {
+			CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': not enough memory.\n", s_cat);
+			return;
+		}
+
+		*p_cat = (struct cx_log_cat) {
+			.s_display_str = p_log_cat_str_buf_next,
+			.display_str_len = cat_len,
+		};
+		
+		strcpy(p_cat->s_display_str, s_cat);
+		p_log_cat_str_buf_next += p_cat->display_str_len;
+		++log_cat_count;
 	}
 
-	if (log_cat_count == CX_MAX_LOG_CATS) {
-		CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': limit exceeded.\n", s_cat);
-		return;
-	}
-
-	const size_t cat_len = strlen(s_cat);
-	const size_t log_cat_str_buf_available = (p_log_cat_str_buf_next - log_cat_str_buf) - CX_LOG_CAT_STR_BUF_LEN;
-
-	if (log_cat_str_buf_available < cat_len) {
-		CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': not enough memory.\n", s_cat);
-		return;
-	}
-
-	*p_cat = (struct cx_log_cat) {
-		.s_display_str = p_log_cat_str_buf_next,
-		.display_str_len = cat_len,
-		.min_level = min_level
-	};
-	
-	strcpy(p_cat->s_display_str, s_cat);
-	p_log_cat_str_buf_next += p_cat->display_str_len;
-	++log_cat_count;
-
-	CX_LOG_FMT(INFO, LOGGING, "Log category minimum level set: '%s' -> %d\n", s_cat, min_level);
+	p_cat->min_level = min_level;
+	CX_LOG_FMT(INFO, LOGGING, "Log category level set: '%s' -> %s\n", s_cat, s_log_level_label);
+	return;
 }
 
-int get_log_cat(const char* s_cat, size_t cat_len, struct cx_log_cat** p_out_cat) {
+int find_log_cat(const char* s_cat, size_t cat_len, struct cx_log_cat** p_out_cat) {
 	*p_out_cat = log_cats;
 
 	for (; (*p_out_cat)->s_display_str; (*p_out_cat)++) {
@@ -156,7 +164,7 @@ int is_log_visible(const char* s_cat, int level) {
 			continue;
 		}
 		struct cx_log_cat* p_cat;
-		const int cat_min_level = get_log_cat(s_cat, len, &p_cat) ? p_cat->min_level : CX_LOG_LEVEL_INFO;
+		const int cat_min_level = find_log_cat(s_cat, len, &p_cat) ? p_cat->min_level : CX_LOG_LEVEL_INFO;
 		const int b_visible = cat_min_level <= level && cat_min_level > CX_LOG_LEVEL_SILENT;  
 		if (!b_visible || *p == '\0') {
 			return b_visible;
