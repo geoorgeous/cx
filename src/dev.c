@@ -2,17 +2,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "asset.h"
+#include "cx_asset.h"
+#include "cx_ed_import_gltf.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
 #include "cx_logging.h"
 #include "cx_mesh_gen.h"
 #include "dev.h"
-#include "gltf.h"
 #include "half_edge.h"
 #include "hashtable.h"
-#include "import_gltf.h"
 #include "input.h"
 #include "math_utils.h"
 #include "matrix.h"
@@ -79,7 +78,7 @@ static struct dev_state {
 	struct cx_gfx_program_param_buffer program_pbuffer_object;
 	struct cx_gfx_program_param_buffer program_pbuffer_material;
     
-    struct asset_package asset_package;
+    struct cx_asset_package asset_package;
 
     float perspective_view_matrix[16];
     float perspective_scale;
@@ -227,53 +226,63 @@ void dev_init(const struct platform_window* p_window, struct scene* p_scene, str
 	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_object, g_dev.program_pblock_object.size_);
 	cx_gfx_program_param_buffer_create(&g_dev.program_pbuffer_material, g_dev.program_pblock_material.size_);
 
-    asset_package_init(&g_dev.asset_package);
+    cx_asset_package_init(&g_dev.asset_package);
 
     // load gizmos
     
     g_dev.gizmos.active_type = GIZMO_TYPE_translate;
+	
+	struct cx_asset_package_record* p_imported_scene;
+	struct scene* p_gizmo_scene;
+	struct scene_entity* p_gizmo_entity;
 
-    struct gltf gltf;
-    struct import_gltf_result import_result;
+	cx_ed_import_gltf_file(&g_dev.asset_package, "res/builtin/gizmo_translate.glb", &p_imported_scene);
+	p_gizmo_scene = p_imported_scene->asset_.p_data_;
 
-    gltf_load_from_file("res/builtin/gizmo_translate.glb", &gltf);
-    import_gltf(&gltf, &g_dev.asset_package, &import_result);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 5);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_x.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 6);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_y.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 4);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_z.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 2);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xy.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 3);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xz.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 0);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_yz.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 1);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_t_center.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
     
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_t_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->asset_.p_data_))->p_primitives[0]);
-    
-    gltf_free(&gltf);
-    import_gltf_free(&import_result);
+	cx_ed_import_gltf_file(&g_dev.asset_package, "res/builtin/gizmo_rotate.glb", &p_imported_scene);
+	p_gizmo_scene = p_imported_scene->asset_.p_data_;
 
-    gltf_load_from_file("res/builtin/gizmo_rotate.glb", &gltf);
-    import_gltf(&gltf, &g_dev.asset_package, &import_result);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 1);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_x.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 2);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_y.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 0);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_z.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 3);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_r_center.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
     
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_r_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->asset_.p_data_))->p_primitives[0]);
-    
-    gltf_free(&gltf);
-    import_gltf_free(&import_result);
+	cx_ed_import_gltf_file(&g_dev.asset_package, "res/builtin/gizmo_scale.glb", &p_imported_scene);
+	p_gizmo_scene = p_imported_scene->asset_.p_data_;
 
-    gltf_load_from_file("res/builtin/gizmo_scale.glb", &gltf);
-    import_gltf(&gltf, &g_dev.asset_package, &import_result);
-    
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_x.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[3]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_y.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[4]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_z.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[2]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xy.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[1]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[5]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_yz.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[6]->asset_.p_data_))->p_primitives[0]);
-    cx_gfx_mesh_create(&g_dev.gizmos.control_s_center.gfx_mesh, &((struct static_mesh*)(import_result.p_meshes[0]->asset_.p_data_))->p_primitives[0]);
-    
-    gltf_free(&gltf);
-    import_gltf_free(&import_result);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 3);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_x.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 4);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_y.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 2);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_z.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 1);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xy.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 5);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_xz.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 6);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_yz.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
+	p_gizmo_entity = *(struct scene_entity**)darr_get(&p_gizmo_scene->entities_, 0);
+    cx_gfx_mesh_create(&g_dev.gizmos.control_s_center.gfx_mesh, &((struct static_mesh*)(p_gizmo_entity->p_mesh->asset_.p_data_))->p_primitives[0]);
 
     g_dev.gizmos.control_t_x.mesh_id_capturer_id = DEV_MESH_ID_CAPTURER_ID_GIZMO_T_X;
     g_dev.gizmos.control_t_y.mesh_id_capturer_id = DEV_MESH_ID_CAPTURER_ID_GIZMO_T_Y;
@@ -377,7 +386,7 @@ void dev_shutdown(void) {
     cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_yz.gfx_mesh);
     cx_gfx_mesh_destroy(&g_dev.gizmos.control_s_center.gfx_mesh);
 
-    asset_package_free(&g_dev.asset_package);
+    cx_asset_package_free(&g_dev.asset_package);
 }
 
 void dev_draw(

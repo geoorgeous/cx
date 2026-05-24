@@ -1,11 +1,9 @@
-#include "cx_font.h"
-
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "cx_bdf.h"
 #include "cx_bits.h"
+#include "cx_font.h"
 #include "cx_image.h"
 #include "cx_logging.h"
 #include "cx_pixel_format.h"
@@ -21,75 +19,6 @@ struct cx_font_glyph_atlas_dst {
 int cx_font_glyph_atlas_dst_cmp(
 	const struct cx_font_glyph_atlas_dst* p_a,
 	const struct cx_font_glyph_atlas_dst* p_b);
-
-void cx_font_build_from_bdf(const struct cx_bdf* p_bdf, struct cx_font* p_out) {
-	*p_out = (struct cx_font) {
-		.max_glyph_width_ = p_bdf->max_glyph_width_,
-		.max_glyph_height_ = p_bdf->max_glyph_height_,
-		.line_height_ = p_bdf->line_height_,
-		.descent_ = p_bdf->descent_
-	};
-
-	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7) / 8;
-	p_out->p_glyph_bitmap_buf = malloc(buf_size);
-
-	char* p_bitmap_pos = p_out->p_glyph_bitmap_buf;
-	size_t bitmap_bit_offset = 0;
-
-	int num_glyphs_read = 0;
-
-	for (size_t i = 0; i < p_bdf->num_glyphs_; ++i) {
-		const struct cx_bdf_glyph* p_bdf_glyph = p_bdf->p_glyphs_ + i;	
-
-		if (p_bdf_glyph->codepoint_ >= CX_FONT_NUM_GLYPHS) {
-			continue;
-		}
-
-		++num_glyphs_read;
-
-		struct cx_font_glyph* p_glyph = &p_out->glyphs_[p_bdf_glyph->codepoint_];
-		*p_glyph = (struct cx_font_glyph) {
-			.codepoint_ = p_bdf_glyph->codepoint_,
-			.metrics_ = {
-				.width = p_bdf_glyph->width_,
-				.height = p_bdf_glyph->height_,
-				.off_x = p_bdf_glyph->off_x_,
-				.off_y = p_bdf_glyph->off_y_,
-				.adv_x = p_bdf_glyph->adv_x_
-			},
-			.bitmap_ = {
-				.p_pos = p_bitmap_pos,
-				.bit_offset = bitmap_bit_offset
-			}
-		};
-		
-		const size_t num_bits = p_glyph->metrics_.width * p_glyph->metrics_.height;
-
-		cx_bits_copy(
-			p_glyph->bitmap_.p_pos,
-			p_glyph->bitmap_.bit_offset,
-			p_bdf_glyph->p_bitmap_,
-			p_bdf_glyph->bitmap_bit_offset_,
-			num_bits);
-
-		p_bitmap_pos += (bitmap_bit_offset + num_bits) / 8;
-		bitmap_bit_offset = (bitmap_bit_offset + num_bits) % 8;;
-	}
-
-	const size_t compact_size = (size_t)(p_bitmap_pos - (char*)p_out->p_glyph_bitmap_buf) + (bitmap_bit_offset != 0);
-	p_out->p_glyph_bitmap_buf = realloc(p_out->p_glyph_bitmap_buf, compact_size);
-
-	CX_LOG_FMT(INFO, FONT, "Font built from BDF font. %d glyphs read. Glyph bitmap buffer size=%llu\n",
-		num_glyphs_read,
-		compact_size);
-
-	const struct cx_font_glyph* p_space_glyph;
-	if (cx_font_find_glyph(p_out, (uint32_t)' ', &p_space_glyph)) {
-		p_out->space_adv_ = p_space_glyph->metrics_.adv_x;
-	} else {
-		p_out->space_adv_ = p_out->max_glyph_width_;
-	}
-}
 
 void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font) {
 	free(p_font->p_glyph_bitmap_buf);

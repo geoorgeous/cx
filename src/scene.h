@@ -1,7 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "asset.h"
+#include "cx_asset.h"
 #include "darr.h"
 #include "event.h"
 #include "object_pool.h"
@@ -18,7 +18,7 @@ struct static_mesh;
 struct scene_entity {
     size_t                   id_;
     struct transform         transform;
-    asset_handle             p_mesh;
+    cx_asset_handle          p_mesh;
     struct physics_object*   p_physics_object;
 
 };

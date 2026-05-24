@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define CX_ASSET_TYPE_FONT 6
+
 #define CX_LOG_CAT_FONT "font"
 
 #define CX_FONT_NUM_GLYPHS 256
@@ -32,10 +34,6 @@ struct cx_font {
 	unsigned short       space_adv_;
 	void*                p_glyph_bitmap_buf;
 	};
-
-struct cx_bdf;
-
-void cx_font_build_from_bdf(const struct cx_bdf* p_bdf, struct cx_font* p_out);
 
 void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font);
 

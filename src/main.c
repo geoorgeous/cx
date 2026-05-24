@@ -1,11 +1,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "asset.h"
-#include "cx_bdf.h"
+#include "cx_asset.h"
 #include "cx_command.h"
 #include "cx_console.h"
 #include "cx_console_view.h"
+#include "cx_ed_import_bdf.h"
+#include "cx_ed_import_gltf.h"
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
@@ -25,7 +26,6 @@
 #include "gltf.h"
 #include "input.h"
 #include "keys.h"
-#include "import_gltf.h"
 #include "material.h"
 #include "matrix.h"
 #include "mouse_buttons.h"
@@ -343,48 +343,35 @@ int main(int argc, const char* argv[]) {
 
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
-    register_asset_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
-    register_asset_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, 0);
-    register_asset_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
-    register_asset_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void*)static_mesh_free);
-    register_asset_type(ASSET_TYPE_SCENE, "scene", sizeof(struct scene), 0, 0, (void*)scene_destroy);
+    cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
+    cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, 0);
+    cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
+    cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void*)static_mesh_free);
+    cx_asset_register_type(ASSET_TYPE_SCENE, "scene", sizeof(struct scene), 0, 0, (void*)scene_destroy);
+	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, (void*)cx_font_free_glyph_bitmap_buffer);
 
-    struct asset_package asset_package;
-    asset_package_init(&asset_package);
+    struct cx_asset_package asset_package;
+    cx_asset_package_init(&asset_package);
 
-	void* p_bdf_buf;
-	size_t bdf_buf_size;
-	cx_io_file_read_all("res/builtin/font_dbg_8x14.bdf", &p_bdf_buf, &bdf_buf_size);
+	struct cx_asset_package_record* p_imported_font;
+	cx_ed_import_bdf_file(&asset_package, "res/builtin/font_dbg_8x14.bdf", &p_imported_font);
 
-	struct cx_bdf bdf;
-	cx_bdf_parse(p_bdf_buf, &bdf);
-	cx_io_file_free(p_bdf_buf);
-
-	struct cx_font font;
-	cx_font_build_from_bdf(&bdf, &font);
-	cx_bdf_free(&bdf);
-
+	struct cx_font* p_font = p_imported_font->asset_.p_data_;
 	struct cx_image font_atlas_image;
 	struct cx_texture_atlas_layout font_atlas_layout;
 	font_atlas_layout.p_entries = malloc(sizeof(*font_atlas_layout.p_entries) * CX_FONT_NUM_GLYPHS);
-	cx_font_create_atlas(&font, &font_atlas_image, &font_atlas_layout);
-	cx_font_free_glyph_bitmap_buffer(&font);
+	cx_font_create_atlas(p_font, &font_atlas_image, &font_atlas_layout);
+	cx_font_free_glyph_bitmap_buffer(p_font);
 
 	struct cx_gfx_texture font_atlas_texture;
 	cx_gfx_texture_create(&font_atlas_texture, font_atlas_image.width, font_atlas_image.height, CX_PIXEL_FORMAT_red);
 	cx_gfx_texture_set_data(&font_atlas_texture, font_atlas_image.p_pixel_data, &font_atlas_image.pixel_data_format);
 	free(font_atlas_image.p_pixel_data);
 
-    struct gltf gltf;
-    gltf_load_from_file("res/Industrial_exterior_v2.glb", &gltf);
+	struct cx_asset_package_record* p_imported_scene;
+	cx_ed_import_gltf_file(&asset_package, "res/Industrial_exterior_v2.glb", &p_imported_scene);
 
-    struct import_gltf_result import_gltf_result;
-    import_gltf(&gltf, &asset_package, &import_gltf_result);
-    
-    struct scene* p_scene = import_gltf_result.p_scenes[0]->asset_.p_data_;
-
-    gltf_free(&gltf);
-    import_gltf_free(&import_gltf_result);
+    struct scene* p_scene = p_imported_scene->asset_.p_data_;
 
     uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
     struct cx_image white_image = {
@@ -645,7 +632,7 @@ int main(int argc, const char* argv[]) {
 				matrix_make_identity(ui_camera.view_matrix);
 
 				struct cx_font_render_data font_render_data = {
-					.p_font = &font,
+					.p_font = p_imported_font->asset_.p_data_,
 					.p_glyph_texture = &font_atlas_texture,
 					.p_glyph_atlas_layout = &font_atlas_layout
 				};
