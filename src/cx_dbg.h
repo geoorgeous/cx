@@ -1,6 +1,9 @@
 #ifndef CX_DBG_H
 #define CX_DBG_H
 
+#include <stdlib.h>
+
+#include "cx_logging.h"
 #include "cx_macro.h"
 
 #ifdef NDEBUG

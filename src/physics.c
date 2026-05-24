@@ -1,12 +1,12 @@
 #include <math.h>
 
+#include "cx_dbg.h"
 #include "cx_logging.h"
 #include "math_utils.h"
 #include "matrix.h"
 #include "physics.h"
 #include "transform.h"
 #include "vector.h"
-
 
 /* referece: https://github.com/IainWinter/IwEngine/
        blob/3e2052855fea85718b7a499a7b1a3befd49d812b/IwEngine/include/iw/physics/impl/TestCollision.h */

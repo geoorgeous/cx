@@ -106,7 +106,9 @@
 #define CX_LOG(LEVEL, CAT, MSG) (cx_log(CX_LOG_LEVEL_##LEVEL, CX_LOG_CAT_##CAT, MSG))
 #define CX_LOG_FMT(LEVEL, CAT, MSG, ...) (cx_log_fmt(CX_LOG_LEVEL_##LEVEL, CX_LOG_CAT_##CAT, MSG, __VA_ARGS__))
 
-#include "cx_dbg.h"
+/**
+ * These are purely for development ease. Must include "cx_dbg.h"
+ */
 #define CX_LAZYLOG(MSG) CX_DBG(CX_LOG(UNDEFINED, DONTCARE, MSG))
 #define CX_LAZYLOG_FMT(MSG, ...) CX_DBG(CX_LOG_FMT(UNDEFINED, DONTCARE, MSG, __VA_ARGS__))
 

@@ -1,8 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "hashtable.h"
+#include "cx_dbg.h"
 #include "cx_logging.h"
+#include "hashtable.h"
 
 #define HASHTABLE_LOAD_THRESHOLD 0.7f
 #define HASHTABLE_MIN_BUCKETS 8

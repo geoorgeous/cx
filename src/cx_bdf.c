@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "cx_bdf.h"
-
+#include "cx_dbg.h"
 #include "cx_logging.h"
 
 #define CX_BDF_KW_STARTFONT        "STARTFONT"

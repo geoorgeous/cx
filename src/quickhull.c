@@ -6,6 +6,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 
+#include "cx_dbg.h"
 #include "cx_logging.h"
 #include "math_utils.h"
 #include "mesh.h"

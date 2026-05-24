@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "cx_command.h"
+#include "cx_dbg.h"
 #include "cx_logging.h"
 
 int cx_command_resolve_args(

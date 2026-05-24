@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "cx_asset.h"
+#include "cx_dbg.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_mesh.h"

@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cx_dbg.h"
+#include "cx_logging.h"
 #include "gltf.h"
 #include "json.h"
-#include "cx_logging.h"
 
 struct glb_chunk {
     size_t   length;
