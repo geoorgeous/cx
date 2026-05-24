@@ -1,12 +1,26 @@
 #ifndef CX_MACRO_H
 #define CX_MACRO_H
 
+#ifdef _MSC_VER
+#define CX_PRI_SIZE "Iu"
+#else
+#define CX_PRI_SIZE "zu"
+#endif
+
 #define CX_STRINGIFY_INTERNAL(X) #X
 #define CX_STRINGIFY(X) CX_STRINGIFY_INTERNAL(X)
 
 #define CX_FILE_LINE __FILE__":"CX_STRINGIFY(__LINE__)
 
 #define CX_ARRAY_LEN(P_ARRAY) (sizeof(P_ARRAY) / (sizeof(*(P_ARRAY))))
+
+#define CX_SIZEOF_MEMBER(TYPE, MEMBER) (sizeof(((TYPE*)0)->MEMBER))
+
+#define CX_ALIGN_DEFAULT_ALIGNMENT 16
+
+#define CX_ALIGN(X, ALIGNMENT) (((X)+ (ALIGNMENT) - 1) & ~((ALIGNMENT) - 1))
+
+#define CX_ALIGN_DEFAULT(X)  CX_ALIGN(X, CX_ALIGN_DEFAULT_ALIGNMENT)
 
 #define CX_BSEARCH(ARRAY, NUM, KEY, F_CMP_KEY, P_OUT_INDEX, P_OUT_B_FOUND) do {\
 	*(P_OUT_B_FOUND) = 0;\
