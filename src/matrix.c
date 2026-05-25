@@ -453,5 +453,9 @@ void quaternion_find_rotation_between(const float* p_u, const float* p_v, float*
 	vec3_cross(p_u, p_v, p_out);
 	p_out[3] = k_cos_theta + k;
 
-	vec_norm(4, p_out, p_out);
+	quaternion_norm(p_out, p_out);
+}
+
+void quaternion_norm(const float* p_q, float* p_out) {
+	vec_norm(4, p_q, p_out);
 }

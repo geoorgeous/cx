@@ -36,5 +36,6 @@ void quaternion_from_axis_angle(const float* p_axis, float angle, float* p_resul
 void quaternion_multiply(const float* p_q1, const float* p_q2, float* p_result);
 void quaternion_rotate_vec3(const float* p_q, const float* p_v, float* p_result);
 void quaternion_find_rotation_between(const float* p_u, const float* p_v, float* p_out);
+void quaternion_norm(const float* p_q, float* p_out);
 
 #endif
