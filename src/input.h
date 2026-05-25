@@ -55,7 +55,11 @@ struct input_event_data_char {
 
 void input_init(void);
 int  input_frame_is_key_down(enum key key);
+int  input_frame_is_key_pressed(enum key key);
+int  input_frame_is_key_released(enum key key);
 int  input_frame_is_mouse_button_down(enum mouse_button mouse_button);
+int  input_frame_is_mouse_button_pressed(enum mouse_button mouse_button);
+int  input_frame_is_mouse_button_released(enum mouse_button mouse_button);
 void input_frame_mouse_delta(int* p_x, int* p_y);
 void input_frame_scroll_delta(int* p_x, int* p_y);
 void input_frame_reset(void);

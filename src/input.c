@@ -1,5 +1,4 @@
-#include <stdlib.h>
-
+#include "cx_dbg.h"
 #include "event.h"
 #include "input.h"
 
@@ -37,19 +36,41 @@ void input_init(void) {
 }
 
 int input_frame_is_key_down(enum key key) {
-    if (key < 0 || key >= KEY_MAX_) {
-        return 0;
-    }
-
+	CX_ASSERT(key >= 0 && key < KEY_MAX_);
     return input.frame.keys[key].b_is_down;
 }
 
-int input_frame_is_mouse_button_down(enum mouse_button mouse_button) {
-    if (mouse_button < 0 || mouse_button >= MOUSE_BUTTON_MAX_) {
-        return 0;
-    }
+int input_frame_is_key_pressed(enum key key) {
+	CX_ASSERT(key >= 0 && key < KEY_MAX_);
+    return
+		input.frame.keys[key].b_is_down &&
+		!input.frame_old.keys[key].b_is_down;
+}
 
+int input_frame_is_key_released(enum key key) {
+	CX_ASSERT(key >= 0 && key < KEY_MAX_);
+    return
+		!input.frame.keys[key].b_is_down &&
+		input.frame_old.keys[key].b_is_down;
+}
+
+int input_frame_is_mouse_button_down(enum mouse_button mouse_button) {
+	CX_ASSERT(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_MAX_);
     return input.frame.mouse_button[mouse_button].b_is_down;
+}
+
+int input_frame_is_mouse_button_pressed(enum mouse_button mouse_button) {
+	CX_ASSERT(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_MAX_);
+    return
+		input.frame.mouse_button[mouse_button].b_is_down &&
+		!input.frame_old.mouse_button[mouse_button].b_is_down;
+}
+
+int input_frame_is_mouse_button_released(enum mouse_button mouse_button) {
+	CX_ASSERT(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_MAX_);
+    return
+		!input.frame.mouse_button[mouse_button].b_is_down &&
+		input.frame_old.mouse_button[mouse_button].b_is_down;
 }
 
 void input_frame_mouse_delta(int* p_x, int* p_y) {
@@ -84,22 +105,18 @@ void input_event_broadcast(enum input_event event, const void* p_event_data) {
 
 void input_on_key(const void* p_e, void* p_user_ptr) {
     const struct input_event_data_key* p_key_event = p_e;
-    struct input* p_input = p_user_ptr;
+	CX_ASSERT(p_key_event->key >= 0 && p_key_event->key < KEY_MAX_);
 
-    if (p_key_event->key < 0 || p_key_event->key >= KEY_MAX_) {
-        return;
-    }
+    struct input* p_input = p_user_ptr;
 
     p_input->frame.keys[p_key_event->key].b_is_down = p_key_event->b_is_down;
 }
 
 void input_on_mouse_button(const void* p_e, void* p_user_ptr) {
     const struct input_event_data_mouse_button* p_mouse_button_event = p_e;
-    struct input* p_input = p_user_ptr;
-
-    if (p_mouse_button_event->button < 0 || p_mouse_button_event->button >= MOUSE_BUTTON_MAX_) {
-        return;
-    }
+	CX_ASSERT(p_mouse_button_event->button >= 0 && p_mouse_button_event->button < MOUSE_BUTTON_MAX_);
+    
+	struct input* p_input = p_user_ptr;
 
     p_input->frame.mouse_button[p_mouse_button_event->button].b_is_down = p_mouse_button_event->b_is_down;
 }
