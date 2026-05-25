@@ -5,7 +5,6 @@
 #include "cx_command.h"
 #include "cx_console.h"
 #include "cx_logging.h"
-#include "cx_macro.h"
 #include "cx_var.h"
 #include "input.h"
 #include "keys.h"
@@ -60,34 +59,34 @@ void cx_console_init(struct cx_console* p_console) {
 		p_console->flogger_storage.ring_entries_buf_,
 		p_console->flogger_storage.ring_entries_entries_buf_);
 
-	CX_NEW_COMMAND(clear,
+	CX_NEW_COMMAND("clear",
 		"Clear the console output",
 		cx_console_command_clear, 0);
 
-	CX_NEW_COMMAND(help,
+	CX_NEW_COMMAND("help",
 		"List all commands, or the details of a single command",
 		cx_console_command_help, &console.command_registry,
 		CX_COMMAND_PARAM(STRING("name", "Command to list detail of"), OPTIONAL));
 	CX_NEW_COMMAND_ALIAS("h", "help");
 
-	CX_NEW_COMMAND(alias,
+	CX_NEW_COMMAND("alias",
 		"List, create, or query aliases",
 		cx_console_command_alias, &console.command_registry,
 		CX_COMMAND_PARAM(STRING("name", "Alias name"), OPTIONAL),
 		CX_COMMAND_PARAM(STRING("expansion", "Expansion to execute"), OPTIONAL));
 
-	CX_NEW_COMMAND(unalias,
+	CX_NEW_COMMAND("unalias",
 		"Delete an alias",
 		cx_console_command_unalias, &console.command_registry,
 		CX_COMMAND_PARAM(STRING("name", "Name of the alias to delete"), REQUIRED));
 
-	CX_NEW_COMMAND(var,
+	CX_NEW_COMMAND("var",
 		"List, query, or assign vars",
 		cx_console_command_var, &console.var_registry,
 		CX_COMMAND_PARAM(STRING("name", "Name of the variable to get/set"), OPTIONAL),
 		CX_COMMAND_PARAM(STRING("value", "Value to assign to the variable"), OPTIONAL));
 
-	CX_NEW_COMMAND(history,
+	CX_NEW_COMMAND("history",
 		"List command history",
 		cx_console_command_history, &console.history);
 
@@ -99,7 +98,7 @@ void cx_console_init(struct cx_console* p_console) {
 		{ "efive",  4 }
 	};
 
-	CX_NEW_COMMAND(test,
+	CX_NEW_COMMAND("test",
 		"Testing, tesing, one, two, three",
 		cx_console_command_test, 0,
 		CX_COMMAND_PARAM(STRING("one", "First parameter"), REQUIRED),

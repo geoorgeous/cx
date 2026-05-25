@@ -3,19 +3,19 @@
 
 #include <stddef.h>
 
-#define CX_NEW_COMMAND(NAME, DESC, F, P_USER, ...) do {\
-	const static struct cx_command_param NAME##_command_params[] = {\
+#define CX_NEW_COMMAND(S_NAME, DESC, F, P_USER, ...) do {\
+	const static struct cx_command_param command_params[] = {\
 		__VA_ARGS__\
 	};\
-	const static struct cx_command NAME##_command = {\
-		.s_name = #NAME,\
+	const static struct cx_command command = {\
+		.s_name = S_NAME,\
 		.s_desc = DESC,\
-		.p_params = NAME##_command_params,\
-		.num_params = sizeof(NAME##_command_params) / sizeof(struct cx_command_param),\
+		.p_params = command_params,\
+		.num_params = sizeof(command_params) / sizeof(struct cx_command_param),\
 		.f = F,\
 		.p_user_ptr = P_USER\
 	};\
-	cx_command_registry_add(&cx_console_get()->command_registry, &NAME##_command); } while(0)
+	cx_command_registry_add(&cx_console_get()->command_registry, &command); } while(0)
 
 #define CX_NEW_COMMAND_ALIAS(S_NAME, S_EXPANSION) \
 	cx_command_registry_add_alias(&cx_console_get()->command_registry, S_NAME, S_EXPANSION)

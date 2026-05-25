@@ -167,7 +167,7 @@ int main(int argc, const char* argv[]) {
     static struct platform_window platform_window;
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
 	
-	CX_NEW_COMMAND(quit, "Close application", console_command_quit, &platform_window);
+	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &platform_window);
 	CX_NEW_COMMAND_ALIAS("q", "quit");
 
 	if (err != CX_ERROR_none) {
