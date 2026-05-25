@@ -2,6 +2,8 @@
 #include <string.h>
 
 #include "cx_asset.h"
+#include "cx_blueprint.h"
+#include "cx_cmp_static_mesh.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_import_image.h"
 #include "cx_image.h"
@@ -11,7 +13,6 @@
 #include "material.h"
 #include "matrix.h"
 #include "mesh.h"
-#include "scene.h"
 #include "skeleton.h"
 #include "skeletal_animation.h"
 #include "static_mesh.h"
@@ -25,7 +26,7 @@ struct cx_ed_import_gltf_context {
 	struct cx_asset_package_record* p_textures[256];
 	struct cx_asset_package_record* p_materials[256];
 	struct cx_asset_package_record* p_static_meshes[256];
-	struct cx_asset_package_record* p_main_scene;
+	struct cx_asset_package_record* p_out_blueprint;
 	size_t num_images;
 	size_t num_textures;
 	size_t num_materials;
@@ -56,10 +57,10 @@ static void cx_ed_import_gltf_discover_joint_hierarchy(
 	struct skeleton* p_skeleton,
 	size_t joint_index);
 
-static struct scene_entity* cx_ed_import_gltf_process_scene_node(
+static uint16_t cx_ed_import_gltf_process_scene_node(
 	struct cx_ed_import_gltf_context* p_context,
 	const struct gltf_node* p_gltf_node,
-	struct scene* p_scene);
+	struct cx_blueprint* p_blueprint);
 
 static size_t cx_ed_import_gltf_compute_accessor_element_size(const struct gltf_accessor* p_gltf_accessor);
 
@@ -120,7 +121,7 @@ int cx_ed_import_gltf(
         cx_ed_import_gltf_scene(&context, i);
     }
 
-	*pp_out = context.p_main_scene;
+	*pp_out = context.p_out_blueprint;
 
 	return 1;
 }
@@ -613,19 +614,19 @@ void cx_ed_import_gltf_animation(struct cx_ed_import_gltf_context* p_context, si
 
 void cx_ed_import_gltf_scene(struct cx_ed_import_gltf_context* p_context, size_t gltf_scene_index) {
     const struct gltf_scene* p_gltf_scene = &p_context->p_gltf->p_scenes[gltf_scene_index];
-    struct scene* p_scene = malloc(sizeof(struct scene));
-    scene_init(p_scene);
+    struct cx_blueprint* p_blueprint = malloc(sizeof(struct cx_blueprint));
+	*p_blueprint = (struct cx_blueprint) {0};
 
     for (size_t i = 0; i < p_gltf_scene->num_root_nodes; ++i) {
         const struct gltf_node* p_gltf_root_node = &p_context->p_gltf->p_nodes[p_gltf_scene->p_root_nodes_indices[i]];
-        cx_ed_import_gltf_process_scene_node(p_context, p_gltf_root_node, p_scene);
+        cx_ed_import_gltf_process_scene_node(p_context, p_gltf_root_node, p_blueprint);
     }
 
-	struct cx_asset_package_record* p_new_scene_asset_record;
-    cx_asset_package_new_record(p_context->p_asset_package, ASSET_TYPE_SCENE, &p_new_scene_asset_record);
-    p_new_scene_asset_record->asset_.p_data_ = p_scene;
+	struct cx_asset_package_record* p_new_blueprint_asset_record;
+    cx_asset_package_new_record(p_context->p_asset_package, CX_ASSET_TYPE_BLUEPRINT, &p_new_blueprint_asset_record);
+    p_new_blueprint_asset_record->asset_.p_data_ = p_blueprint;
 
-	p_context->p_main_scene = p_new_scene_asset_record;
+	p_context->p_out_blueprint = p_new_blueprint_asset_record;
 }
 
 const struct gltf_accessor* cx_ed_import_gltf_get_mesh_primitive_vertex_attribute_accessor(
@@ -681,31 +682,36 @@ void cx_ed_import_gltf_discover_joint_hierarchy(
     }
 }
 
-struct scene_entity* cx_ed_import_gltf_process_scene_node(
+uint16_t cx_ed_import_gltf_process_scene_node(
 	struct cx_ed_import_gltf_context* p_context,
 	const struct gltf_node* p_gltf_node,
-	struct scene* p_scene) {
+	struct cx_blueprint* p_blueprint) {
 
-    struct scene_entity* p_entity = scene_new_entity(p_scene);
+	uint16_t new_node_id = cx_blueprint_create_node(p_blueprint);
     
-    p_entity->p_mesh = p_context->p_static_meshes[p_gltf_node->mesh_index];
+	struct cx_cmp_static_mesh* p_static_mesh_component =
+		cx_blueprint_node_add_component(p_blueprint, new_node_id, &cmp_type_static_mesh);
+
+	p_static_mesh_component->p_asset_package_record = p_context->p_static_meshes[p_gltf_node->mesh_index];
+
+	struct transform* p_node_transform = cx_blueprint_node_get_transform(p_blueprint, new_node_id);
 
     matrix_decompose_trs(
 		p_gltf_node->matrix,
-		p_entity->transform.position,
-		p_entity->transform.rotation,
-		p_entity->transform.scale);
+		p_node_transform->position,
+		p_node_transform->rotation,
+		p_node_transform->scale);
 
     for (size_t i = 0; i < p_gltf_node->num_children; ++i) {
         const struct gltf_node* p_child_gltf_node = &p_context->p_gltf->p_nodes[p_gltf_node->p_children_indices[i]];
 
-        struct scene_entity* p_child_entity =
-			cx_ed_import_gltf_process_scene_node(p_context, p_child_gltf_node, p_scene);
-
-        p_child_entity->transform.p_local_transform = &p_entity->transform;
+		cx_blueprint_node_set_parent(
+			p_blueprint,
+			cx_ed_import_gltf_process_scene_node(p_context, p_child_gltf_node, p_blueprint),
+			new_node_id);
     }
 
-    return p_entity;
+    return new_node_id;
 }
 
 size_t cx_ed_import_gltf_compute_accessor_element_size(const struct gltf_accessor* p_gltf_accessor) {
