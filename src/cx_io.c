@@ -11,7 +11,6 @@ enum cx_error cx_io_file_read_all(const char* s_filename, void** pp_out_buf, siz
 	FILE* file = fopen(s_filename, "rb");
 
 	*pp_out_buf = 0;
-	*p_out_size = 0;
 
 	if (!file) {
 		return CX_ERROR_io;
@@ -49,7 +48,10 @@ enum cx_error cx_io_file_read_all(const char* s_filename, void** pp_out_buf, siz
 	((char*)p_buf)[size] = '\0';
 
 	*pp_out_buf = p_buf;
-	*p_out_size = (size_t)size;
+
+	if (p_out_size) {
+		*p_out_size = (size_t)size;
+	}
 
 	return CX_ERROR_none;
 }
