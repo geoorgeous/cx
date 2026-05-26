@@ -114,6 +114,10 @@ struct transform* cx_world_entity_get_transform(struct cx_world* p_world, uint16
 	return &p_world->entities[entity_id].transform;
 }
 
+const struct transform* cx_world_entity_get_transform_const(const struct cx_world* p_world, uint16_t entity_id) {
+	return &p_world->entities[entity_id].transform;
+}
+
 const struct cx_component_pool* cx_world_get_component_pool(
 	const struct cx_world* p_world,
 	const struct cx_component_type* p_type) {
@@ -267,4 +271,12 @@ uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct c
 	}
 
 	return root_entity;
+}
+
+void cx_world_compute_transforms(struct cx_world* p_world) {
+	for (size_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
+		if (p_world->entities[i].b_alive) {
+			transform_compute_world_trs_matrix(&p_world->entities[i].transform);
+		}
+	}
 }

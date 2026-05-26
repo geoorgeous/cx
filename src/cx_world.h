@@ -58,6 +58,8 @@ int cx_world_entity_is_valid(const struct cx_world* p_world, uint16_t entity_id)
 
 struct transform* cx_world_entity_get_transform(struct cx_world* p_world, uint16_t entity_id);
 
+const struct transform* cx_world_entity_get_transform_const(const struct cx_world* p_world, uint16_t entity_id);
+
 const struct cx_component_pool* cx_world_get_component_pool(
 	const struct cx_world* p_world,
 	const struct cx_component_type* p_type);
@@ -85,5 +87,7 @@ int cx_world_component_has(
 struct cx_blueprint;
 
 uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct cx_blueprint* p_blueprint);
+
+void cx_world_compute_transforms(struct cx_world* p_world);
 
 #endif
