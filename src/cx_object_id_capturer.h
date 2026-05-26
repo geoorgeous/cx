@@ -9,6 +9,8 @@
 
 #define CX_OBJECT_ID_CAPTURER_MAX_OBJECTS 1024
 
+#define CX_OBJECT_ID_NONE 0
+
 #define CX_OBJECT_ID_CATEGORY_BITS  8u
 #define CX_OBJECT_ID_PAYLOAD_BITS  24u
 
@@ -35,9 +37,6 @@ struct cx_object_id_capturer {
 	struct cx_gfx_framebuffer framebuffer;
 	struct cx_gfx_texture     framebuffer_color;
 	struct cx_gfx_texture     framebuffer_depth_stencil;
-	struct cx_object_id_capturer_object_data object_data[CX_OBJECT_ID_CAPTURER_MAX_OBJECTS];
-	struct cx_render_pass_command render_pass_commands[CX_OBJECT_ID_CAPTURER_MAX_OBJECTS];
-	uint32_t num_render_pass_commands;
 };
 
 struct cx_object_id_capturer_item {
@@ -48,16 +47,13 @@ struct cx_object_id_capturer_item {
 
 void cx_object_id_capturer_free(struct cx_object_id_capturer* p_capturer);
 
-void cx_object_id_capturer_submit(
-	struct cx_object_id_capturer* p_capturer,
-	const struct cx_object_id_capturer_item* p_item);
-
 void cx_object_id_capturer_draw(
 	struct cx_object_id_capturer* p_capturer,
 	const float* p_projection_matrix,
 	const float* p_view_matrix,
 	uint32_t fb_width,
-	uint32_t fb_height);
+	uint32_t fb_height,
+	const struct cx_render_command_buffer* p_render_command_buffer);
 
 uint32_t cx_object_id_capturer_query(const struct cx_object_id_capturer* p_capturer, float x, float y);
 
