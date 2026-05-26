@@ -199,7 +199,8 @@ void cx_ed_import_gltf_material(struct cx_ed_import_gltf_context* p_context, siz
     struct material* p_material = malloc(sizeof(struct material));
 
     *p_material = (struct material) {
-        .p_texture = p_context->p_textures[p_gltf_material->pbr_base_color_texture.source_texture_index]
+        .p_texture = p_context->p_textures[p_gltf_material->pbr_base_color_texture.source_texture_index],
+		.color = { 1, 1, 1, 1 }
     };
     
 	struct cx_asset_package_record* p_new_material_asset_record;

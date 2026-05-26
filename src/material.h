@@ -7,7 +7,7 @@
 
 struct material {
     cx_asset_handle p_texture;
-    float        color[3];
+    float        color[4];
 };
 
 #endif
