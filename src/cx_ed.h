@@ -1,7 +1,9 @@
 #ifndef CX_ED_H
 #define CX_ED_H
 
-#include "cx_ed_action.h"
+#include <stdint.h>
+
+#define CX_LOG_CAT_ED "editor"
 
 // action history
 // entity names
@@ -18,8 +20,14 @@
 //  - add entity component
 //  - delete entity component
 
-void cx_ed_init(void);
+struct platform_window;
+
+void cx_ed_init(struct platform_window* p_window);
+
 void cx_ed_update(double dt_seconds);
-void cx_ed_draw(float aspect);
+
+struct cx_gfx_framebuffer;
+
+void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height);
 
 #endif

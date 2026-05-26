@@ -6,14 +6,22 @@
 #include "cx_command_registry.h"
 #include "cx_console.h"
 #include "cx_ed.h"
+#include "cx_ed_action.h"
 #include "cx_ed_import_gltf.h"
+#include "cx_ed_transform_gizmo.h"
+#include "cx_io.h"
 #include "cx_macro.h"
+#include "cx_object_id_capturer.h"
 #include "cx_var.h"
 #include "cx_world.h"
 #include "cx_world_renderer.h"
 #include "input.h"
 #include "matrix.h"
+#include "physics.h"
+#include "platform_window.h"
 #include "vector.h"
+
+#include "gl.h"
 
 #define CX_ACTION_DEF(NAME)\
 	static void cx_ed_action_##NAME##_do(void* p_ctx);\
@@ -28,11 +36,26 @@
 	cx_ed_action_history_execute(&ed.action_history, &action_def_##NAME, P_CTX)
 
 static struct {
+	struct platform_window* p_window;
+
 	struct cx_asset_package asset_package;
 
 	struct cx_ed_action_history action_history;
 
+	struct cx_render_command render_commands[CX_WORLD_MAX_ENTITIES];
+	struct cx_render_pass render_pass_forward;
+	struct cx_render_pass render_pass_flat_color;
+
 	struct cx_world world;
+	struct physics_world physics_world;
+
+	struct cx_object_id_capturer object_id_capturer;
+
+	uint32_t object_id_at_cursor;
+	uint16_t selected_entity_id;
+	uint16_t entity_id_at_cursor;
+
+	struct cx_transform_gizmo gizmo;
 
 	// buffers for command flog builder
 	char                   flog_builder_str_buf[1024];
@@ -40,6 +63,7 @@ static struct {
 	struct cx_flog_span    flog_builder_span_buf[8];
 	struct cx_flog_builder flog_builder;
 
+	// editor camera
 	struct {
 		float position[3];
 		float pitch;
@@ -190,19 +214,131 @@ void cx_ed_update(double dt_seconds) {
 		translation_matrix);
 
 	matrix_multiply(rotation_matrix, translation_matrix, ed.camera.view_matrix);
+
+	// keep track of the entity that the mouse is pointing at
+	if (CX_OBJECT_ID_GET_CATEGORY(ed.object_id_at_cursor) == CX_OBJECT_ID_CATEGORY_ENTITY) {
+		ed.entity_id_at_cursor = CX_OBJECT_ID_GET_PAYLOAD(ed.object_id_at_cursor);
+	} else {
+		ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
+	}
+
+	if (input_frame_is_mouse_button_released(MOUSE_BUTTON_left)) {
+		ed.selected_entity_id = ed.entity_id_at_cursor;
+	}
+
+	// upate the gizmo while we have a selected entity
+	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
+		struct transform* p_selected_entity_transform =
+			cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
+
+		int mouse_client_coords[2];
+		platform_window_get_mouse_client_coords(ed.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+
+		float cursor_ray[3];
+		platform_window_client_to_world_ray(ed.p_window,
+			ed.camera.projection_matrix,
+			mouse_client_coords[0], mouse_client_coords[1],
+			cursor_ray);
+		
+		const float gizmo_view_scale = 2.0f / ed.camera.projection_matrix[5];
+
+		struct transform t;
+		const enum cx_transform_gizmo_interaction_state gizmo_interaction_state = 
+			cx_transform_gizmo_update(
+				&ed.gizmo,
+				p_selected_entity_transform,
+				ed.object_id_at_cursor,
+				ed.camera.position, gizmo_view_scale, cursor_ray,
+				&t);
+
+		if (gizmo_interaction_state == CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress) {
+			struct transform* p_t = cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
+			*p_t = t;
+		} else if (gizmo_interaction_state == CX_TRANSFORM_GIZMO_INTERACTION_STATE_ended) {
+			struct transform* p_t = cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
+			*p_t = t;
+			// todo: execute history action
+		}
+	}
+
+	cx_world_compute_transforms(&ed.world);
 }
 
-void cx_ed_draw(float aspect) {
+void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
 	matrix_make_perspective_projection(
 		1,
-		aspect,
+		(float)fb_width / fb_height,
 		0.01f, 1000.0f,
 		ed.camera.projection_matrix);
+            
+	struct cx_render_pass_execute_info render_pass_execute_info = {
+		.p_framebuffer = p_fb,
+		.viewport = { 0, 0, fb_width, fb_height },
+		.b_clear_color = 1,
+		.clear_color = { 0.2f, 0.2f, 0.2f, 0.0f },
+		.b_clear_depth = 1,
+		.clear_depth = 1.0f
+	};
 
-	cx_world_renderer_draw(&ed.world, ed.camera.projection_matrix, ed.camera.view_matrix);
+	struct cx_render_command_buffer render_command_buffer = {
+		.p_commands = ed.render_commands,
+		.capacity = CX_ARRAY_LEN(ed.render_commands)
+	};
+
+	struct cx_render_pass_data render_pass_data = {
+		.p_data = &ed.camera.projection_matrix[0]
+	};
+
+	cx_world_renderer_record_forward_pass_commands(&ed.world, &render_command_buffer);
+
+	cx_render_pass_execute(
+		&ed.render_pass_forward,
+		&render_pass_execute_info,
+		&render_pass_data,
+		&render_command_buffer);
+	render_command_buffer.num = 0;
+
+	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
+		cx_transform_gizmo_record_flat_color_pass_commands(&ed.gizmo, &render_command_buffer);
+
+		render_pass_execute_info.b_clear_color = 0;
+
+		cx_render_pass_execute(
+			&ed.render_pass_flat_color,
+			&render_pass_execute_info,
+			&render_pass_data,
+			&render_command_buffer);
+		render_command_buffer.num = 0;
+	}
+
+	cx_world_renderer_record_picker_pass_commands(&ed.world, &render_command_buffer);
+
+	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
+		cx_transform_gizmo_record_picker_pass_commands(&ed.gizmo, &render_command_buffer);
+	}
+
+	cx_object_id_capturer_draw(
+		&ed.object_id_capturer,
+		ed.camera.projection_matrix,
+		ed.camera.view_matrix, fb_width, fb_height,
+		&render_command_buffer);
+	render_command_buffer.num = 0;
+
+	int mouse_client_coords[2];
+	platform_window_get_mouse_client_coords(ed.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+
+	float mouse_position_normalized[2];
+	platform_window_normalize_client_coords(ed.p_window,
+		mouse_client_coords[0], mouse_client_coords[1],
+		&mouse_position_normalized[0], &mouse_position_normalized[1]);
+
+	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer,
+		mouse_position_normalized[0], mouse_position_normalized[1]);
 }
 
-void cx_ed_init(void) {
+void cx_ed_init(struct platform_window* p_window) {
+	ed.p_window = p_window;
+
 	cx_asset_package_init(&ed.asset_package);
 
 	ed.flog_builder = (struct cx_flog_builder) {
@@ -211,10 +347,53 @@ void cx_ed_init(void) {
 		.p_spans = ed.flog_builder_span_buf
 	};
 
+	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
+	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
+
 	CX_NEW_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, 0,
-		CX_COMMAND_PARAM(FLOAT("x", "Entity world position, x component"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("y", "Entity world position, y component"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("z", "Entity world position, z component"), OPTIONAL));
+		CX_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
+	
+	void* p_vsource;
+	void* p_fsource;
+	
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none);
+
+	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
+		.program_source = {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		},
+		.s_pass_block_name = "blk_camera",
+		.s_object_block_name = "blk_object",
+		.s_material_block_name = "blk_material_properties",
+		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
+		.num_opaque_params = 1
+	}), &ed.render_pass_forward));
+
+	cx_io_file_free(p_vsource);
+	cx_io_file_free(p_fsource);
+
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none);
+
+	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
+		.program_source = {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		},
+		.s_pass_block_name = "blk_camera",
+		.s_object_block_name = "blk_object",
+		.s_material_block_name = "blk_material_properties",
+	}), &ed.render_pass_flat_color));
+
+	cx_io_file_free(p_vsource);
+	cx_io_file_free(p_fsource);
+
+	cx_transform_gizmo_init_shared_resources(&ed.asset_package);
+	cx_transform_gizmo_init_controls(&ed.gizmo);
 
 	struct cx_component_pool_def world_component_pool_defs[] = {
 		{ &cmp_type_static_mesh,  CX_WORLD_MAX_ENTITIES },
@@ -223,6 +402,10 @@ void cx_ed_init(void) {
 	};
 
 	cx_world_init(&ed.world, world_component_pool_defs, CX_ARRAY_LEN(world_component_pool_defs));
+
+    physics_world_init(&ed.physics_world);
+    physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
+    physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
 	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
 	cx_ed_import_gltf_file(&ed.asset_package, "res/Industrial_exterior_v2.glb", &p_gltf_scene_blueprint_asset);

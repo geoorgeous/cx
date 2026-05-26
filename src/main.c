@@ -35,7 +35,6 @@
 #include "material.h"
 #include "matrix.h"
 #include "mouse_buttons.h"
-#include "physics.h"
 #include "platform_window.h"
 #include "static_mesh.h"
 
@@ -53,6 +52,10 @@
 // Editor tools: tools that help edit; save and load; and package the game, assets, scenes etc.
 //
 // DEV CLI COMMANDS
+//
+//
+// todo: refactor object_id_capturer, extras render pass configuration and setup, maybe extract framebuffer stuff in
+// to render target
 
 static void platform_window_on_created(struct platform_window*, void*);
 static void platform_window_on_key(struct platform_window*, void*, enum key, int, unsigned int);
@@ -313,58 +316,9 @@ int main(int argc, const char* argv[]) {
 	cx_component_register(&cmp_type_collider);
 	cx_component_register(&cmp_type_rigidbody);
 
-
 	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
 
-    struct physics_world physics_world;
-    physics_world_init(&physics_world);
-    physics_world_add_solver(&physics_world, physics_collision_solver_impulse);
-    physics_world_add_solver(&physics_world, physics_collision_solver_smooth_positions);
-
-    {
-        //struct scene_entity* p_new_entity;
-
-        //// Sphere
-        //
-        //p_new_entity = scene_new_entity(p_scene);
-
-        //p_new_entity->transform.position[1] = 3;
-
-        //p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
-        //physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_sphere);
-        //
-        //// Capsule
-        //
-        //p_new_entity = scene_new_entity(p_scene);
-
-        //p_new_entity->transform.position[1] = 3;
-        //p_new_entity->transform.position[0] = 2;
-
-        //p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
-        //physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_capsule);
-        //
-        //// Hull
-        //
-        //p_new_entity = scene_new_entity(p_scene);
-
-        //p_new_entity->transform.position[1] = 3;
-        //p_new_entity->transform.position[0] = -2;
-
-        //p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 1);
-        //physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_hull);
-        //
-        //// Plane
-
-        //p_new_entity = scene_new_entity(p_scene);
-
-        //p_new_entity->p_physics_object = physics_world_new_object(&physics_world, &p_new_entity->transform, 0);
-        //physics_world_new_object_collider(&physics_world, p_new_entity->p_physics_object, PHYSICS_COLLIDER_TYPE_plane);
-    }
-    
-    //dev_init(&platform_window, p_scene, &physics_world);
-	//dev_mode_enable();
-	
-	cx_ed_init();
+	cx_ed_init(&platform_window);
 
     uint64_t old_frame_start = cx_platform_time_now();
 
@@ -386,50 +340,48 @@ int main(int argc, const char* argv[]) {
         {
             glEnable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST); 
-            glViewport(0, 0, fb_width, fb_height);
-			cx_gfx_framebuffer_bind(&framebuffer);
-            glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			cx_ed_draw((float)fb_width / fb_height);			
-	
-        	//dev_draw(&framebuffer, fb_width, fb_height, camera.projection_matrix, camera.view_matrix);
+			cx_ed_draw(&framebuffer, fb_width, fb_height);			
 
 			if (cx_console_get()->b_is_input_enabled) {
-				cx_gfx_framebuffer_bind(&framebuffer);
-
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				glClear(GL_DEPTH_BUFFER_BIT);
-
-				struct {
-					float projection_matrix[16];
-					float view_matrix[16];
-				} ui_camera;
-
-				matrix_make_orthographic_projection(0, fb_width, fb_height, 0, -1, 1, ui_camera.projection_matrix);
-				matrix_make_identity(ui_camera.view_matrix);
 
 				struct cx_font_render_data font_render_data = {
 					.p_font = p_imported_font->asset_.p_data_,
 					.p_glyph_texture = &font_atlas_texture,
 					.p_glyph_atlas_layout = &font_atlas_layout
 				};
-				cx_console_view_draw(cx_console_get(), &font_render_data, fb_width, ui_camera.projection_matrix, ui_camera.view_matrix);
+
+				float projection_matrix[16];
+				float view_matrix[16];
+
+				matrix_make_orthographic_projection(0, fb_width, fb_height, 0, -1, 1, projection_matrix);
+				matrix_make_identity(view_matrix);
+
+				cx_console_view_draw(cx_console_get(),
+					&font_render_data,
+					&framebuffer,
+					fb_width, fb_height,
+					projection_matrix, view_matrix);
 			}
 
             // SCREEN QUAD
             {
                 platform_window_size(&platform_window, &window_size[0], &window_size[1]);
 
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&gl_context));
+
                 glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
 				glClearColor(0, 0, 0, 0);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				cx_gfx_program_bind(&program_screen);
 		
-				cx_gfx_program_opaque_param_bind_resource(&program_screen_texture_param, &texture_fb_color);
+				cx_gfx_program_opaque_param_bind_resource(&((struct cx_gfx_program_opaque_param_binding){
+					.p_param = &program_screen_texture_param,
+					.p_resource = &texture_fb_color
+				}));
 
                 GLuint gl_empty_vao;
                 glGenVertexArrays(1, &gl_empty_vao);
