@@ -11,6 +11,8 @@
 
 #define CX_WORLD_MAX_ENTITIES 1024
 
+#define CX_ENTITY_ID_INVALID UINT16_MAX
+
 struct cx_entity {
 	int b_alive;
 	struct transform transform;
