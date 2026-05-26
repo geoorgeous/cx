@@ -45,11 +45,11 @@ struct cx_gfx_program_param_buffer {
 
 enum cx_error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size);
 
-void       cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer);
+void cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer);
 
-void       cx_gfx_program_param_buffer_bind(const struct cx_gfx_program_param_buffer* p_buffer, unsigned int index);
+void cx_gfx_program_param_buffer_bind(const struct cx_gfx_program_param_buffer* p_buffer, unsigned int index);
 
-void       cx_gfx_program_param_buffer_bind_range(
+void cx_gfx_program_param_buffer_bind_range(
 	const struct cx_gfx_program_param_buffer* p_buffer,
 	unsigned int index,
 	size_t offset,
@@ -68,20 +68,26 @@ struct cx_gfx_program_opaque_param {
 	char bytes_[4];
 };
 
-void cx_gfx_program_opaque_param_bind_resource(
-	const struct cx_gfx_program_opaque_param* p_opaque_param,
-	const void* p_resource);
+struct cx_gfx_program_opaque_param_binding {
+	const struct cx_gfx_program_opaque_param* p_param;
+	const void* p_resource;
+};
+
+void cx_gfx_program_opaque_param_bind_resource(const struct cx_gfx_program_opaque_param_binding* p_binding);
 
 struct cx_gfx_program_param_block {
 	size_t size_;
 	char   bytes_[4];
 };
 
-void cx_gfx_program_param_block_bind_buffer(
-	const struct cx_gfx_program_param_block* p_param_block,
-	const struct cx_gfx_program_param_buffer* p_buffer,
-	size_t buffer_data_offset,
-	size_t buffer_data_size);
+struct cx_gfx_program_param_block_binding {
+	const struct cx_gfx_program_param_block* p_block;
+	const struct cx_gfx_program_param_buffer* p_buffer;
+	size_t offset;
+	size_t size;
+};
+
+void cx_gfx_program_param_block_bind_buffer(const struct cx_gfx_program_param_block_binding* p_binding);
 
 struct cx_gfx_program_source {
 	const char* s_vertex_stage_source;

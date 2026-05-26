@@ -82,15 +82,12 @@ void cx_gfx_program_param_buffer_set(
 	glBufferSubData(GL_UNIFORM_BUFFER, offset, size ? size : p_buffer->size, p_data);
 }
 
-void cx_gfx_program_opaque_param_bind_resource(
-	const struct cx_gfx_program_opaque_param* p_opaque_param,
-	const void* p_resource) {
-	
-	switch (p_opaque_param->type) {
+void cx_gfx_program_opaque_param_bind_resource(const struct cx_gfx_program_opaque_param_binding* p_binding) {
+	switch (p_binding->p_param->type) {
 		case CX_GFX_PROGRAM_OPAQUE_PARAM_TYPE_sampler_2d: {
-			const struct cx_gfx_texture* p_texture = p_resource;
+			const struct cx_gfx_texture* p_texture = p_binding->p_resource;
 			const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->bytes_;
-			glActiveTexture(GL_TEXTURE0 + p_opaque_param->slot);
+			glActiveTexture(GL_TEXTURE0 + p_binding->p_param->slot);
 			glBindTexture(GL_TEXTURE_2D, p_texture_internals->id);
 			break;
 		}
@@ -107,18 +104,13 @@ void cx_gfx_program_opaque_param_bind_resource(
 	}
 }
 
-void cx_gfx_program_param_block_bind_buffer(
-	const struct cx_gfx_program_param_block* p_param_block,
-	const struct cx_gfx_program_param_buffer* p_buffer,
-	size_t buffer_data_offset,
-	size_t buffer_data_size) {
-	
-	const struct cx_gfx_program_param_block_gl_internals* p_internals = (const void*)p_param_block->bytes_;
+void cx_gfx_program_param_block_bind_buffer(const struct cx_gfx_program_param_block_binding* p_binding) {
+	const struct cx_gfx_program_param_block_gl_internals* p_internals = (const void*)p_binding->p_block->bytes_;
 	cx_gfx_program_param_buffer_bind_range(
-		p_buffer,
+		p_binding->p_buffer,
 		p_internals->bind_index,
-		buffer_data_offset,
-		buffer_data_size ? buffer_data_size : p_buffer->size);
+		p_binding->offset,
+		p_binding->size ? p_binding->size : p_binding->p_buffer->size);
 }
 
 enum cx_error cx_gfx_program_create(struct cx_gfx_program* p_program) {
@@ -396,8 +388,14 @@ int cx_gfx_program_refl_param_block(
 }
 
 void cx_gfx_program_bind(const struct cx_gfx_program* p_program) {
+	static GLuint bound_program = 0;
+
 	const struct cx_gfx_program_gl_internals* p_program_internals = (const void*)p_program->bytes_;
-	glUseProgram(p_program_internals->id);
+
+	if (p_program_internals->id != bound_program) {
+		glUseProgram(p_program_internals->id);
+		bound_program = p_program_internals->id;
+	}
 }
 
 enum cx_error compile_shader_source(GLuint shader, const char* s_source) {
