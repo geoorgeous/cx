@@ -28,7 +28,6 @@
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
-#include "dev.h"
 #include "gl.h"
 #include "input.h"
 #include "keys.h"
@@ -136,11 +135,6 @@ void on_key(const void* p_e, void* p_user_ptr) {
 			struct cx_console* p_console = cx_console_get();
 			cx_console_set_is_input_enabled(p_console, 1);
 			break;
-		}
-
-		case KEY_f10: {
-			(dev_mode_is_enabled() ? dev_mode_disable : dev_mode_enable)();
-			break;			  
 		}
 
 		default: break;
