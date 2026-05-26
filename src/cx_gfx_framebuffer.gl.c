@@ -37,6 +37,7 @@ enum cx_error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer
 void cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer) {
 	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->bytes_;
 
+
 	glDeleteFramebuffers(1, &p_internals->id);
 
 	*p_framebuffer = (struct cx_gfx_framebuffer){0};
