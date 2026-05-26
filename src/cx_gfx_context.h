@@ -17,6 +17,10 @@ void cx_gfx_context_destroy(struct cx_gfx_context* p_context);
 
 enum cx_error cx_gfx_context_make_current(const struct cx_gfx_context* p_context);
 
+struct cx_gfx_framebuffer;
+
+const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_gfx_context* p_context);
+
 enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context);
 
 unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_context);

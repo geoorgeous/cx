@@ -47,10 +47,9 @@ void cx_gfx_framebuffer_set_attachment(
 	enum cx_gfx_framebuffer_attachment attachment_point,
 	const struct cx_gfx_texture* p_texture) {
 
-	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer->bytes_;
 	const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->bytes_;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, p_internals->id);
+	cx_gfx_framebuffer_bind(p_framebuffer);
     
 	glFramebufferTexture2D(
 		GL_FRAMEBUFFER,
@@ -61,9 +60,14 @@ void cx_gfx_framebuffer_set_attachment(
 }
 
 void cx_gfx_framebuffer_bind(const struct cx_gfx_framebuffer *p_framebuffer) {
+	static GLuint bound_fb = 0;
+
 	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer;
 
-	glBindFramebuffer(GL_FRAMEBUFFER, p_internals->id);
+	if (p_internals->id != bound_fb) {
+		glBindFramebuffer(GL_FRAMEBUFFER, p_internals->id);
+		bound_fb = p_internals->id;
+	}
 }
 
 void cx_gfx_framebuffer_read(
@@ -73,9 +77,7 @@ void cx_gfx_framebuffer_read(
 	const uint32_t* p_read_size,
 	void* p_out_read_buffer) {
 
-	const struct cx_gfx_framebuffer_gl_internals* p_internals = (const void*)p_framebuffer->bytes_;
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, p_internals->id);
+	cx_gfx_framebuffer_bind(p_framebuffer);
     glReadBuffer(gl_fb_attachment_point_table[attachment]);
 
     glReadPixels(

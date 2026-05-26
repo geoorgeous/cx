@@ -6,6 +6,7 @@
 #include <X11/Xlib.h>
 
 #include "cx_gfx_context.h"
+#include "cx_gfx_framebuffer.h"
 #include "cx_logging.h"
 #include "cx_error.h"
 #include "platform_window.h"
@@ -196,6 +197,12 @@ enum cx_error cx_gfx_context_make_current(const struct cx_gfx_context* p_context
 		(const void*)p_context_internals->p_window->bytes_;
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
     return CX_ERROR_none;
+}
+
+const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_gfx_context* p_context) {
+	(void)p_context;
+	static const struct cx_gfx_framebuffer default_fb = {0};
+	return &default_fb;
 }
 
 enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
