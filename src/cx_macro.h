@@ -7,6 +7,10 @@
 #define CX_PRI_SIZE "zu"
 #endif
 
+#define CX_NULL ((void*)0)
+#define CX_TRUE  1
+#define CX_FALSE 0
+
 #define CX_STRINGIFY_INTERNAL(X) #X
 #define CX_STRINGIFY(X) CX_STRINGIFY_INTERNAL(X)
 
