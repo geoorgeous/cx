@@ -38,7 +38,6 @@ static struct {
 	const struct cx_gfx_mesh* s_meshes[7];
 } shared_resources;
 
-
 static void cx_transform_gizmo_update_transform(
 	struct cx_transform_gizmo* p_gizmo,
 	const struct transform* p_target_transform,
@@ -69,59 +68,61 @@ static void cx_transform_gizmo_apply_scale(
 	const float* p_view_pos, const float* p_view_ray,
 	const float* p_q, float* p_out_q);
 
-static int find_gizmo_control_plane_cursor_drag_intersection(
+static int cx_transform_gizmo_compute_control_plane_cursor_intersection(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray,
 	float* p_cursor_world_pos);
 
-static void compute_gizmo_control_axis_drag_plane_normal(const float* p_control_axis, const float* p_view_pos,
+static void cx_transform_gizmo_compute_control_plane_normal(
+	const float* p_control_axis,
+	const float* p_view_pos,
 	float* p_plane_norm_d);
 
-static void compute_gizmo_control_plane_cursor_drag_delta(
+static void cx_transform_gizmo_compute_cursor_delta_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	float* p_cursor_world_delta);
 
-static float compute_gizmo_control_plane_cursor_drag_delta_angle(
+static float cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start);
 
-static void compute_gizmo_control_axis_cursor_drag_delta(
+static void cx_transform_gizmo_compute_cursor_delta_on_axis(
 	const float* p_control_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	float* p_cursor_world_delta);
 
-static void gizmo_drag_translate_on_axis(
+static void cx_transform_gizmo_apply_translation_on_axis(
 	const float* p_control_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-static void gizmo_drag_translate_on_plane(
+static void cx_transform_gizmo_apply_translation_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-static void gizmo_drag_rotate(
+static void cx_transform_gizmo_apply_rotation_around_axis(
 	const float* p_control_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_q, float* p_out_q);
 
-static void gizmo_drag_rotate_ball(
+static void cx_transform_gizmo_apply_rotation_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_q, float* p_out_q);
 
-static void gizmo_drag_scale_on_axis(
+static void cx_transform_gizmo_apply_scale_on_axis(
 	const float* p_constol_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-static void gizmo_drag_scale_on_plane(
+static void cx_transform_gizmo_apply_scale_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-static void gizmo_drag_scale_uniformly(
+static void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
@@ -153,19 +154,19 @@ static void cx_transform_gizmo_compute_control_drag_plane_normal(
 		switch (control) {
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
 				vec3_norm(&p_gizmo_transform[0], p_out_normal);
-				compute_gizmo_control_axis_drag_plane_normal(p_out_normal, p_view_pos, p_out_normal);
+				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
 				break;
 			}
 			
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
 				vec3_norm(&p_gizmo_transform[4], p_out_normal);
-				compute_gizmo_control_axis_drag_plane_normal(p_out_normal, p_view_pos, p_out_normal);
+				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
 				break;
 			}
 			
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
 				vec3_norm(&p_gizmo_transform[8], p_out_normal);
-				compute_gizmo_control_axis_drag_plane_normal(p_out_normal, p_view_pos, p_out_normal);
+				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
 				break;
 			}
 			
@@ -375,7 +376,7 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 				p_cursor_world_ray,
 				control_drag_plane_normal);
 
-			find_gizmo_control_plane_cursor_drag_intersection(
+			cx_transform_gizmo_compute_control_plane_cursor_intersection(
 				&p_gizmo->gizmo_transform[12],
 				control_drag_plane_normal,
 				p_view_pos,
@@ -540,7 +541,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
             float control_axis[3];
             vec3_norm(&p_gizmo->gizmo_transform[0], control_axis);
-            gizmo_drag_translate_on_axis(
+            cx_transform_gizmo_apply_translation_on_axis(
 				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -551,7 +552,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
             float control_axis[3];
             vec3_norm(&p_gizmo->gizmo_transform[4], control_axis);
-            gizmo_drag_translate_on_axis(
+            cx_transform_gizmo_apply_translation_on_axis(
 				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -562,7 +563,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
             float control_axis[3];
             vec3_norm(&p_gizmo->gizmo_transform[8], control_axis);
-            gizmo_drag_translate_on_axis(
+            cx_transform_gizmo_apply_translation_on_axis(
 				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -573,7 +574,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY: {
             float control_plane_normal[3];
             vec3_norm(&p_gizmo->gizmo_transform[8], control_plane_normal);
-            gizmo_drag_translate_on_plane(
+            cx_transform_gizmo_apply_translation_on_plane(
 				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -583,7 +584,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ: {
             float control_plane_normal[3];
             vec3_norm(&p_gizmo->gizmo_transform[4], control_plane_normal);
-            gizmo_drag_translate_on_plane(
+            cx_transform_gizmo_apply_translation_on_plane(
 				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -594,7 +595,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ: {
             float control_plane_normal[3];
             vec3_norm(&p_gizmo->gizmo_transform[0], control_plane_normal);
-            gizmo_drag_translate_on_plane(
+            cx_transform_gizmo_apply_translation_on_plane(
 				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -605,7 +606,7 @@ void cx_transform_gizmo_apply_translation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
             float control_plane_normal[3];
             vec3_mul_s(p_view_ray, -1, control_plane_normal);
-            gizmo_drag_translate_on_plane(
+            cx_transform_gizmo_apply_translation_on_plane(
 				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -624,7 +625,7 @@ void cx_transform_gizmo_apply_rotation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
             float control_axis[3];
             vec3_norm(&p_gizmo->gizmo_transform[0], control_axis);
-            gizmo_drag_rotate(
+            cx_transform_gizmo_apply_rotation_around_axis(
 				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -635,7 +636,7 @@ void cx_transform_gizmo_apply_rotation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
             float control_axis[3];
             vec3_norm(&p_gizmo->gizmo_transform[4], control_axis);
-            gizmo_drag_rotate(
+            cx_transform_gizmo_apply_rotation_around_axis(
 				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -646,7 +647,7 @@ void cx_transform_gizmo_apply_rotation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
             float control_axis[3];
             vec3_norm(&p_gizmo->gizmo_transform[8], control_axis);
-            gizmo_drag_rotate(
+            cx_transform_gizmo_apply_rotation_around_axis(
 				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -657,7 +658,7 @@ void cx_transform_gizmo_apply_rotation(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
             float control_plane_normal[3];
             vec3_mul_s(p_view_ray, -1, control_plane_normal);
-            gizmo_drag_rotate_ball(
+            cx_transform_gizmo_apply_rotation_on_plane(
 				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -675,7 +676,7 @@ void cx_transform_gizmo_apply_scale(
 
     switch (control_id) {
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
-            gizmo_drag_scale_on_axis(
+            cx_transform_gizmo_apply_scale_on_axis(
 				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_X_AXIS,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -684,7 +685,7 @@ void cx_transform_gizmo_apply_scale(
         }
         
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
-            gizmo_drag_scale_on_axis(
+            cx_transform_gizmo_apply_scale_on_axis(
 				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Y_AXIS,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -693,7 +694,7 @@ void cx_transform_gizmo_apply_scale(
         }
 
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
-            gizmo_drag_scale_on_axis(
+            cx_transform_gizmo_apply_scale_on_axis(
 				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Z_AXIS,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -702,7 +703,7 @@ void cx_transform_gizmo_apply_scale(
         }
         
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY: {
-            gizmo_drag_scale_on_plane(
+            cx_transform_gizmo_apply_scale_on_plane(
 				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Z_AXIS,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -711,7 +712,7 @@ void cx_transform_gizmo_apply_scale(
         }
         
 		case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ: {
-            gizmo_drag_scale_on_plane(
+            cx_transform_gizmo_apply_scale_on_plane(
 				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Y_AXIS,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -720,7 +721,7 @@ void cx_transform_gizmo_apply_scale(
         }
         
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ: {
-            gizmo_drag_scale_on_plane(
+            cx_transform_gizmo_apply_scale_on_plane(
 				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_X_AXIS,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -731,7 +732,7 @@ void cx_transform_gizmo_apply_scale(
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
             float control_plane_normal[3];
             vec3_mul_s(p_view_ray, -1, control_plane_normal);
-            gizmo_drag_scale_uniformly(
+            cx_transform_gizmo_apply_scale_uniformly(
 				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
@@ -741,7 +742,7 @@ void cx_transform_gizmo_apply_scale(
     }
 }
 
-int find_gizmo_control_plane_cursor_drag_intersection(
+int cx_transform_gizmo_compute_control_plane_cursor_intersection(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray,
 	float* p_cursor_world_pos) {
@@ -761,7 +762,7 @@ int find_gizmo_control_plane_cursor_drag_intersection(
 	return 1;
 }
 
-void compute_gizmo_control_axis_drag_plane_normal(
+void cx_transform_gizmo_compute_control_plane_normal(
 	const float* p_control_axis, const float* p_view_pos, float* p_plane_norm_d) {
 
     float side[3];
@@ -780,13 +781,13 @@ void compute_gizmo_control_axis_drag_plane_normal(
     }
 }
 
-void compute_gizmo_control_plane_cursor_drag_delta(
+void cx_transform_gizmo_compute_cursor_delta_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	float* p_out_cursor_world_delta) {
 
     float cursor_ray_intersection[3];
-    if (!find_gizmo_control_plane_cursor_drag_intersection(
+    if (!cx_transform_gizmo_compute_control_plane_cursor_intersection(
 		p_control_origin,
 		p_control_plane_normal,
 		p_cursor_ray_origin,
@@ -800,14 +801,14 @@ void compute_gizmo_control_plane_cursor_drag_delta(
     vec3_sub(cursor_ray_intersection, p_cursor_world_start, p_out_cursor_world_delta);
 }
 
-float compute_gizmo_control_plane_cursor_drag_delta_angle(
+float cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start) {
 
     float p0[3];
     float p1[3];
 
-    if (!find_gizmo_control_plane_cursor_drag_intersection(
+    if (!cx_transform_gizmo_compute_control_plane_cursor_intersection(
 		p_control_origin,
 		p_control_plane_normal,
 		p_cursor_ray_origin,
@@ -827,7 +828,7 @@ float compute_gizmo_control_plane_cursor_drag_delta_angle(
     return atan2(vec3_dot(p_control_plane_normal, cross), vec3_dot(p0, p1));
 }
 
-void compute_gizmo_control_axis_cursor_drag_delta(
+void cx_transform_gizmo_compute_cursor_delta_on_axis(
 	const float* p_control_origin,
 	const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
@@ -837,9 +838,9 @@ void compute_gizmo_control_axis_cursor_drag_delta(
     vec3_norm(p_control_axis, n);
 
     float plane_norm[3];
-    compute_gizmo_control_axis_drag_plane_normal(n, p_cursor_ray_origin, plane_norm);
+    cx_transform_gizmo_compute_control_plane_normal(n, p_cursor_ray_origin, plane_norm);
 
-    compute_gizmo_control_plane_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_plane(
 		p_control_origin,
 		plane_norm,
 		p_cursor_ray_origin,
@@ -852,13 +853,13 @@ void compute_gizmo_control_axis_cursor_drag_delta(
     vec3_mul_s(n, dot, p_cursor_world_delta);
 }
 
-void gizmo_drag_translate_on_axis(
+void cx_transform_gizmo_apply_translation_on_axis(
 	const float* p_control_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v) {
 
     float cursor_world_delta[3];
-    compute_gizmo_control_axis_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_axis(
 		p_control_origin,
 		p_control_axis,
 		p_cursor_ray_origin,
@@ -869,13 +870,13 @@ void gizmo_drag_translate_on_axis(
     vec3_add(p_v, cursor_world_delta, p_out_v);
 }
 
-void gizmo_drag_translate_on_plane(
+void cx_transform_gizmo_apply_translation_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_v_out) {
 
     float cursor_world_delta[3];
-    compute_gizmo_control_plane_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_plane(
 		p_control_origin,
 		p_control_plane_normal,
 		p_cursor_ray_origin,
@@ -886,12 +887,12 @@ void gizmo_drag_translate_on_plane(
     vec3_add(p_v, cursor_world_delta, p_v_out);
 }
 
-void gizmo_drag_rotate(
+void cx_transform_gizmo_apply_rotation_around_axis(
 	const float* p_control_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_q, float* p_out_q) {
 
-    const float angle = compute_gizmo_control_plane_cursor_drag_delta_angle(
+    const float angle = cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
 		p_control_origin,
 		p_control_axis,
 		p_cursor_ray_origin,
@@ -908,13 +909,13 @@ void gizmo_drag_rotate(
     quaternion_norm(p_out_q, p_out_q);
 }
 
-void gizmo_drag_rotate_ball(
+void cx_transform_gizmo_apply_rotation_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_q, float* p_out_q) {
 
     float cursor_world_delta[3];
-    compute_gizmo_control_plane_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_plane(
 		p_control_origin,
 		p_control_plane_normal,
 		p_cursor_ray_origin,
@@ -942,13 +943,13 @@ void gizmo_drag_rotate_ball(
     quaternion_norm(p_out_q, p_out_q);
 }
 
-void gizmo_drag_scale_on_axis(
+void cx_transform_gizmo_apply_scale_on_axis(
 	const float* p_control_origin, const float* p_control_axis,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v) {
 
     float cursor_world_delta[3];
-    compute_gizmo_control_axis_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_axis(
 		p_control_origin,
 		p_control_axis,
 		p_cursor_ray_origin,
@@ -962,13 +963,13 @@ void gizmo_drag_scale_on_axis(
     vec3_add(p_v, cursor_world_delta, p_out_v);
 }
 
-void gizmo_drag_scale_on_plane(
+void cx_transform_gizmo_apply_scale_on_plane(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v) {
 
     float cursor_world_delta[3];
-    compute_gizmo_control_plane_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_plane(
 		p_control_origin,
 		p_control_plane_normal,
 		p_cursor_ray_origin,
@@ -982,13 +983,13 @@ void gizmo_drag_scale_on_plane(
     vec3_add(p_v, cursor_world_delta, p_out_v);
 }
 
-void gizmo_drag_scale_uniformly(
+void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_control_origin, const float* p_control_plane_normal,
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v) {
 
     float cursor_world_delta[3];
-    compute_gizmo_control_plane_cursor_drag_delta(
+    cx_transform_gizmo_compute_cursor_delta_on_plane(
 		p_control_origin,
 		p_control_plane_normal,
 		p_cursor_ray_origin,
