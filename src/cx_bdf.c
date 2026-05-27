@@ -32,7 +32,7 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 	size_t font_name_len = 0;
 
 	char* p_bitmap_pos;
-	size_t bitmap_bit_offset;
+	uint8_t bitmap_bit_offset;
 
 	struct cx_bdf_glyph* p_glyph = 0;
 
@@ -60,14 +60,14 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 				.bitmap_bit_offset_ = bitmap_bit_offset
 			};
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_ENCODING)) {
-			p_glyph->codepoint_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->codepoint_ = (uint8_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_DWIDTH)) {
-			p_glyph->adv_x_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->adv_x_ = (int16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_BBX)) {
-			p_glyph->width_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
-			p_glyph->height_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
-			p_glyph->off_x_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
-			p_glyph->off_y_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->width_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->height_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->off_x_ = (int16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->off_y_ = (int16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_BITMAP)) {
 			while(1) {
 				p_tok = cx_tok_next(&p, &tok_len);
@@ -83,13 +83,14 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 						/* Convert hex character (0-9, A-F) to value (0-15) */
 						const int nibble_value = (nibble & 0xF) + (nibble >> 6) * 9;
 						/* Calculate number of bits of the nibble to read, up to four */
-						const int bits_remaining = (int)p_glyph->width_ - (i_byte * 8 + i_nibble * 4);
+						const int bits_remaining = p_glyph->width_ - (i_byte * 8 + i_nibble * 4);
 						const int num_bits = bits_remaining < 4 ? bits_remaining : 4;
 						for (int i_bit = 0; i_bit < num_bits; ++i_bit) {
 							/* Extract bit value from nibble. 0 or 1 */
 							const int bit_value = (nibble_value >> (3 - i_bit)) & 1;
 							/* Set bit */
-							*p_bitmap_pos = (*p_bitmap_pos & ~(1 << bitmap_bit_offset)) | (bit_value << bitmap_bit_offset);
+							*p_bitmap_pos = (char)((*p_bitmap_pos & ~(1 << bitmap_bit_offset))
+								| (bit_value << bitmap_bit_offset));
 							/* Advance position markers */
 							if (++bitmap_bit_offset == 8) {
 								bitmap_bit_offset = 0;
@@ -106,14 +107,14 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 			p_font_name = cx_tok_next(&p, &font_name_len);
 			CX_LOG_FMT(INFO, BDF, "Font name: '%.*s'\n", font_name_len, p_font_name);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_BOUNDINGBOX)) {
-			p_out_bdf->max_glyph_width_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
-			p_out_bdf->max_glyph_height_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->max_glyph_width_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->max_glyph_height_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_CHARCOUNT)) {
-			p_out_bdf->num_glyphs_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->num_glyphs_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_ASCENT)) {
 			p_out_bdf->line_height_ += cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_DESCENT)) {
-			p_out_bdf->descent_ = cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->descent_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 			p_out_bdf->line_height_ += p_out_bdf->descent_;
 		}
 	}
@@ -164,14 +165,14 @@ int cx_tok_cmp(const char* p_token, const char* s) {
 	}
 }
 
-long cx_tok_strtol(const char* p_token, size_t token_len) {
+int64_t cx_tok_strtol(const char* p_token, size_t token_len) {
 	char* p_end;
-	long val = strtol(p_token, &p_end, 10);
+	int64_t val = strtol(p_token, &p_end, 10);
 	if (p_end == p_token || (size_t)(p_end - p_token) != token_len) {
 		return 0;
 	}
 	return val;
-};
+}
 
 void cx_bdf_allocate_buf(struct cx_bdf* p_bdf, const char* p_font_name, size_t font_name_len) {
 	/* Allocate single buffer containing font name, glyph array, and bitmap buffer */

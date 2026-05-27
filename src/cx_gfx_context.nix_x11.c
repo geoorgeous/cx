@@ -85,7 +85,7 @@ static void gl_debug_message_callback(
 
 #endif
 
-int get_glx_proc(const char* s_proc_addr, void** pp_proc);
+int get_glx_proc(const char* s_proc_addr, void(**pp_proc)(void));
 
 struct gl_context_nix_x11_internals {
     const struct platform_window* p_window;
@@ -115,7 +115,7 @@ enum cx_error cx_gfx_context_create(
 	const char* s_extension_list = glXQueryExtensionsString(p_window_internals->p_display, screen);
 	CX_LOG_FMT(TRACE, GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
 
-	if (get_glx_proc("glXCreateContextAttribsARB", (void**)&glXCreateContextAttribsARB)) {
+	if (get_glx_proc("glXCreateContextAttribsARB", (void(**)(void))&glXCreateContextAttribsARB)) {
 		int glx_context_flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 #ifndef NDEBUG
 		glx_context_flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
@@ -154,8 +154,8 @@ enum cx_error cx_gfx_context_create(
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
 
 #ifndef NDEBUG
-	if(get_glx_proc("glDebugMessageCallbackARB", (void**)&glDebugMessageCallbackARB)
-		&& get_glx_proc("glDebugMessageControlARB", (void**)&glDebugMessageControlARB)) {
+	if(get_glx_proc("glDebugMessageCallbackARB", (void(**)(void))&glDebugMessageCallbackARB)
+		&& get_glx_proc("glDebugMessageControlARB", (void(**)(void))&glDebugMessageControlARB)) {
 		
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
@@ -167,7 +167,7 @@ enum cx_error cx_gfx_context_create(
 
     p_context_internals->p_window = p_window;
 
-	get_glx_proc("glXSwapIntervalEXT", (void**)&glXSwapInterfalEXT);
+	get_glx_proc("glXSwapIntervalEXT", (void(**)(void))&glXSwapInterfalEXT);
 
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
@@ -223,7 +223,7 @@ unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_con
 		p_platform_window_internals->window,
 		GLX_SWAP_INTERVAL_EXT,
 		&interval);
-	return (int)interval;
+	return interval;
 }
 
 enum cx_error cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
@@ -293,7 +293,7 @@ void gl_debug_message_callback(
 }
 #endif
 
-int get_glx_proc(const char* s_proc_addr, void** pp_proc) {
+int get_glx_proc(const char* s_proc_addr, void(**pp_proc)(void)) {
 	*pp_proc = glXGetProcAddressARB((const GLubyte*)s_proc_addr);
 	
 	if (!(*pp_proc)) {

@@ -1,7 +1,7 @@
 #ifndef SKELETAL_ANIMATION_H
 #define SKELETAL_ANIMATION_H
 
-#include <stdint.h>
+#include <stddef.h>
 
 struct skeleton_instance;
 struct transform_animation;

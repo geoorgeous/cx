@@ -161,16 +161,16 @@ int main(int argc, const char* argv[]) {
 
 	enum cx_error err;
 
-    unsigned int window_size[] = { 1200, 900 };
+    uint32_t window_size[] = { 1200, 900 };
 
     static struct platform_window platform_window;
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
 	
-	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &platform_window);
+	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &platform_window, CX_COMMAND_NO_PARAMS);
 	CX_NEW_COMMAND_ALIAS("q", "quit");
 
 	if (err != CX_ERROR_none) {
-		return err;
+		return (int)err;
 	}
 
     struct cx_gfx_context gl_context;
@@ -179,13 +179,13 @@ int main(int argc, const char* argv[]) {
 	cx_gfx_context_set_swap_interval(&gl_context, 0);
 
 	if (err != CX_ERROR_none) {
-		return err;
+		return (int)err;
 	}
 
     // create framebuffer
 
-	uint32_t fb_width = window_size[0] * 1.0f;
-	uint32_t fb_height = window_size[1] * 1.0f;
+	uint32_t fb_width = (uint32_t)((float)window_size[0] * 1.0f);
+	uint32_t fb_height = (uint32_t)((float)window_size[1] * 1.0f);
 
 	struct cx_gfx_texture texture_fb_color;
 	struct cx_gfx_texture texture_fb_depth_stencil;
@@ -280,9 +280,9 @@ int main(int argc, const char* argv[]) {
     cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
     cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, 0);
     cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
-    cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void*)static_mesh_free);
-	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, (void*)cx_font_free_glyph_bitmap_buffer);
-	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint), 0, 0, (void*)cx_blueprint_free);
+    cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void(*)(void*))static_mesh_free);
+	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, (void(*)(void*))cx_font_free_glyph_bitmap_buffer);
+	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint), 0, 0, (void(*)(void*))cx_blueprint_free);
     
 	input_init();
 
@@ -350,7 +350,7 @@ int main(int argc, const char* argv[]) {
 				float projection_matrix[16];
 				float view_matrix[16];
 
-				matrix_make_orthographic_projection(0, fb_width, fb_height, 0, -1, 1, projection_matrix);
+				matrix_make_orthographic_projection(0, (float)fb_width, (float)fb_height, 0, -1, 1, projection_matrix);
 				matrix_make_identity(view_matrix);
 
 				cx_console_view_draw(cx_console_get(),

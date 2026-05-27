@@ -1,8 +1,42 @@
 CC          := clang
 CSTD         = -std-c99
-CFLAGS_WARN := -Wformat=2 -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align\
-               -Waggregate-return -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition
-CFLAGS_DBG  := -ggdb -O0
+CFLAGS_WARN := \
+			-pedantic-errors \
+			-Wformat=2 \
+			-Wall \
+			-Wextra \
+			-Wfloat-equal \
+			-Wundef \
+			-Wshadow \
+			-Wpointer-arith \
+			-Wcast-align \
+            -Waggregate-return \
+			-Wcast-qual \
+			-Wstrict-prototypes \
+			-Wmissing-prototypes \
+			-Wold-style-definition \
+			-Wconversion \
+			-Wswitch-enum \
+			-Wstrict-overflow=5 \
+			-Wdouble-promotion \
+			-Wmissing-declarations \
+			-Wstrict-aliasing \
+			-fstrict-aliasing \
+			-Wvla \
+			-Wpacked \
+			-Wpadded \
+			-Walloca \
+			-Wnull-dereference \
+			-Wdisabled-optimization \
+			-fno-common
+
+CFLAGS_DBG  := \
+			-ggdb \
+			-O0 \
+			-fsanitize=address,undefined \
+			-fno-omit-frame-pointer \
+			-g3
+
 LIBS        := m
 TARGET_NAME := cx
 SRC_DIR     := src

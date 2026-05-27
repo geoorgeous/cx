@@ -1,6 +1,8 @@
 #ifndef PLATFORM_WINDOW_H
 #define PLATFORM_WINDOW_H
 
+#include <stdint.h>
+
 #include "cx_error.h"
 #include "keys.h"
 #include "mouse_buttons.h"
@@ -14,7 +16,7 @@ struct platform_window {
     void* p_callback_on_close_user_ptr_;
     void(*f_callback_on_focus_change_)(struct platform_window*, void*, int);
     void* p_callback_on_focus_change_user_ptr_;
-    void(*f_callback_on_resize_)(struct platform_window*, void*, int, int);
+    void(*f_callback_on_resize_)(struct platform_window*, void*, uint32_t, uint32_t);
     void* p_callback_on_resize_user_ptr_;
     void(*f_callback_on_key_)(struct platform_window*, void*, enum key, int, unsigned int);
     void* p_callback_on_key_user_ptr_;
@@ -35,7 +37,7 @@ struct platform_window {
 // Platform-dependent interface
 
 enum cx_error platform_window_create(
-	int width, int height,
+	uint32_t width, uint32_t height,
 	const char* s_title,
 	void(*f_callback_on_created)(struct platform_window*, void*),
 	void* p_callback_on_created_user_ptr,
@@ -79,7 +81,7 @@ void platform_window_set_on_focus_change_callback(
 
 void platform_window_set_on_resize_callback(
 	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, int, int),
+	void(*f_callback)(struct platform_window*, void*, uint32_t, uint32_t),
 	void* p_user_ptr);
 
 void platform_window_set_on_key_callback(

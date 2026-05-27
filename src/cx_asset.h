@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "cx_macro.h"
 #include "hashtable.h"
 
 #define CX_LOG_CAT_ASSET "asset"
@@ -20,6 +21,7 @@ typedef uint32_t cx_asset_id;
 
 struct cx_asset {
     cx_asset_id id_;
+	CX_PADDING(4);
     void* p_data_;
 };
 

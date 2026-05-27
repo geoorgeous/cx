@@ -825,7 +825,7 @@ float cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
     float cross[3];
     vec3_cross(p0, p1, cross);
     
-    return atan2(vec3_dot(p_control_plane_normal, cross), vec3_dot(p0, p1));
+    return atan2f(vec3_dot(p_control_plane_normal, cross), vec3_dot(p0, p1));
 }
 
 void cx_transform_gizmo_compute_cursor_delta_on_axis(

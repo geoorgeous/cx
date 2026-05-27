@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#define CX_COMMAND_NO_PARAMS 0
+
 #define CX_NEW_COMMAND(S_NAME, DESC, F, P_USER, ...) do {\
 	const static struct cx_command_param command_params[] = {\
 		__VA_ARGS__\

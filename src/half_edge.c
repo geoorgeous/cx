@@ -51,7 +51,11 @@ void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, siz
         return;
     }
 
-    qsort(vertices.p_buffer_, vertices.length_, vertices.element_size_, (void*)vec3_sort_cmp);
+    qsort(
+		vertices.p_buffer_,
+		vertices.length_,
+		vertices.element_size_,
+		(int(*)(const void*, const void*))vec3_sort_cmp);
 
     size_t m = 1;
 

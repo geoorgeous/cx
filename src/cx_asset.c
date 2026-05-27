@@ -7,14 +7,14 @@
 #include "hashtable.h"
 #include "serialization.h"
 
-#define CX_ASSET_TYPE_NAME_MAX_LEN 60
+#define CX_ASSET_TYPE_NAME_MAX_LEN 63
 
 static struct asset_type_table {
-    char s_display_name[CX_ASSET_TYPE_NAME_MAX_LEN + 1];
     size_t asset_size;
     cx_asset_serialize_fn f_serialize;
     cx_asset_deserialize_fn f_deserialize;
     cx_asset_free_fn f_free;
+    char s_display_name[CX_ASSET_TYPE_NAME_MAX_LEN + 1];
 } asset_type_tables[CX_ASSET_TYPE_ID_MAX];
 
 static struct asset_directory {
@@ -167,7 +167,7 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
         return;
     }
 
-    serialize_uint32(p_file, p_package->asset_type_record_tables_.n_elements_);
+    serialize_uint32(p_file, (uint32_t)p_package->asset_type_record_tables_.n_elements_);
 
     CX_LOG_FMT(TRACE, ASSET, "Saving assets to package file '%s'...\n", p_package->s_filename_);
 
@@ -177,7 +177,7 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
     hashtable_itr(&p_package->asset_type_record_tables_, &asset_type_record_tables_itr);
     while (hashtable_itr_is_valid(&asset_type_record_tables_itr)) {
 		const struct hashtable* p_asset_type_record_table = asset_type_record_tables_itr.p_value;
-		const uint8_t asset_type_id = *(const uint32_t*)asset_type_record_tables_itr.p_key;
+		const uint8_t asset_type_id = (uint8_t)*(const uint32_t*)asset_type_record_tables_itr.p_key;
 
 		CX_LOG_FMT(TRACE, ASSET, "Saving %d %s assets...\n",
 			asset_type_tables[asset_type_id].s_display_name,
@@ -199,20 +199,20 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
     
     const size_t asset_record_size = sizeof(cx_asset_id) + sizeof(uint32_t); // ID + FILE_LOCATION
 
-    uint32_t asset_data_file_location = ftell(p_file);
-    int i = 0;
+    long asset_data_file_location = ftell(p_file);
+    size_t i = 0;
     
     hashtable_itr(&p_package->asset_type_record_tables_, &asset_type_record_tables_itr);
     while (hashtable_itr_is_valid(&asset_type_record_tables_itr)) {
 		const struct hashtable* p_asset_type_record_table = asset_type_record_tables_itr.p_value;
-		const uint8_t asset_type_id = *(const uint32_t*)asset_type_record_tables_itr.p_key;
+		const uint8_t asset_type_id = (uint8_t)*(const uint32_t*)asset_type_record_tables_itr.p_key;
 		const struct asset_type_table* p_asset_type_table = &asset_type_tables[asset_type_id];
 
         hashtable_itr(p_asset_type_record_table, &asset_type_records_itr);
         while(hashtable_itr_is_valid(&asset_type_records_itr)) {
             struct cx_asset_package_record* p_record = asset_type_records_itr.p_value;
 
-            p_record->file_location_ = asset_data_file_location;
+            p_record->file_location_ = (uint32_t)asset_data_file_location;
             
             // DATA
             const int b_result = p_asset_type_table->f_serialize(p_file, p_record->asset_.p_data_);
@@ -227,7 +227,7 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
             asset_data_file_location = ftell(p_file);
     		
 			// write the asset's records' file location now that we know it
-            fseek(p_file, sizeof(uint32_t) + (asset_record_size * i) + sizeof(cx_asset_id), SEEK_SET);
+            fseek(p_file, (long)sizeof(uint32_t) + (long)(asset_record_size * i) + (long)sizeof(cx_asset_id), SEEK_SET);
             serialize_uint32(p_file, p_record->file_location_);
             fseek(p_file, asset_data_file_location, SEEK_SET);
                 

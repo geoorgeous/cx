@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <GL/glx.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -5,7 +6,6 @@
 #include <X11/extensions/XKB.h>
 #include <X11/extensions/XKBstr.h>
 #include <X11/keysymdef.h>
-#include <ctype.h>
 
 #include "cx_dbg.h"
 #include "cx_logging.h"
@@ -27,7 +27,7 @@ static XIM      x11_input_method;
 static int      num_x11_windows;
 
 enum cx_error platform_window_create(
-	int width, int height,
+	uint32_t width, uint32_t height,
 	const char* s_title,
 	void(*f_callback_on_created)(struct platform_window*, void*),
 	void* f_callback_on_created_user_ptr,
@@ -246,8 +246,8 @@ void platform_window_poll_events(struct platform_window* p_window) {
                     p_window->f_callback_on_resize_(
                         p_window,
                         p_window->p_callback_on_resize_user_ptr_,
-                        event.xconfigure.width, 
-                        event.xconfigure.height);
+                        (uint32_t)event.xconfigure.width, 
+                        (uint32_t)event.xconfigure.height);
                 }
                 break;
             }
@@ -389,7 +389,7 @@ int platform_window_is_open(const struct platform_window* p_window) {
 
 void platform_window_size(
 	const struct platform_window* p_window,
-	unsigned int* p_out_width, unsigned int* p_out_height) {
+	uint32_t* p_out_width, uint32_t* p_out_height) {
     
 	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->bytes_;
 
@@ -408,12 +408,9 @@ void platform_window_size(
         p_internals->p_display,
         p_internals->window,
         &win,
-        &x,
-        &y,
-        p_out_width,
-        p_out_height,
-        &b,
-        &d);
+        &x, &y,
+        p_out_width, p_out_height,
+        &b, &d);
 }
 
 enum cx_error x11_init_connection(void) {

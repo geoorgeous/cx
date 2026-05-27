@@ -13,7 +13,7 @@
 	.s_name = #NAME,\
 	.size = sizeof(TYPE),\
 	.runtime_id = CX_COMPONENT_TYPE_ID_INVALID\
-};
+}
 
 struct cx_component_type {
 	const char* s_name;

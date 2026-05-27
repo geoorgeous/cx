@@ -37,7 +37,7 @@ enum cx_error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buf
 	}
 
 	glBindBuffer(GL_UNIFORM_BUFFER, p_buffer_internals->id);
-	glBufferData(GL_UNIFORM_BUFFER, size, 0, GL_DYNAMIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
 
 	p_buffer->size = size;
 
@@ -68,7 +68,7 @@ void cx_gfx_program_param_buffer_bind_range(
 	size_t size) {
 	
 	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->bytes_;
-	glBindBufferRange(GL_UNIFORM_BUFFER, index, p_buffer_internals->id, offset, size);
+	glBindBufferRange(GL_UNIFORM_BUFFER, index, p_buffer_internals->id, (GLsizeiptr)offset, (GLsizeiptr)size);
 }
 
 void cx_gfx_program_param_buffer_set(
@@ -79,7 +79,7 @@ void cx_gfx_program_param_buffer_set(
 	
 	const struct cx_gfx_program_param_buffer_gl_internals* p_buffer_internals = (const void*)p_buffer->bytes_;
 	glBindBuffer(GL_UNIFORM_BUFFER, p_buffer_internals->id);
-	glBufferSubData(GL_UNIFORM_BUFFER, offset, size ? size : p_buffer->size, p_data);
+	glBufferSubData(GL_UNIFORM_BUFFER, (GLintptr)offset, size ? (GLsizeiptr)size : (GLsizeiptr)p_buffer->size, p_data);
 }
 
 void cx_gfx_program_opaque_param_bind_resource(const struct cx_gfx_program_opaque_param_binding* p_binding) {
@@ -108,7 +108,7 @@ void cx_gfx_program_param_block_bind_buffer(const struct cx_gfx_program_param_bl
 	const struct cx_gfx_program_param_block_gl_internals* p_internals = (const void*)p_binding->p_block->bytes_;
 	cx_gfx_program_param_buffer_bind_range(
 		p_binding->p_buffer,
-		p_internals->bind_index,
+		(unsigned int)p_internals->bind_index,
 		p_binding->offset,
 		p_binding->size ? p_binding->size : p_binding->p_buffer->size);
 }
@@ -213,13 +213,20 @@ enum cx_error cx_gfx_program_build(struct cx_gfx_program* p_program, const struc
 		
 		CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active input attributes: %d\n", count);
 
-		for (GLint i = 0; i < count; ++i) {
+		for (GLuint i = 0; i < (GLuint)count; ++i) {
 			GLint  attrib_size;
 			GLenum attrib_type;
-			glGetActiveAttrib(p_program_internals->id, i, sizeof(string_buf), 0, &attrib_size, &attrib_type, string_buf);
+			glGetActiveAttrib(
+				p_program_internals->id,
+				i,
+				sizeof(string_buf),
+				0,
+				&attrib_size,
+				&attrib_type,
+				string_buf);
 
 			CX_LOG_FMT(TRACE, GFX_PROGRAM,
-				"  %d: name=%s, size=%d, type=%d\n",
+				"  %u: name=%s, size=%d, type=%d\n",
 				i, string_buf, attrib_size, attrib_type);
 		}
 	);
@@ -260,7 +267,7 @@ enum cx_error cx_gfx_program_build(struct cx_gfx_program* p_program, const struc
 
 	CX_DBG(CX_LOG_FMT(TRACE, GFX_PROGRAM, "Active param blocks: %d\n", count));
 	
-	for (GLint i = 0; i < count; ++i) {
+	for (GLuint i = 0; i < (GLuint)count; ++i) {
 		glUniformBlockBinding(p_program_internals->id, i, i);
 		
 		CX_DBG(
@@ -328,7 +335,14 @@ int cx_gfx_program_refl_opaque_param(
 	GLsizei uniform_name_len;
 	GLint   uniform_size;
 	GLenum  uniform_type;
-	glGetActiveUniform(p_program_internals->id, uniform_index, 0, &uniform_name_len, &uniform_size, &uniform_type, 0);
+	glGetActiveUniform(
+		p_program_internals->id,
+		(GLuint)uniform_index,
+		0,
+		&uniform_name_len,
+		&uniform_size,
+		&uniform_type,
+		0);
 
 	switch (uniform_type) {
 		case GL_SAMPLER_2D: {
@@ -352,7 +366,7 @@ int cx_gfx_program_refl_opaque_param(
 	GLint opaque_slot;
 	glGetUniformiv(p_program_internals->id, uniform_location, &opaque_slot);
 
-	p_out_opaque_param->slot = opaque_slot;
+	p_out_opaque_param->slot = (GLuint)opaque_slot;
 
 	return 1;
 }

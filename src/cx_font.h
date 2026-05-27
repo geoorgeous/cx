@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cx_macro.h"
+
 #define CX_ASSET_TYPE_FONT 6
 
 #define CX_LOG_CAT_FONT "font"
@@ -19,9 +21,11 @@ struct cx_font_glyph {
 		short          off_y;
 		short          adv_x;
 	} metrics_;
+	CX_PADDING(2);
 	struct {
-		void* p_pos;
-		char  bit_offset;
+		void*   p_pos;
+		uint8_t bit_offset;
+		CX_PADDING(7);
 	} bitmap_;
 };
 

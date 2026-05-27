@@ -553,7 +553,7 @@ void qh_compute_face_center(const struct he_face* p_face, float* p_result) {
 		p_edge = p_edge->p_next;
 	} while(p_edge != p_face->p_edges);
 
-	vec3_div_s(p_result, num_vertices, p_result);
+	vec3_div_s(p_result, (float)num_vertices, p_result);
 }
 
 int qh_edge_is_convex(const struct he_edge* p_edge, float threshold) {
@@ -718,7 +718,7 @@ void qh_rebuild_face_plane(struct he_face* p_face) {
 	
 	const float len = vec3_len(plane);
 	
-	plane[3] = -vec3_dot(sum, plane) / (len * num_vertices);
+	plane[3] = -vec3_dot(sum, plane) / (len * (float)num_vertices);
 
 	vec3_div_s(plane, len, plane);
 
@@ -884,7 +884,7 @@ static int qh_sort_cmp(const float* p_a, const float* p_b) {
 }
 
 void qh_purge_duplicate_input_points(float* p_point_cloud, size_t* p_num_points) {
-	qsort(p_point_cloud, *p_num_points, sizeof(float) * 3, (void*)qh_sort_cmp);
+	qsort(p_point_cloud, *p_num_points, sizeof(float) * 3, (int(*)(const void*, const void*))qh_sort_cmp);
 
 	size_t m = 1;
     for (size_t i = 1; i < *p_num_points; ++i) {
@@ -984,7 +984,7 @@ void quickhull(float* p_point_cloud, size_t num_points, struct he_mesh* p_hull) 
 		// QH_DEBUG_LOG_HULL(p_hull, "Post-next-conflict-vertex");
 	}
 	
-	CX_LOG_FMT(INFO, QH, "Completed in %d steps. Epsilon=%f\n", i, threshold);
+	CX_LOG_FMT(INFO, QH, "Completed in %d steps. Epsilon=%f\n", i, (double)threshold);
 }
 
 void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_mesh* p_result) {

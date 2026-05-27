@@ -14,8 +14,8 @@ void platform_window_normalize_client_coords(
     
 	unsigned int width, height;
     platform_window_size(p_window, &width, &height);
-    *p_x = (float)client_x / width;
-    *p_y = (float)client_y / height;
+    *p_x = (float)client_x / (float)width;
+    *p_y = (float)client_y / (float)height;
 }
 
 void platform_window_client_coords_to_ndc(
@@ -24,8 +24,8 @@ void platform_window_client_coords_to_ndc(
 	float* p_out_x, float* p_out_y) {
     
 	platform_window_normalize_client_coords(p_window, client_x, client_y, p_out_x, p_out_y);
-    *p_out_x =  (*p_out_x - 0.5) * 2;
-    *p_out_y = -(*p_out_y - 0.5) * 2;
+    *p_out_x =  (*p_out_x - 0.5f) * 2;
+    *p_out_y = -(*p_out_y - 0.5f) * 2;
 }
 
 void platform_window_client_to_world_ray(
@@ -72,7 +72,7 @@ void platform_window_set_on_focus_change_callback(
 
 void platform_window_set_on_resize_callback(
 	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, int, int),
+	void(*f_callback)(struct platform_window*, void*, uint32_t, uint32_t),
 	void* p_user_ptr) {
     
 	p_window->f_callback_on_resize_ = f_callback;

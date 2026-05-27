@@ -527,20 +527,20 @@ int physics_test_collision(
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 	static const physics_test_collision_func test_func_table[3][4] = { { 
-			(void*)physics_test_collision_sphere_sphere,
-			(void*)physics_test_collision_sphere_capsule,
-			(void*)physics_test_collision_sphere_hull,
-			(void*)physics_test_collision_sphere_plane
+			physics_test_collision_sphere_sphere,
+			physics_test_collision_sphere_capsule,
+			physics_test_collision_sphere_hull,
+			physics_test_collision_sphere_plane
 		}, {
 			0,
-			(void*)physics_test_collision_capsule_capsule,
-			(void*)physics_test_collision_capsule_hull,
-			(void*)physics_test_collision_capsule_plane
+			physics_test_collision_capsule_capsule,
+			physics_test_collision_capsule_hull,
+			physics_test_collision_capsule_plane
 		}, {
 			0,
 			0,
-			(void*)physics_test_collision_hull_hull,
-			(void*)physics_test_collision_hull_plane
+			physics_test_collision_hull_hull,
+			physics_test_collision_hull_plane
 		}
 	};
 
@@ -1090,9 +1090,9 @@ CX_DBG(
 
 void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme) {
 	static const physics_collider_find_extreme_func func_table[] = {
-		(void*)gjk_find_extreme_on_sphere,
-		(void*)gjk_find_extreme_on_capsule,
-		(void*)gjk_find_extreme_on_hull
+		(physics_collider_find_extreme_func)gjk_find_extreme_on_sphere,
+		(physics_collider_find_extreme_func)gjk_find_extreme_on_capsule,
+		(physics_collider_find_extreme_func)gjk_find_extreme_on_hull
 	};
 	func_table[p_collider->type]((const void*)&p_collider->shape.as_sphere, p_dir, p_extreme);
 }
@@ -1322,21 +1322,127 @@ int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float
 
 // Expanding Polytope/Polyhedra Algorithm (EPA)
 
+
+
+#define PHYSICS_EPA_MAX_VERTICES 64
+#define PHYSICS_EPA_MAX_FACES (PHYSICS_EPA_MAX_VERTICES * 2)
+
+struct epa_face {
+	unsigned short vertices[3];
+	unsigned short adjacents[3];
+	float          normal[3];
+	float          dist_from_origin;
+};
+
+struct epa_face_pool {
+	struct epa_face faces[PHYSICS_EPA_MAX_FACES];
+	unsigned short  num_allocated;
+	unsigned short  free_indices[PHYSICS_EPA_MAX_FACES];
+	unsigned short  num_free_indices;
+};
+
+unsigned short epa_face_pool_alloc(struct epa_face_pool* p_pool);
+
+void epa_face_pool_free(struct epa_face_pool* p_pool, unsigned short face_index);
+
+unsigned short epa_face_pool_alloc(struct epa_face_pool* p_pool) {
+	return 0;
+}
+
+void epa_face_pool_free(struct epa_face_pool* p_pool, unsigned short face_index) {
+}
+
+struct epa_mesh {
+	struct epa_face_pool face_pool;
+	float                vertices[PHYSICS_EPA_MAX_VERTICES][3];
+	unsigned short       num_vertices;
+	unsigned short       faces[PHYSICS_EPA_MAX_FACES];
+};
+
+void epa_mesh_init(struct epa_mesh* p_mesh, const float simplex[4][3]);
+
+void epa_mesh_expand(struct epa_mesh* p_mesh, unsigned short face_index, const float* p_new_vertex);
+
+unsigned short epa_mesh_closest_face_to_origin(const struct epa_mesh* p_mesh);
+
 void epa(
 	float simplex[4][3],
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
+
+	struct epa_mesh polyhedron;
+	epa_mesh_init(&polyhedron, simplex);
+
+	while(1) {
+		unsigned short closest_feature_index = epa_mesh_closest_face_to_origin(&polyhedron);
+
+		struct epa_face* p_closest_face = &polyhedron.face_pool.faces[polyhedron.faces[closest_feature_index]];
 	
-	(void)simplex;
-	(void)p_a;
-	(void)p_b;
+		float* p_s = polyhedron.vertices[polyhedron.num_vertices];
 
-	// todo: use epa algorith to determine collision points, depth, normal
+		gjk_find_support(p_a, p_b, p_closest_face->normal, p_s);
 
-	// Find closest feature on Minkowski Difference to origin
-	// Normal = Normalize(Feature - Origin)
-	// Penetration depth = Length(Feature - Origin)
+		const float d = vec3_dot(p_s, p_closest_face->normal);
+		if (d - 0) {
+			vec3_copy(p_closest_face->normal, p_result->ab_normal);
+			p_result->depth = d;
+			// todo: contact points
+			break;
+		}
 
-	*p_result = (struct physics_collision_result){0};
+		epa_mesh_expand(&polyhedron, closest_feature_index, p_s);
+	}
+}
+
+#define EPA_INIT_FACE(P_MESH, F, V0, V1, V2, A0, A1, A2, TEMPVEC) {\
+	struct epa_face* p_face = &P_MESH->face_pool.faces[F];\
+	*p_face = (struct epa_face) {\
+		.vertices = { V0, V1, V2 },\
+		.adjacents = { A0, A1, A2 }\
+	};\
+	vec3_sub(P_MESH->vertices[p_face->vertices[1]], P_MESH->vertices[p_face->vertices[0]], TEMPVEC);\
+	vec3_sub(P_MESH->vertices[p_face->vertices[2]], P_MESH->vertices[p_face->vertices[0]], p_face->normal);\
+	vec3_cross(TEMPVEC, p_face->normal, p_face->normal);\
+	vec3_norm(p_face->normal, p_face->normal);\
+	p_face->dist_from_origin = vec3_dot(p_face->normal, P_MESH->vertices[p_face->vertices[0]]); }
+
+void epa_mesh_init(struct epa_mesh* p_mesh, const float simplex[4][3]) {
+	vec3_copy(simplex[0], p_mesh->vertices[0]);
+	vec3_copy(simplex[1], p_mesh->vertices[1]);
+	vec3_copy(simplex[2], p_mesh->vertices[2]);
+	vec3_copy(simplex[3], p_mesh->vertices[3]);
+	p_mesh->num_vertices = 4;
+
+	float temp[3];
+
+	p_mesh->faces[0] = epa_face_pool_alloc(&p_mesh->face_pool);
+	EPA_INIT_FACE(p_mesh, 0, 0, 1, 2, 1, 2, 3, temp);
+
+	p_mesh->faces[1] = epa_face_pool_alloc(&p_mesh->face_pool);
+	EPA_INIT_FACE(p_mesh, 1, 0, 2, 3, 0, 2, 3, temp);
+	
+	p_mesh->faces[2] = epa_face_pool_alloc(&p_mesh->face_pool);
+	EPA_INIT_FACE(p_mesh, 2, 0, 3, 1, 0, 1, 3, temp);
+	
+	p_mesh->faces[3] = epa_face_pool_alloc(&p_mesh->face_pool);
+	EPA_INIT_FACE(p_mesh, 3, 1, 3, 2, 0, 1, 2, temp);
+
+	// todo: check normal against opposite vertex, flip winding if necessary (swap(b, c), norm = -norm)
+}
+
+void epa_mesh_expand(struct epa_mesh* p_mesh, unsigned short face_index, const float* p_new_vertex) {
+	// todo: add p_new_vertex to mesh
+	++p_mesh->num_vertices;
+}
+
+unsigned short epa_mesh_closest_face_to_origin(const struct epa_mesh* p_mesh) {
+	unsigned short closest_face_index = 0;
+	for (size_t i = 1; i < p_mesh->face_pool.num_allocated; ++i) {
+		const struct epa_face* p_face = &p_mesh->face_pool.faces[p_mesh->faces[i]];
+		if (p_face->dist_from_origin < p_mesh->face_pool.faces[p_mesh->faces[closest_face_index]].dist_from_origin) {
+			closest_face_index = i;
+		}
+	}
+	return closest_face_index;
 }

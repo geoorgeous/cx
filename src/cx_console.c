@@ -61,12 +61,14 @@ void cx_console_init(struct cx_console* p_console) {
 
 	CX_NEW_COMMAND("clear",
 		"Clear the console output",
-		cx_console_command_clear, 0);
+		cx_console_command_clear, 0,
+		CX_COMMAND_NO_PARAMS);
 
 	CX_NEW_COMMAND("help",
 		"List all commands, or the details of a single command",
 		cx_console_command_help, &console.command_registry,
 		CX_COMMAND_PARAM(STRING("name", "Command to list detail of"), OPTIONAL));
+
 	CX_NEW_COMMAND_ALIAS("h", "help");
 
 	CX_NEW_COMMAND("alias",
@@ -88,7 +90,8 @@ void cx_console_init(struct cx_console* p_console) {
 
 	CX_NEW_COMMAND("history",
 		"List command history",
-		cx_console_command_history, &console.history);
+		cx_console_command_history, &console.history,
+		CX_COMMAND_NO_PARAMS);
 
 	static const struct cx_var_enum_map_entry entries[] = {
 		{ "eone",   0 },
@@ -105,7 +108,7 @@ void cx_console_init(struct cx_console* p_console) {
 		CX_COMMAND_PARAM(INT("two", "Second parameter"), REQUIRED),
 		CX_COMMAND_PARAM(INT_RANGE("two", "Second parameter", 0, 100), REQUIRED),
 		CX_COMMAND_PARAM(FLOAT("three", "Third parameter"), REQUIRED),
-		CX_COMMAND_PARAM(FLOAT_RANGE("three", "Third parameter", -0.5f, 0.5f), REQUIRED),
+		CX_COMMAND_PARAM(FLOAT_RANGE("three", "Third parameter", -0.5, 0.5), REQUIRED),
 		CX_COMMAND_PARAM(BOOL("four", "Four parameter"), REQUIRED),
 		CX_COMMAND_PARAM(ENUM("seven", "", entries, 5), REQUIRED));
 }

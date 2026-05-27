@@ -270,7 +270,7 @@ static inline int vec3_is_zero(const float* p_v) {
     return FLT_CMP(p_v[0], 0)
         && FLT_CMP(p_v[1], 0)
         && FLT_CMP(p_v[2], 0);
-};
+}
 
 static inline void vec3_min(const float* p_v1, const float* p_v2, float* p_out) {
     p_out[0] = p_v1[0] < p_v2[0] ? p_v1[0] : p_v2[0];

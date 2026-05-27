@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "skeletal_animation.h"
-#include "skeleton.h"
 #include "transform_animation.h"
 
 float skeletal_animation_duration(const struct skeletal_animation* p_skeletal_animation) {

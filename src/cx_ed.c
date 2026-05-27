@@ -55,6 +55,7 @@ static struct {
 	uint16_t selected_entity_id;
 	uint16_t entity_id_at_cursor;
 
+	CX_PADDING(4);
 	struct cx_transform_gizmo gizmo;
 
 	// buffers for command flog builder
@@ -71,6 +72,8 @@ static struct {
 		float projection_matrix[16];
 		float view_matrix[16];
 	} camera;
+
+	CX_PADDING(4);
 } ed;
 
 // CREATE ENTITY
@@ -80,8 +83,9 @@ int cx_ed_create_entity_command(const struct cx_command_args* p_args, const stru
 
 struct cx_ed_action_create_entity_ctx {
 	struct cx_world* p_world;
-	uint16_t entity_id;
 	float position[3];
+	uint16_t entity_id;
+	CX_PADDING(2);
 };
 
 CX_ACTION_DEF(create_entity);
@@ -100,11 +104,11 @@ void cx_ed_action_create_entity_undo(void* p_ctx) {
 
 int cx_ed_create_entity_command(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
 	(void)p_ctx;
-	float x = p_args->count > 0 ? p_args->list[0].as_float : 0;
-	float y = p_args->count > 1 ? p_args->list[1].as_float : 0;
-	float z = p_args->count > 2 ? p_args->list[2].as_float : 0;
+	const double x = p_args->count > 0 ? p_args->list[0].as_float : 0;
+	const double y = p_args->count > 1 ? p_args->list[1].as_float : 0;
+	const double z = p_args->count > 2 ? p_args->list[2].as_float : 0;
 	
-	const uint16_t new_entity_id = cx_ed_create_entity(x, y, z);
+	const uint16_t new_entity_id = cx_ed_create_entity((float)x, (float)y, (float)z);
 
 	struct cx_flog_builder flog = ed.flog_builder;
 
@@ -128,6 +132,8 @@ uint16_t cx_ed_create_entity(float x, float y, float z) {
 uint16_t cx_ed_destroy_entity(uint16_t entity_id);
 uint16_t cx_ed_set_entity_transform(uint16_t entity_id);
 uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
+
+static void cx_ed_on_key(const void* p_e, void* p_user_ptr);
 
 void cx_ed_update(double dt_seconds) {
 	float move_direction[3] = {0};
@@ -156,8 +162,8 @@ void cx_ed_update(double dt_seconds) {
 			int mouse_delta_y;
 			input_frame_mouse_delta(&mouse_delta_x, &mouse_delta_y);
 
-			ed.camera.pitch += mouse_delta_y * 0.01f;
-			ed.camera.yaw += mouse_delta_x * 0.01f;
+			ed.camera.pitch += (float)mouse_delta_y * 0.01f;
+			ed.camera.yaw += (float)mouse_delta_x * 0.01f;
 		}
 	}
 	
@@ -175,7 +181,7 @@ void cx_ed_update(double dt_seconds) {
 		float offset[4] = { 0, 0, 0, 1 };
 
 		vec3_norm(move_direction, move_direction);
-		vec3_mul_s(move_direction, speed * dt_seconds, offset);
+		vec3_mul_s(move_direction, speed * (float)dt_seconds, offset);
 
 		float camera_x_axis[3];
 		camera_x_axis[0] = rotation_matrix[0];
@@ -217,7 +223,7 @@ void cx_ed_update(double dt_seconds) {
 
 	// keep track of the entity that the mouse is pointing at
 	if (CX_OBJECT_ID_GET_CATEGORY(ed.object_id_at_cursor) == CX_OBJECT_ID_CATEGORY_ENTITY) {
-		ed.entity_id_at_cursor = CX_OBJECT_ID_GET_PAYLOAD(ed.object_id_at_cursor);
+		ed.entity_id_at_cursor = (uint16_t)CX_OBJECT_ID_GET_PAYLOAD(ed.object_id_at_cursor);
 	} else {
 		ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
 	}
@@ -267,13 +273,13 @@ void cx_ed_update(double dt_seconds) {
 void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
 	matrix_make_perspective_projection(
 		1,
-		(float)fb_width / fb_height,
+		(float)fb_width / (float)fb_height,
 		0.01f, 1000.0f,
 		ed.camera.projection_matrix);
             
 	struct cx_render_pass_execute_info render_pass_execute_info = {
 		.p_framebuffer = p_fb,
-		.viewport = { 0, 0, fb_width, fb_height },
+		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
 		.b_clear_color = 1,
 		.clear_color = { 0.2f, 0.2f, 0.2f, 0.0f },
 		.b_clear_depth = 1,
@@ -412,4 +418,16 @@ void cx_ed_init(struct platform_window* p_window) {
 	struct cx_blueprint* p_gltf_scene_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
 
 	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
+
+	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
+}
+
+void cx_ed_on_key(const void* p_e, void* p_user_ptr) {
+	(void)p_user_ptr;
+
+	const struct input_event_data_key* p_key_event = p_e;
+
+	if (p_key_event->key == KEY_v && p_key_event->mods & INPUT_MOD_ctrl) {
+		
+	}
 }

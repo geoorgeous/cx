@@ -59,11 +59,15 @@ void cx_font_create_atlas(
 			.p_glyph = p_font->glyphs_ + i,
 		};
 	}
-	qsort(glyph_atlas_dsts, CX_FONT_NUM_GLYPHS, sizeof(glyph_atlas_dsts[0]), (void*)cx_font_glyph_atlas_dst_cmp);
+	qsort(
+		glyph_atlas_dsts,
+		CX_FONT_NUM_GLYPHS,
+		sizeof(glyph_atlas_dsts[0]),
+		(int(*)(const void*, const void*))cx_font_glyph_atlas_dst_cmp);
 	
 	// Pack glyph atlas rects together
 	const uint32_t area = p_font->max_glyph_width_ * p_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS;
-	const uint32_t area_sqrt = sqrt(area);
+	const uint32_t area_sqrt = (uint32_t)sqrtf((float)area);
 	const uint32_t width = next_pow2_uint32(area_sqrt) / 2;
 	
 	uint32_t row_right = 0;
@@ -100,7 +104,7 @@ void cx_font_create_atlas(
 	for (size_t i = 0; i < CX_FONT_NUM_GLYPHS; ++i) {
 		const struct cx_font_glyph_atlas_dst* p_dst = &glyph_atlas_dsts[i];
 
-		const size_t glyph_index = glyph_atlas_dsts[i].p_glyph - p_font->glyphs_;
+		const size_t glyph_index = (size_t)(glyph_atlas_dsts[i].p_glyph - p_font->glyphs_);
 		
 		if (!glyph_atlas_dsts[i].p_glyph->codepoint_ ||
 			glyph_atlas_dsts[i].p_glyph->metrics_.width == 0 ||
@@ -112,10 +116,10 @@ void cx_font_create_atlas(
 		const struct cx_font_glyph* p_glyph = p_dst->p_glyph;
 		
 		p_out_layout->p_entries[glyph_index] = (struct cx_texture_atlas_entry) {
-			.u0 = (float)(p_dst->x) / width,
-			.u1 = (float)(p_dst->x + p_glyph->metrics_.width) / width,
-			.v0 = 1.0f - (float)(p_dst->y + p_glyph->metrics_.height) / height,
-			.v1 = 1.0f - (float)(p_dst->y) / height
+			.u0 = (float)p_dst->x / (float)width,
+			.u1 = (float)(p_dst->x + p_glyph->metrics_.width) / (float)width,
+			.v0 = 1.0f - (float)(p_dst->y + p_glyph->metrics_.height) / (float)height,
+			.v1 = 1.0f - (float)(p_dst->y) / (float)height
 		};
 
 		for (size_t y = 0; y < p_glyph->metrics_.height; ++y) {
