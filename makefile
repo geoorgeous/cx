@@ -8,7 +8,22 @@ OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
 MAKEFLAGS   += --no-print-directory
 
-CFLAGS := \
+# Platform specific configuration
+ifeq ($(OS),Windows_NT)
+	CMD_MKDIR    := mkdir
+	CMD_RMDIR    := rmdir /q /s
+	LDLIBS       += opengl32 gdi32
+	TARGET_NAME  := $(addsuffix .exe,$(TARGET_NAME))
+	CFLAGS       += -DPLATFORM_WIN32
+else
+	CMD_MKDIR    := mkdir -p
+	CMD_RMDIR    := rm -rf
+	LDLIBS       += GL X11
+endif
+
+TARGET := $(BIN_DIR)/$(TARGET_NAME)
+
+CFLAGS += \
 	-ffp-contract=off \
 	-fno-common \
 	-fstrict-flex-arrays=3 \
@@ -51,45 +66,33 @@ CFLAGS := \
 	#-Wswitch-enum \
 	#-Wpadded \
 
-CFLAGS_release := \
+CFLAGS_release += \
 	-DNDEBUG \
 	-fdata-sections \
 	-ffunction-sections \
+	-fno-asynchronous-unwind-tables \
+	-fno-exceptions \
+	-fno-unwind-tables \
 	-flto \
 	-Os
 
-CFLAGS_debug := \
+CFLAGS_debug += \
 	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return \
 	-fno-omit-frame-pointer \
 	-g3 \
 	-ggdb \
 	-O0
 
-LDFLAGS :=
+LDFLAGS +=
 
-LDFLAGS_release := \
+LDFLAGS_release += \
 	-flto \
 	-s \
 	-Wl,--gc-sections \
-	-Wl,-Map=$(TARGET_RELEASE).map
+	-Wl,-Map=$(TARGET).map
 
-LDFLAGS_debug := \
+LDFLAGS_debug += \
 	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return
-
-# Platform specific configuration
-ifeq ($(OS),Windows_NT)
-	CMD_MKDIR    := mkdir
-	CMD_RMDIR    := rmdir /q /s
-	LDLIBS       += opengl32 gdi32
-	TARGET_NAME  := $(addsuffix .exe,$(TARGET_NAME))
-	CFLAGS       += -DPLATFORM_WIN32
-else
-	CMD_MKDIR    := mkdir -p
-	CMD_RMDIR    := rm -rf
-	LDLIBS       += GL X11
-endif
-
-TARGET := $(BIN_DIR)/$(TARGET_NAME)
 
 # Do not compile platform-specific code individually:
 # We include these types of files in platform-agnostic translation units.
