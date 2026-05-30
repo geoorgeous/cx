@@ -56,7 +56,7 @@ CFLAGS_release := \
 	-fdata-sections \
 	-ffunction-sections \
 	-flto \
-	-O2
+	-Os
 
 CFLAGS_debug := \
 	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return \
@@ -69,6 +69,7 @@ LDFLAGS :=
 
 LDFLAGS_release := \
 	-flto \
+	-s \
 	-Wl,--gc-sections \
 	-Wl,-Map=$(TARGET_RELEASE).map
 
@@ -105,7 +106,7 @@ SRC            := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
 
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-LDLIBS := $(foreach x,$(LDLIBS),$(addprefix -l,$(x)))
+LDLIBS := $(addprefix -l,$(LDLIBS))
 
 default: all
 
