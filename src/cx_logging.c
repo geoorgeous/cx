@@ -102,7 +102,8 @@ void cx_log_cat_set(const char *s_cat, int min_level) {
 		}
 
 		const size_t cat_len = strlen(s_cat);
-		const size_t log_cat_str_buf_available = (p_log_cat_str_buf_next - log_cat_str_buf) - CX_LOG_CAT_STR_BUF_LEN;
+		const size_t log_cat_str_buf_available =
+			(size_t)(p_log_cat_str_buf_next - log_cat_str_buf) - CX_LOG_CAT_STR_BUF_LEN;
 
 		if (log_cat_str_buf_available < cat_len) {
 			CX_LOG_FMT(ERROR, LOGGING, "Couldn't create new log category '%s': not enough memory.\n", s_cat);

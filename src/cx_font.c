@@ -67,7 +67,8 @@ void cx_font_create_atlas(
 	
 	// Pack glyph atlas rects together
 	const uint32_t area = p_font->max_glyph_width_ * p_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS;
-	const uint32_t area_sqrt = (uint32_t)sqrtf((float)area);
+	const float    area_sqrtf = sqrtf((float)area);
+	const uint32_t area_sqrt = (uint32_t)area_sqrtf;
 	const uint32_t width = next_pow2_uint32(area_sqrt) / 2;
 	
 	uint32_t row_right = 0;
@@ -156,7 +157,7 @@ int cx_font_glyph_atlas_dst_cmp(
 	const struct cx_font_glyph_atlas_dst* p_a,
 	const struct cx_font_glyph_atlas_dst* p_b) {
 	
-	return
+	return (int)(
 		p_b->p_glyph->metrics_.width * p_b->p_glyph->metrics_.height -
-		p_a->p_glyph->metrics_.width * p_a->p_glyph->metrics_.height;
+		p_a->p_glyph->metrics_.width * p_a->p_glyph->metrics_.height);
 }

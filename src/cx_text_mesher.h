@@ -20,7 +20,7 @@ struct cx_font_render_data {
 struct cx_text_style {
 	const struct cx_font_render_data* p_font_render_data;
 	float scale;
-	struct cx_color_f32 color;
+	struct cx_color color;
 };
 
 struct cx_text_span {

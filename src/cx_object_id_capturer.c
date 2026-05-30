@@ -39,7 +39,7 @@ void cx_object_id_capturer_draw(
 
 	struct cx_render_pass_execute_info render_pass_execute_info = {
 		.p_framebuffer = &p_capturer->framebuffer,
-		.viewport = { 0, 0, fb_width, fb_height },
+		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
 		.b_clear_color = 1,
 		.b_clear_depth = 1,
 		.clear_depth = 1.0f
@@ -65,8 +65,8 @@ uint32_t cx_object_id_capturer_query(const struct cx_object_id_capturer* p_captu
 	y = clampf(y, 0, 1);
 	
 	uint32_t pixel_location[] = { 
-		(float)p_capturer->framebuffer_width * x,
-		(float)p_capturer->framebuffer_height * (1.0f - y)
+		(uint32_t)((float)p_capturer->framebuffer_width * x),
+		(uint32_t)((float)p_capturer->framebuffer_height * (1.0f - y))
 	};
 	unsigned int pixel_value;
 
@@ -126,8 +126,10 @@ void cx_object_id_capturer_init_statics(void) {
 
 	void* p_vsource;
 	void* p_fsource;
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/object_id.vert", (void**)&p_vsource, 0) == CX_ERROR_none);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/object_id.frag", (void**)&p_fsource, 0) == CX_ERROR_none);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/object_id.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
+		OBJECT_ID_CAPTURER);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/object_id.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
+		OBJECT_ID_CAPTURER);
 
 	const struct cx_render_pass_build_info render_pass_build_info = {
 		.program_source = {
@@ -138,7 +140,7 @@ void cx_object_id_capturer_init_statics(void) {
 		.s_object_block_name = "blk_object",
 	};
 
-	CX_ASSERT(cx_render_pass_build(&render_pass_build_info, &render_pass));
+	CX_ASSERT(cx_render_pass_build(&render_pass_build_info, &render_pass), OBJECT_ID_CAPTURER);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);

@@ -68,7 +68,10 @@ void cx_flog_end(struct cx_flogger* p_flogger, struct cx_flog_builder* p_builder
 	for (size_t i = 0; i < new_entry.num_styles; ++i) {
 		const struct cx_flog_style* p_style = new_entry.p_styles + i;
 		CX_LOG_FMT(INFO, DONTCARE, "    %d: color=[%g, %g, %g, %g]\n",
-			p_style->color.r, p_style->color.g, p_style->color.b, p_style->color.a);
+			CX_COLOR_R(p_style->color),
+			CX_COLOR_G(p_style->color),
+			CX_COLOR_B(p_style->color),
+			CX_COLOR_A(p_style->color));
 	}
 
 	CX_LOG_FMT(INFO, DONTCARE, "  spans: %d\n", new_entry.num_styles);
@@ -90,7 +93,7 @@ void cx_flog_end(struct cx_flogger* p_flogger, struct cx_flog_builder* p_builder
 void cx_flog_append(struct cx_flog_builder* p_builder, const char* s) {
 	char* p_start = p_builder->p_buf + p_builder->buf_len;
 	char* p_end = cx_stpcpy(p_start, s);
-	p_builder->buf_len += p_end - p_start;
+	p_builder->buf_len += (uint32_t)(p_end - p_start);
 }
 
 void cx_flog_append_fmt(struct cx_flog_builder* p_builder, const char* s, ...) {
@@ -98,11 +101,16 @@ void cx_flog_append_fmt(struct cx_flog_builder* p_builder, const char* s, ...) {
 
 	va_list vargs;
 	va_start(vargs, s);
-	const size_t len = vsprintf(temp, s, vargs);
+
+CX_PRAGMA_DIAGNOSTIC_PUSH()
+CX_PRAGMA_IGNORE_WARNING("-Wformat-nonliteral")
+	const size_t len = (size_t)vsprintf(temp, s, vargs);
+CX_PRAGMA_DIAGNOSTIC_POP()	
+
 	va_end(vargs);
 
 	strcpy(p_builder->p_buf + p_builder->buf_len, temp);
-	p_builder->buf_len += len;
+	p_builder->buf_len += (uint32_t)len;
 }
 
 void cx_flog_push_style(struct cx_flog_builder* p_builder, struct cx_flog_style style) {
@@ -111,7 +119,7 @@ void cx_flog_push_style(struct cx_flog_builder* p_builder, struct cx_flog_style 
 	}
 	
 	uint8_t style_id = p_builder->num_styles;
-	for (size_t i = 0; i < p_builder->num_styles; ++i) {
+	for (uint8_t i = 0; i < p_builder->num_styles; ++i) {
 		if (cx_flog_style_cmp(p_builder->p_styles + i, &style)) {
 			style_id = i;
 			break;

@@ -214,7 +214,7 @@ struct json_value* json_object_add(struct json_value* p_json_object, const char*
         return 0;
     }
     
-    const float new_load_ratio = (float)(p_tab->num_elements + 1) / p_tab->n_buckets;
+    const float new_load_ratio = (float)(p_tab->num_elements + 1) / (float)p_tab->n_buckets;
     if (p_tab->n_buckets == 0 || new_load_ratio > JSON_OBJECT_TABLE_LOAD_THRESHOLD) {
         const size_t new_num_buckets = p_tab->num_elements ? p_tab->num_elements * 2 : JSON_OBJECT_TABLE_MIN_BUCKETS;
         if (!json_object_table_resize(p_tab, new_num_buckets)) {
@@ -553,7 +553,7 @@ int parse_string(struct json_parser* p_parser, char** p_s_result) {
         ++p_parser->p_last_char;
 
         if (*p_parser->p_last_char == '"') {
-            size_t temp_string_length = p_parser->p_last_char - src_str;
+            const size_t temp_string_length = (size_t)(p_parser->p_last_char - src_str);
             if (temp_string_length > 0) {
                 *p_s_result = malloc(temp_string_length + 1);
 

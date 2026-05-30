@@ -7,6 +7,8 @@
 #include "cx_render_pass.h"
 #include "cx_gfx_texture.h"
 
+#define CX_LOG_CAT_OBJECT_ID_CAPTURER "object_id_capturer"
+
 #define CX_OBJECT_ID_CAPTURER_MAX_OBJECTS 1024
 
 #define CX_OBJECT_ID_NONE 0

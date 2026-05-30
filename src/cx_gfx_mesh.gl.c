@@ -39,7 +39,7 @@ static const GLenum gl_draw_mode_table[] = {
 struct cx_gfx_mesh_gl_internals {
 	GLuint vao;
 	GLuint vbos[CX_GFX_MESH_MAX_ATTR_BUFFERS];
-	GLuint vbos_len;
+	GLsizei vbos_len;
 	GLuint ibo;
 	GLenum ibo_type;
 	GLenum draw_mode;
@@ -56,7 +56,7 @@ void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive*
     glGenVertexArrays(1, &p_internals->vao);
     glBindVertexArray(p_internals->vao);
 
-    p_internals->vbos_len = p_mesh_primitive->num_vertex_buffers;
+    p_internals->vbos_len = (GLsizei)p_mesh_primitive->num_vertex_buffers;
     glGenBuffers(p_internals->vbos_len, p_internals->vbos);
 
     for (size_t i = 0; i < p_mesh_primitive->num_vertex_buffers; ++i) {
@@ -64,7 +64,7 @@ void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive*
 
         glBindBuffer(GL_ARRAY_BUFFER, p_internals->vbos[i]);
 
-        glBufferData(GL_ARRAY_BUFFER, p_vertex_buffer->size, p_vertex_buffer->p_bytes, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)p_vertex_buffer->size, p_vertex_buffer->p_bytes, GL_STATIC_DRAW);
     }
 
     for (size_t i = 0; i < p_mesh_primitive->num_attributes; ++i) {
@@ -89,21 +89,21 @@ void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive*
             );
         }
         
-        glEnableVertexAttribArray(p_attribute->index);
+        glEnableVertexAttribArray((GLuint)p_attribute->index);
     }
 
     if (p_mesh_primitive->index_buffer.p_bytes) {
         glGenBuffers(1, &p_internals->ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_internals->ibo);
 
-        GLsizei index_size;
+        size_t index_size;
         switch(p_mesh_primitive->index_buffer.type) {
             case VERTEX_INDEX_TYPE_u8:  index_size = 1; break;
             case VERTEX_INDEX_TYPE_u16: index_size = 2; break;
             case VERTEX_INDEX_TYPE_u32: index_size = 4; break;
         }
 
-        const GLsizei ibo_size = index_size * p_mesh_primitive->index_buffer.count;
+        const GLsizei ibo_size = (GLsizei)(index_size * p_mesh_primitive->index_buffer.count);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibo_size, p_mesh_primitive->index_buffer.p_bytes, GL_STATIC_DRAW);
 
         p_internals->ibo_type = gl_index_type_table[p_mesh_primitive->index_buffer.type];
@@ -133,9 +133,9 @@ void cx_gfx_mesh_draw(const struct cx_gfx_mesh* p_mesh) {
     glBindVertexArray(p_internals->vao);
 
     if (p_internals->ibo) {
-        glDrawElements(p_internals->draw_mode, p_mesh->elements_count_, p_internals->ibo_type, 0);
+        glDrawElements(p_internals->draw_mode, (GLsizei)p_mesh->elements_count_, p_internals->ibo_type, 0);
     } else {
-        glDrawArrays(p_internals->draw_mode, 0, p_mesh->elements_count_);
+        glDrawArrays(p_internals->draw_mode, 0, (GLsizei)p_mesh->elements_count_);
     }
 }
 

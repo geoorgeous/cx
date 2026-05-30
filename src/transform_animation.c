@@ -25,7 +25,6 @@ void transform_animation_apply(const struct transform_animation* p_transform_ani
 	const size_t num_keyframe_value_components = p_transform_animation->target == TRANSFORM_ANIMATION_TARGET_rotation ? 4 : 3;
 
 	if (p_transform_animation->sampler.interpolation_mode == TRANSFORM_ANIMATION_INTERPOLATION_MODE_cubic_spline) {
-		return;
 		// todo
 		const float* p_keyframe_value = 0;
 		const float* p_keyframe_out_tangent = 0;

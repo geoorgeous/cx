@@ -18,7 +18,7 @@ void cx_text_mesher_measure(
 	float* p_out_x, float* p_out_y) {
 	
 	float x = 0;
-	float y = p_font_render_data->p_font->line_height_;
+	float y = (float)p_font_render_data->p_font->line_height_;
 
 	float line_x = x;
 
@@ -30,12 +30,12 @@ void cx_text_mesher_measure(
 		}
 
 		if (*p == ' ') {
-			line_x += p_font_render_data->p_font->max_glyph_width_;
+			line_x += (float)p_font_render_data->p_font->max_glyph_width_;
 			continue;	
 		}
 
 		if (*p == '\t') {
-			line_x += p_font_render_data->p_font->max_glyph_width_ * CX_TAB_SPACE_COUNT;
+			line_x += (float)p_font_render_data->p_font->max_glyph_width_ * CX_TAB_SPACE_COUNT;
 			continue;
 		}
 
@@ -43,7 +43,7 @@ void cx_text_mesher_measure(
 			if (line_x > x) {
 				x = line_x;
 			}
-			y += p_font_render_data->p_font->line_height_;
+			y += (float)p_font_render_data->p_font->line_height_;
 			line_x = 0;
 			continue;
 		}
@@ -55,7 +55,7 @@ void cx_text_mesher_measure(
 			continue;
 		}
 
-		line_x += p_glyph->metrics_.adv_x;
+		line_x += (float)p_glyph->metrics_.adv_x;
 	}
 
 	if (line_x > x) {
@@ -71,6 +71,8 @@ void cx_text_mesher_generate(
 	size_t max_outputs,
 	struct cx_text_mesher_output* p_out_outputs,
 	size_t* p_out_num_outputs) {
+
+	(void)max_outputs;
 
 	size_t num_quads = 0;
 
@@ -129,8 +131,8 @@ void cx_text_mesher_generate(
 	int32_t pen_x = 0;
 	int32_t pen_baseline = 0;
 
-	const int32_t space_width = p_input->style.p_font_render_data->p_font->space_adv_;
-	const int32_t line_height = p_input->style.p_font_render_data->p_font->line_height_;
+	const uint32_t space_width = (uint32_t)abs(p_input->style.p_font_render_data->p_font->space_adv_);
+	const uint32_t line_height = p_input->style.p_font_render_data->p_font->line_height_;
 
 	for(const char* p = p_input->s_text; *p; p++) {
 		const uint32_t codepoint = (uint32_t)*p;
@@ -140,18 +142,18 @@ void cx_text_mesher_generate(
 		}
 
 		if (*p == ' ') {
-			pen_x += space_width;
+			pen_x += (int32_t)space_width;
 			continue;	
 		}
 
 		if (*p == '\t') {
-			pen_x += space_width * CX_TAB_SPACE_COUNT;
+			pen_x += (int32_t)space_width * CX_TAB_SPACE_COUNT;
 			continue;
 		}
 
 		if (*p == '\n') {
 			pen_x = 0;
-			pen_baseline -= line_height;
+			pen_baseline -= (int32_t)line_height;
 			continue;
 		}
 
@@ -162,17 +164,17 @@ void cx_text_mesher_generate(
 			continue;
 		}
 
-		const size_t glyph_index = p_glyph - p_input->style.p_font_render_data->p_font->glyphs_;
+		const size_t glyph_index = (size_t)(p_glyph - p_input->style.p_font_render_data->p_font->glyphs_);
 		const struct cx_texture_atlas_entry* p_atlas_entry =
 			&p_input->style.p_font_render_data->p_glyph_atlas_layout->p_entries[glyph_index];
 
-		float x = pen_x + p_glyph->metrics_.off_x;
-		float y = pen_baseline + p_glyph->metrics_.off_y;
+		float x = (float)(pen_x + p_glyph->metrics_.off_x);
+		float y = (float)(pen_baseline + p_glyph->metrics_.off_y);
 		
 		// topleft
 
 		p_v[0] = x;
-		p_v[1] = y + p_glyph->metrics_.height;
+		p_v[1] = y + (float)p_glyph->metrics_.height;
 		p_v[2] = 0;
 		p_v[3] = 1;
 		matrix_multiply_vec4(transform, p_v, p_v);
@@ -180,10 +182,10 @@ void cx_text_mesher_generate(
 		p_v[3] = p_atlas_entry->u0;
 		p_v[4] = p_atlas_entry->v1;
 
-		p_v[5] = p_input->style.color.r;
-		p_v[6] = p_input->style.color.g;
-		p_v[7] = p_input->style.color.b;
-		p_v[8] = p_input->style.color.a;
+		p_v[5] = CX_COLOR_R(p_input->style.color);
+		p_v[6] = CX_COLOR_G(p_input->style.color);
+		p_v[7] = CX_COLOR_B(p_input->style.color);
+		p_v[8] = CX_COLOR_A(p_input->style.color);
 
 		// bottomleft
 
@@ -196,15 +198,15 @@ void cx_text_mesher_generate(
 		p_v[12] = p_atlas_entry->u0;
 		p_v[13] = p_atlas_entry->v0;
 
-		p_v[14] = p_input->style.color.r;
-		p_v[15] = p_input->style.color.g;
-		p_v[16] = p_input->style.color.b;
-		p_v[17] = p_input->style.color.a;
+		p_v[14] = CX_COLOR_R(p_input->style.color);
+		p_v[15] = CX_COLOR_G(p_input->style.color);
+		p_v[16] = CX_COLOR_B(p_input->style.color);
+		p_v[17] = CX_COLOR_A(p_input->style.color);
 
 		// top right
 
-		p_v[18] = x + p_glyph->metrics_.width;
-		p_v[19] = y + p_glyph->metrics_.height;
+		p_v[18] = x + (float)p_glyph->metrics_.width;
+		p_v[19] = y + (float)p_glyph->metrics_.height;
 		p_v[20] = 0;
 		p_v[21] = 1;
 		matrix_multiply_vec4(transform, p_v + 18, p_v + 18);
@@ -212,14 +214,14 @@ void cx_text_mesher_generate(
 		p_v[21] = p_atlas_entry->u1;
 		p_v[22] = p_atlas_entry->v1;
 
-		p_v[23] = p_input->style.color.r;
-		p_v[24] = p_input->style.color.g;
-		p_v[25] = p_input->style.color.b;
-		p_v[26] = p_input->style.color.a;
+		p_v[23] = CX_COLOR_R(p_input->style.color);
+		p_v[24] = CX_COLOR_G(p_input->style.color);
+		p_v[25] = CX_COLOR_B(p_input->style.color);
+		p_v[26] = CX_COLOR_A(p_input->style.color);
 
 		// bottom right
 
-		p_v[27] = x + p_glyph->metrics_.width;
+		p_v[27] = x + (float)p_glyph->metrics_.width;
 		p_v[28] = y;
 		p_v[29] = 0;
 		p_v[30] = 1;
@@ -228,10 +230,10 @@ void cx_text_mesher_generate(
 		p_v[30] = p_atlas_entry->u1;
 		p_v[31] = p_atlas_entry->v0;
 
-		p_v[32] = p_input->style.color.r;
-		p_v[33] = p_input->style.color.g;
-		p_v[34] = p_input->style.color.b;
-		p_v[35] = p_input->style.color.a;
+		p_v[32] = CX_COLOR_R(p_input->style.color);
+		p_v[33] = CX_COLOR_G(p_input->style.color);
+		p_v[34] = CX_COLOR_B(p_input->style.color);
+		p_v[35] = CX_COLOR_A(p_input->style.color);
 
 		p_v += 36;
 

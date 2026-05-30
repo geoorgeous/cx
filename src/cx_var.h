@@ -9,58 +9,52 @@
 #define CX_VAR_MUTABILITY_READWRITE 0
 #define CX_VAR_MUTABILITY_READONLY 1
 
-#define CX_VAR_DESC(NAME, DESC, TYPE) ((struct cx_var_desc){\
+#define CX_VAR_DESC(NAME, DESC, TYPE) {\
 	.s_name = NAME,\
 	.s_desc = DESC,\
 	.type = CX_VAR_TYPE_##TYPE,
 
-#define CX_VAR_DESC_BOOL(NAME, DESC) CX_VAR_DESC(NAME, DESC, bool) })
+#define CX_VAR_DESC_BOOL(NAME, DESC) CX_VAR_DESC(NAME, DESC, bool) }
 
-#define CX_VAR_DESC_INT(NAME, DESC) CX_VAR_DESC(NAME, DESC, int)})
+#define CX_VAR_DESC_INT(NAME, DESC) CX_VAR_DESC(NAME, DESC, int) }
 
 #define CX_VAR_DESC_INT_RANGE(NAME, DESC, MIN, MAX) CX_VAR_DESC(NAME, DESC, int)\
-	.numeric_constraints = { .min = MIN, .max = MAX }\
-})
+	.type_metadata.numeric_constraints = { .min = MIN, .max = MAX }\
+}
 
-#define CX_VAR_DESC_FLOAT(NAME, DESC) CX_VAR_DESC(NAME, DESC, float)})
+#define CX_VAR_DESC_FLOAT(NAME, DESC) CX_VAR_DESC(NAME, DESC, float)}
 
 #define CX_VAR_DESC_FLOAT_RANGE(NAME, DESC, MIN, MAX) CX_VAR_DESC(NAME, DESC, float)\
-	.numeric_constraints = { .min = MIN, .max = MAX }\
-})
+	.type_metadata.numeric_constraints = { .min = MIN, .max = MAX }\
+}
 
 #define CX_VAR_DESC_STRING(NAME, DESC) CX_VAR_DESC(NAME, DESC, string)\
-	.string_candidates.provider_type = CX_VAR_CANDIDATES_PROVIDER_TYPE_none\
-})
+	.type_metadata.string_candidates.provider_type = CX_VAR_CANDIDATES_PROVIDER_TYPE_none\
+}
 
 #define CX_VAR_DESC_STRING_CANDIDATES_LIST(NAME, DESC, P_VALUES, N) CX_VAR_DESC(NAME, DESC, string)\
-	.string_candidates = {\
+	.type_metadata.string_candidates = {\
 		.provider_type = CX_VAR_CANDIDATES_PROVIDER_TYPE_list,\
-		.list = {\
+		.provider.list = {\
 			.p_s_candidates = P_VALUES,\
 			.num_candidates = N\
 		}\
 	}\
-})
+}
 
 #define CX_VAR_DESC_STRING_CANDIDATES_CALLBACK(NAME, DESC, F) CX_VAR_DESC(NAME, DESC, string)\
 	.string_candidates = {\
 		.provider_type = CX_VAR_CANDIDATES_PROVIDER_TYPE_callback,\
-		.f_provider = F\
+		.provider.f = F\
 	}\
-})
+}
 
 #define CX_VAR_DESC_ENUM(NAME, DESC, P_ENTRIES, N) CX_VAR_DESC(NAME, DESC, enum)\
-	.enum_map = {\
+	.type_metadata.enum_map = {\
 		.p_entries = P_ENTRIES,\
 		.num_entries = N\
 	}\
-})
-
-#define CX_VAR(DESC, P, READONLY) ((struct cx_var){\
-	.desc = CX_VAR_DESC_##DESC,\
-	.p = P,\
-	.b_readonly = CX_VAR_MUTABILITY_##READONLY,\
-})
+}
 
 enum cx_var_type {
 	CX_VAR_TYPE_bool,
@@ -92,8 +86,8 @@ struct cx_var_candidates {
 	enum cx_var_candidates_provider_type provider_type;
 	union {
 		struct cx_var_candidates_list list;
-		cx_var_candidate_provider_fn f_provider;
-	};
+		cx_var_candidate_provider_fn f;
+	} provider;
 };
 
 struct cx_var_enum_map_entry {
@@ -114,7 +108,7 @@ struct cx_var_desc {
 		struct cx_var_candidates string_candidates;
 		struct cx_var_numeric_constraints numeric_constraints;
 		struct cx_var_enum_map enum_map;
-	};
+	} type_metadata;
 };
 
 struct cx_var {

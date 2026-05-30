@@ -13,10 +13,10 @@
 #define CX_COMMAND_PARAM_REQUIRED 1
 #define CX_COMMAND_PARAM_OPTIONAL 0
 
-#define CX_COMMAND_PARAM(DESC, REQUIRED) ((struct cx_command_param){\
+#define CX_COMMAND_PARAM(DESC, REQUIRED) {\
 	.desc = CX_VAR_DESC_##DESC,\
 	.b_required = CX_COMMAND_PARAM_##REQUIRED,\
-})
+}
 
 struct cx_command_param {
 	struct cx_var_desc desc;

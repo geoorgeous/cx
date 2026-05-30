@@ -6,8 +6,13 @@
 
 #define FLT_CMP(A, B) (fabsf(A - B) < FLT_EPSILON)
 #define FLT_ISZERO(A) (fabsf(A) < FLT_EPSILON)
-#define DBL_CMP(A, B) (fabs(A - B) < FLT_EPSILON)
-#define DBL_ISZERO(A) (fabs(A) < FLT_EPSILON)
+#define DBL_CMP(A, B) (fabs(A - B) < DBL_EPSILON)
+#define DBL_ISZERO(A) (fabs(A) < DBL_EPSILON)
+
+#define CX_MATH_PI       3.14159265358979323846f
+#define CX_MATH_PI_DBL   3.14159265358979323846
+#define CX_MATH_TAU      6.28318530717958647692f
+#define CX_MATH_TAU_DBL  6.28318530717958647692
 
 #include <stdint.h>
 

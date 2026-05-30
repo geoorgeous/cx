@@ -2,10 +2,11 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "cx_str.h"
 #include "cx_text_edit.h"
 
 void cx_text_edit_set_buf(struct cx_text_edit* p_text_edit, char* p_buf, size_t size) {
-	const size_t len = strnlen(p_buf, size);
+	const size_t len = cx_strnlen(p_buf, size);
 	*p_text_edit = (struct cx_text_edit) {
 		.p_buf = p_buf,
 		.buf_size = size,
@@ -40,17 +41,17 @@ void cx_text_edit_insert(struct cx_text_edit* p_text_edit, const char* p_input, 
 
 void cx_text_edit_delete(struct cx_text_edit* p_text_edit, int n) {
 	if (n > 0) {
-		if (p_text_edit->cursor_pos + n > p_text_edit->len) {
-			n = p_text_edit->len - p_text_edit->cursor_pos;
+		if (p_text_edit->cursor_pos + (size_t)n > p_text_edit->len) {
+			n = (int)(p_text_edit->len - p_text_edit->cursor_pos);
 		}
 	} else if (n < 0) {
 		if(-n > (int)p_text_edit->cursor_pos) {
-			n = -p_text_edit->cursor_pos;
+			n = -((int)p_text_edit->cursor_pos);
 		}
 	}
 
 	size_t dst_start = p_text_edit->cursor_pos;
-	size_t src_start = p_text_edit->cursor_pos + n;
+	size_t src_start = p_text_edit->cursor_pos + (size_t)n;
 
 	if (dst_start == src_start) {
 		return;
@@ -79,7 +80,7 @@ void cx_text_edit_cursor_offset(struct cx_text_edit* p_text_edit, int offset) {
 	if (cursor < 0) {
 		cursor = 0;
 	}
-	cx_text_edit_cursor_set(p_text_edit, cursor);
+	cx_text_edit_cursor_set(p_text_edit, (size_t)cursor);
 }
 
 void cx_text_edit_cursor_set(struct cx_text_edit* p_text_edit, size_t cursor) {

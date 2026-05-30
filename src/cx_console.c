@@ -5,6 +5,7 @@
 #include "cx_command.h"
 #include "cx_console.h"
 #include "cx_logging.h"
+#include "cx_str.h"
 #include "cx_var.h"
 #include "input.h"
 #include "keys.h"
@@ -205,7 +206,7 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 void cx_console_on_char(const void* p_event, void* p_user_ptr) {
 	const struct input_event_data_char* p_e = p_event;
 	struct cx_console* p_console = p_user_ptr;
-	char c = p_e->code;
+	char c = (char)p_e->code;
 
 	if (iscntrl(c)) {
 		return;
@@ -330,7 +331,7 @@ int cx_console_command_alias(const struct cx_command_args* p_args, const struct 
 		return 0;
 	}
 
-	char* p_alias_name = strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
+	char* p_alias_name = cx_strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
 
 	const struct cx_command_alias* p_alias;
 	const int b_found = cx_command_registry_find_alias(p_registry, p_alias_name, &p_alias);
@@ -354,7 +355,7 @@ int cx_console_command_alias(const struct cx_command_args* p_args, const struct 
 		return 2;	
 	}
 
-	char* p_alias_expansion = strndup(p_args->list[1].as_str.p, p_args->list[1].as_str.len);
+	char* p_alias_expansion = cx_strndup(p_args->list[1].as_str.p, p_args->list[1].as_str.len);
 
 	cx_command_registry_add_alias(p_registry, p_alias_name, p_alias_expansion);
 
@@ -366,7 +367,7 @@ int cx_console_command_alias(const struct cx_command_args* p_args, const struct 
 
 int cx_console_command_unalias(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	struct cx_command_registry* p_registry = p_context->p_command->p_user_ptr;
-	char* p_alias_name = strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
+	char* p_alias_name = cx_strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
 	cx_command_registry_remove_alias(p_registry, p_alias_name);
 	free(p_alias_name);
 	return 0;
@@ -380,7 +381,7 @@ int cx_console_command_var(const struct cx_command_args* p_args, const struct cx
 		return 0;
 	}
 	
-	char* p_var_name = strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
+	char* p_var_name = cx_strndup(p_args->list[0].as_str.p, p_args->list[0].as_str.len);
 
 	const struct cx_var* p_var;
 	if (!cx_var_registry_find(p_registry, p_var_name, &p_var)) {
@@ -440,8 +441,9 @@ int cx_console_command_test(const struct cx_command_args* p_args, const struct c
 }
 
 void cx_console_history_set(struct cx_console* p_console, int index) {
-	if (index > (int)p_console->history.ring.entries_count_ - 1) {
-		index = p_console->history.ring.entries_count_ - 1;
+	const int last_index = (int)p_console->history.ring.entries_count_ - 1;
+	if (index > last_index) {
+		index = last_index;
 	}
 	if (index < 0) {
 		index = -1;
@@ -457,7 +459,7 @@ void cx_console_history_set(struct cx_console* p_console, int index) {
 	}
 
 	size_t size;
-	const char* s_history = cx_alloc_ring_get(&p_console->history.ring, index, &size);
+	const char* s_history = cx_alloc_ring_get(&p_console->history.ring, (size_t)index, &size);
 	strcpy(p_console->history.history_draf_buf, s_history);
 
 	cx_text_edit_set_buf(&p_console->input.text, p_console->history.history_draf_buf, CX_CONSOLE_MAX_INPUT_LEN);

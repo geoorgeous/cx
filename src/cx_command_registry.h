@@ -6,10 +6,10 @@
 #define CX_COMMAND_NO_PARAMS 0
 
 #define CX_NEW_COMMAND(S_NAME, DESC, F, P_USER, ...) do {\
-	const static struct cx_command_param command_params[] = {\
+	static const struct cx_command_param command_params[] = {\
 		__VA_ARGS__\
 	};\
-	const static struct cx_command command = {\
+	static const struct cx_command command = {\
 		.s_name = S_NAME,\
 		.s_desc = DESC,\
 		.p_params = command_params,\

@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define CX_LOG_CAT_COMPONENT "components"
+
 #define CX_COMPONENT_MAX_TYPES 512
 
 #define CX_COMPONENT_TYPE_ID_INVALID UINT16_MAX

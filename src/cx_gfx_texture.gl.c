@@ -8,7 +8,7 @@
 #include "gl.h"
 #include "cx_logging.h"
 
-static const GLenum gl_pixel_format_table[] = {
+static const GLint gl_pixel_format_table[] = {
 	GL_RED,
 	GL_RG,
 	GL_RGB,
@@ -19,7 +19,7 @@ static const GLenum gl_pixel_format_table[] = {
 	GL_R32UI
 };
 
-static const GLenum gl_pixel_type_table[] = {
+static const GLint gl_pixel_type_table[] = {
 	GL_UNSIGNED_BYTE,
 	GL_BYTE,
 	GL_UNSIGNED_SHORT,
@@ -28,7 +28,7 @@ static const GLenum gl_pixel_type_table[] = {
 	GL_INT
 };
 
-static const GLenum gl_filter_mode_table[] = {
+static const GLint gl_filter_mode_table[] = {
 	GL_NEAREST,
 	GL_LINEAR,
 	GL_NEAREST_MIPMAP_NEAREST,
@@ -37,16 +37,16 @@ static const GLenum gl_filter_mode_table[] = {
 	GL_LINEAR_MIPMAP_LINEAR
 };
 
-static const GLenum gl_address_mode_table[] = {
+static const GLint gl_address_mode_table[] = {
 	GL_REPEAT,
 	GL_MIRRORED_REPEAT,
 	GL_CLAMP_TO_EDGE
 };
 
 void get_valid_pixel_transfer_params_for_format(
-	GLenum internal_format,
-	GLenum* p_out_pixel_format,
-	GLenum* p_out_pixel_type);
+	GLint internal_format,
+	GLint* p_out_pixel_format,
+	GLint* p_out_pixel_type);
 
 enum cx_error cx_gfx_texture_create(
 	struct cx_gfx_texture* p_texture,
@@ -61,13 +61,22 @@ enum cx_error cx_gfx_texture_create(
 
     glBindTexture(GL_TEXTURE_2D, id);
 
-	const GLenum gl_internal_format = gl_pixel_format_table[pixel_format];
+	const GLint gl_internal_format = gl_pixel_format_table[pixel_format];
 	
-	GLenum gl_pixel_format;
-	GLenum gl_pixel_type;
+	GLint gl_pixel_format;
+	GLint gl_pixel_type;
 	get_valid_pixel_transfer_params_for_format(gl_internal_format, &gl_pixel_format, &gl_pixel_type);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, gl_internal_format, width, height, 0, gl_pixel_format, gl_pixel_type, 0);
+    glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		gl_internal_format,
+		(GLsizei)width,
+		(GLsizei)height,
+		0,
+		(GLenum)gl_pixel_format,
+		(GLenum)gl_pixel_type,
+		0);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -124,8 +133,8 @@ void cx_gfx_texture_set_data_subregion(
 		0,
 		(GLint)offset_x,(GLint)offset_y,
 		(GLint)width, (GLint)height,
-		gl_pixel_format_table[p_data_format->pixel_format],
-		gl_pixel_type_table[p_data_format->pixel_type],
+		(GLenum)gl_pixel_format_table[p_data_format->pixel_format],
+		(GLenum)gl_pixel_type_table[p_data_format->pixel_type],
 		p_data);
 
 	if (p_internals->b_mipmaps) {
@@ -156,9 +165,9 @@ void cx_gfx_texture_set_sampler_settings(
 }
 
 void get_valid_pixel_transfer_params_for_format(
-	GLenum internal_format,
-	GLenum* p_out_pixel_format,
-	GLenum* p_out_pixel_type) {
+	GLint internal_format,
+	GLint* p_out_pixel_format,
+	GLint* p_out_pixel_type) {
 	
 	switch(internal_format) {
 		case GL_DEPTH24_STENCIL8: {

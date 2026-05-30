@@ -8,6 +8,6 @@ void cx_bits_copy(uint8_t* p_dst, size_t dst_bit, const uint8_t* p_src, size_t s
 
 		const size_t dst_bit_n = dst_bit + i;
 		uint8_t* dst_byte = p_dst + (dst_bit_n / 8);
-		*dst_byte = CX_BIT_SET(*dst_byte, dst_bit_n % 8, src_bit_val);
+		*dst_byte = (uint8_t)CX_BIT_SET(*dst_byte, dst_bit_n % 8, src_bit_val);
 	}
 }

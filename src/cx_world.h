@@ -48,7 +48,7 @@ struct cx_world {
 	void* p_buf;
 };
 
-void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def* p_pool_defs, size_t num_pool_defs);
+void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def* p_pool_defs, uint16_t num_pool_defs);
 
 void cx_world_free(struct cx_world* p_world);
 

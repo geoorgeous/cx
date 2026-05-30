@@ -21,11 +21,11 @@ int cx_ed_import_bdf(
 		.descent_ = p_bdf->descent_
 	};
 
-	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7) / 8;
+	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
 	p_font->p_glyph_bitmap_buf = malloc(buf_size);
 
-	char* p_bitmap_pos = p_font->p_glyph_bitmap_buf;
-	size_t bitmap_bit_offset = 0;
+	uint8_t* p_bitmap_pos = p_font->p_glyph_bitmap_buf;
+	uint8_t bitmap_bit_offset = 0;
 
 	int num_glyphs_read = 0;
 
@@ -67,7 +67,7 @@ int cx_ed_import_bdf(
 		bitmap_bit_offset = (bitmap_bit_offset + num_bits) % 8;;
 	}
 
-	const size_t compact_size = (size_t)(p_bitmap_pos - (char*)p_font->p_glyph_bitmap_buf) + (bitmap_bit_offset != 0);
+	const size_t compact_size = (size_t)(p_bitmap_pos - (uint8_t*)p_font->p_glyph_bitmap_buf) + (bitmap_bit_offset != 0);
 	p_font->p_glyph_bitmap_buf = realloc(p_font->p_glyph_bitmap_buf, compact_size);
 
 	CX_LOG_FMT(INFO, IMPORT_BDF, "Font imported from BDF font: %d glyphs read, glyph bitmap buffer size=%llu\n",
@@ -78,7 +78,7 @@ int cx_ed_import_bdf(
 	if (cx_font_find_glyph(p_font, (uint32_t)' ', &p_space_glyph)) {
 		p_font->space_adv_ = p_space_glyph->metrics_.adv_x;
 	} else {
-		p_font->space_adv_ = p_font->max_glyph_width_;
+		p_font->space_adv_ = (int32_t)p_font->max_glyph_width_;
 	}
 
 	cx_asset_package_new_record(p_package, CX_ASSET_TYPE_FONT, pp_out);

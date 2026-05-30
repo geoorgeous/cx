@@ -127,5 +127,5 @@ void platform_window_set_on_char_callback(
 #ifdef PLATFORM_WIN32
 #include "platform_window.win32.c"
 #else
-#include "platform_window.nix_x11.c"
+#include "platform_window.x11.c"
 #endif

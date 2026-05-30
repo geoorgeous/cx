@@ -71,7 +71,7 @@ static int physics_test_convex_hulls(
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result);
 
-static int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]);
+static int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float (*simplex)[3]);
 
 static void gjk_find_extreme(const struct physics_collider* p_collider, const float* p_dir, float* p_extreme);
 
@@ -87,25 +87,25 @@ static void gjk_find_support(
 	const float* p_dir,
 	float* p_support);
 
-static int gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static int gjk_process_simplex(float (*simplex)[3], int* p_simplex_d, float* p_dir);
 
-static void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static void gjk_process_simplex_line(float (*simplex)[3], int* p_simplex_d, float* p_dir);
 
-static void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static void gjk_process_simplex_triangle(float (*simplex)[3], int* p_simplex_d, float* p_dir);
 
 static void gjk_process_simplex_triangle_test_ab(
 	const float* p_ab,
 	const float* p_ao,
 	const float* p_a,
 	const float* p_b,
-	float simplex[4][3],
+	float (*simplex)[3],
 	int* p_simplex_d,
 	float* p_dir);
 
-static int  gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir);
+static int  gjk_process_simplex_tetrahedron(float (*simplex)[3], int* p_simplex_d, float* p_dir);
 
 static void epa(
-	float simplex[4][3],
+	float (*simplex)[3],
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result);
@@ -145,7 +145,7 @@ void physics_collider_init(struct physics_collider* p_collider, enum physics_col
 		}
 
 		case PHYSICS_COLLIDER_TYPE_hull: {
-			const float elemsize = sizeof(float) * 3;
+			const size_t elemsize = sizeof(float) * 3;
 			darr_init(&p_collider->shape.as_hull.verts, elemsize);
 			darr_init(&p_collider->shape_cached_.as_hull.verts, elemsize);
 
@@ -341,7 +341,9 @@ void physics_collider_shape_transform_plane(union physics_collider_shape* p_shap
 	struct physics_plane* p_plane = &p_shape->as_plane;
 
 	quaternion_rotate_vec3(p_t->world_rotation, p_plane->normal, p_plane->normal);
-	p_plane->distance += vec3_len(p_t->world_position) * signf(vec3_dot(p_plane->normal, p_t->world_position));
+
+	const int sign = signf(vec3_dot(p_plane->normal, p_t->world_position));
+	p_plane->distance += vec3_len(p_t->world_position) * (float)sign;
 }
 
 void physics_collider_apply_transform(struct physics_collider* p_collider, const struct transform* p_t) {
@@ -491,14 +493,14 @@ void physics_world_detect_collisions_broadphase(struct physics_world* p_world) {
 }
 
 void physics_world_detect_collisions_narrowphase(struct physics_world* p_world) {
-	for (int i = p_world->collisions_.length_ - 1; i >= 0; --i) {
+	for (size_t i = p_world->collisions_.length_; i > 0; --i) {
 		struct physics_collision* p_collision = darr_get(&p_world->collisions_, i);
 
 		p_collision->b_has_collision =
 			physics_test_collision(p_collision->p_a->p_collider_, p_collision->p_b->p_collider_, &p_collision->result);
 		
 		if (!p_collision->b_has_collision) {
-			darr_remove(&p_world->collisions_, i);
+			darr_remove(&p_world->collisions_, i - 1u);
 		}
 	}
 }
@@ -607,7 +609,7 @@ int physics_test_convex_hulls(
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
-	float simplex[4][3] = {0};
+	float (*simplex)[3] = {0};
 
 	int b_collision = gjk(p_a, p_b, simplex);
 
@@ -883,6 +885,7 @@ void physics_collision_solver_impulse(const struct physics_collision* p_collisio
 		
 		float impulse_b[3];
 		vec3_mul_s(impulse, invmass_b, impulse_b);
+
 		vec3_add(vel_b, impulse_b, vel_b);
 
 		// Friction
@@ -1020,7 +1023,7 @@ typedef void(*physics_collider_find_extreme_func)(const void*, const float*, flo
 
 #define GJK_SAME_SIDE(A, B) (vec3_dot(A, B) > 0)
 
-int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float simplex[4][3]) {
+int gjk(const struct physics_collider* p_a, const struct physics_collider* p_b, float (*simplex)[3]) {
 	int   simplex_d = 1;
 
 	// Arbitrary initial search direction
@@ -1151,7 +1154,7 @@ void gjk_find_support(
 	vec3_sub(tmp, p_support, p_support);
 }
 
-int gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+int gjk_process_simplex(float (*simplex)[3], int* p_simplex_d, float* p_dir) {
 	if (*p_simplex_d == 2) {
 		gjk_process_simplex_line(simplex, p_simplex_d, p_dir);
 		return 0;
@@ -1165,7 +1168,7 @@ int gjk_process_simplex(float simplex[4][3], int* p_simplex_d, float* p_dir) {
 	return gjk_process_simplex_tetrahedron(simplex, p_simplex_d, p_dir);
 }
 
-void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+void gjk_process_simplex_line(float (*simplex)[3], int* p_simplex_d, float* p_dir) {
 	(void)p_simplex_d;
 
 	const float* p_a = simplex[1];
@@ -1182,7 +1185,7 @@ void gjk_process_simplex_line(float simplex[4][3], int* p_simplex_d, float* p_di
 	vec3_cross(p_dir, ab, p_dir);
 }
 
-void gjk_process_simplex_triangle(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+void gjk_process_simplex_triangle(float (*simplex)[3], int* p_simplex_d, float* p_dir) {
 	const float* p_a = simplex[2];
 	const float* p_b = simplex[1];
 	const float* p_c = simplex[0];
@@ -1243,7 +1246,7 @@ void gjk_process_simplex_triangle_test_ab(
 	const float* p_ao,
 	const float* p_a,
 	const float* p_b,
-	float simplex[4][3],
+	float (*simplex)[3],
 	int* p_simplex_d,
 	float* p_dir) {
 
@@ -1268,7 +1271,7 @@ void gjk_process_simplex_triangle_test_ab(
 	}
 }
 
-int gjk_process_simplex_tetrahedron(float simplex[4][3], int* p_simplex_d, float* p_dir) {
+int gjk_process_simplex_tetrahedron(float (*simplex)[3], int* p_simplex_d, float* p_dir) {
 	const float* p_a = simplex[3];
 	const float* p_b = simplex[2];
 	const float* p_c = simplex[1];
@@ -1346,10 +1349,13 @@ unsigned short epa_face_pool_alloc(struct epa_face_pool* p_pool);
 void epa_face_pool_free(struct epa_face_pool* p_pool, unsigned short face_index);
 
 unsigned short epa_face_pool_alloc(struct epa_face_pool* p_pool) {
+	(void)p_pool;
 	return 0;
 }
 
 void epa_face_pool_free(struct epa_face_pool* p_pool, unsigned short face_index) {
+	(void)p_pool;
+	(void)face_index;
 }
 
 struct epa_mesh {
@@ -1359,20 +1365,20 @@ struct epa_mesh {
 	unsigned short       faces[PHYSICS_EPA_MAX_FACES];
 };
 
-void epa_mesh_init(struct epa_mesh* p_mesh, const float simplex[4][3]);
+void epa_mesh_init(struct epa_mesh* p_mesh, const float (*simplex)[3]);
 
 void epa_mesh_expand(struct epa_mesh* p_mesh, unsigned short face_index, const float* p_new_vertex);
 
 unsigned short epa_mesh_closest_face_to_origin(const struct epa_mesh* p_mesh);
 
 void epa(
-	float simplex[4][3],
+	float (*simplex)[3],
 	const struct physics_collider* p_a,
 	const struct physics_collider* p_b,
 	struct physics_collision_result* p_result) {
 
 	struct epa_mesh polyhedron;
-	epa_mesh_init(&polyhedron, simplex);
+	epa_mesh_init(&polyhedron, (const float(*)[3])simplex);
 
 	while(1) {
 		unsigned short closest_feature_index = epa_mesh_closest_face_to_origin(&polyhedron);
@@ -1384,7 +1390,7 @@ void epa(
 		gjk_find_support(p_a, p_b, p_closest_face->normal, p_s);
 
 		const float d = vec3_dot(p_s, p_closest_face->normal);
-		if (d - 0) {
+		if (d < 0.001f) {
 			vec3_copy(p_closest_face->normal, p_result->ab_normal);
 			p_result->depth = d;
 			// todo: contact points
@@ -1407,7 +1413,7 @@ void epa(
 	vec3_norm(p_face->normal, p_face->normal);\
 	p_face->dist_from_origin = vec3_dot(p_face->normal, P_MESH->vertices[p_face->vertices[0]]); }
 
-void epa_mesh_init(struct epa_mesh* p_mesh, const float simplex[4][3]) {
+void epa_mesh_init(struct epa_mesh* p_mesh, const float (*simplex)[3]) {
 	vec3_copy(simplex[0], p_mesh->vertices[0]);
 	vec3_copy(simplex[1], p_mesh->vertices[1]);
 	vec3_copy(simplex[2], p_mesh->vertices[2]);
@@ -1432,13 +1438,15 @@ void epa_mesh_init(struct epa_mesh* p_mesh, const float simplex[4][3]) {
 }
 
 void epa_mesh_expand(struct epa_mesh* p_mesh, unsigned short face_index, const float* p_new_vertex) {
+	(void)face_index;
+	(void)p_new_vertex;
 	// todo: add p_new_vertex to mesh
 	++p_mesh->num_vertices;
 }
 
 unsigned short epa_mesh_closest_face_to_origin(const struct epa_mesh* p_mesh) {
 	unsigned short closest_face_index = 0;
-	for (size_t i = 1; i < p_mesh->face_pool.num_allocated; ++i) {
+	for (unsigned short i = 1; i < p_mesh->face_pool.num_allocated; ++i) {
 		const struct epa_face* p_face = &p_mesh->face_pool.faces[p_mesh->faces[i]];
 		if (p_face->dist_from_origin < p_mesh->face_pool.faces[p_mesh->faces[closest_face_index]].dist_from_origin) {
 			closest_face_index = i;

@@ -13,8 +13,8 @@ static void cx_ed_import_image_from_stbi_retval(
 
     struct cx_image* p_image = malloc(sizeof(struct cx_image));
 
-    p_image->width = x;
-    p_image->height = y;
+    p_image->width = (uint32_t)x;
+    p_image->height = (uint32_t)y;
 	p_image->p_pixel_data = p_pixel_data;
 	p_image->pixel_data_format.pixel_type = CX_PIXEL_TYPE_u8;
 
@@ -36,7 +36,7 @@ int cx_ed_import_image(
 	struct cx_asset_package_record** pp_out) {
     
 	int x, y, comp;
-    uint8_t* p_pixel_data = stbi_load_from_memory(p_bytes, size, &x, &y, &comp, 0);
+    uint8_t* p_pixel_data = stbi_load_from_memory(p_bytes, (int)size, &x, &y, &comp, 0);
 
     if (!p_pixel_data) {
         CX_LOG_FMT(ERROR, IMPORT_IMAGE, "Failed to import image from %d bytes\n", size);

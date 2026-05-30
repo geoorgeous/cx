@@ -7,6 +7,7 @@
 #include "cx_flog.h"
 #include "cx_logging.h"
 #include "cx_macro.h"
+#include "cx_str.h"
 
 #define CX_COMMAND_REGISTRY_MAX_NAME_LEN 48
 
@@ -170,8 +171,8 @@ void cx_command_registry_add_alias(
 		index,
 		(struct cx_command_alias){0});
 
-	p_registry->p_aliases_[index].s_name = strdup(s_name);
-	p_registry->p_aliases_[index].s_expansion = strdup(s_expansion);
+	p_registry->p_aliases_[index].s_name = cx_strdup(s_name);
+	p_registry->p_aliases_[index].s_expansion = cx_strdup(s_expansion);
 
 	CX_LOG_FMT(INFO, COMMAND, "New alias registered: %s\n", p_registry->p_aliases_[index].s_name);
 }
@@ -256,7 +257,7 @@ int cx_command_registry_execute(
 	}
 
 	char name_buf[CX_COMMAND_REGISTRY_MAX_NAME_LEN + 1];
-	const size_t name_len = p - s_command_name;
+	const size_t name_len = (size_t)(p - s_command_name);
 	memcpy(name_buf, s_command_name, name_len);
 	name_buf[name_len] = '\0';
 	

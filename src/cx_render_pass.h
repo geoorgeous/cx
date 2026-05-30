@@ -2,10 +2,13 @@
 #define CX_RENDER_PASS_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "cx_dbg.h"
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_program.h"
+
+#define CX_LOG_CAT_RENDER_PASS "render_pass"
 
 #define CX_RENDER_PASS_MAX_OPAQUES 8
 
@@ -70,7 +73,7 @@ void cx_render_pass_execute(
 static inline void cx_render_command_buffer_push(
 	struct cx_render_command_buffer* p_buffer,
 	const struct cx_render_command* p_command) {
-	CX_ASSERT(p_buffer->num < p_buffer->capacity);
+	CX_ASSERT(p_buffer->num < p_buffer->capacity, RENDER_PASS);
 	p_buffer->p_commands[p_buffer->num++] = *p_command;
 }
 

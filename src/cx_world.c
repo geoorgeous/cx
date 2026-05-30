@@ -8,7 +8,7 @@
 #include "cx_macro.h"
 #include "cx_world.h"
 
-void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def* p_pool_defs, size_t num_pool_defs) {
+void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def* p_pool_defs, uint16_t num_pool_defs) {
 	const size_t component_pool_size = sizeof(struct cx_component_pool);
 	const size_t component_pools_array_size = component_pool_size * num_pool_defs;
 	const size_t entity_id_size = sizeof(*((struct cx_component_pool*)0)->p_dense_entities);
@@ -17,11 +17,11 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 
 	CX_LOG_FMT(INFO, WORLD, "Initialising world with %"CX_PRI_SIZE" component pools...\n", num_pool_defs);
 
-	for (size_t i = 0; i < CX_COMPONENT_MAX_TYPES; ++i) {
+	for (uint16_t i = 0; i < CX_COMPONENT_MAX_TYPES; ++i) {
 		p_world->component_type_pool_ids[i] = CX_COMPONENT_MAX_TYPES;
 	}
 
-	for (size_t i = 0; i < num_pool_defs; ++i) {
+	for (uint16_t i = 0; i < num_pool_defs; ++i) {
 		const size_t dense_arrays_size = (entity_id_size + p_pool_defs[i].p_type->size) * p_pool_defs[i].capacity;
 		buf_size = CX_ALIGN_DEFAULT(buf_size);
 		buf_size += dense_arrays_size;
@@ -62,11 +62,11 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 			.p_type = p_pool_defs[i].p_type,
 			.p_dense_entities = p_dense_entities_buf,
 			.p_dense_components = p_dense_components_buf,
-			.capacity = p_pool_defs[i].capacity,
+			.capacity = (uint16_t)p_pool_defs[i].capacity,
 		};
 	};
 
-	for (size_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
+	for (uint16_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
 		p_world->free_entities[i] = CX_WORLD_MAX_ENTITIES - 1 - i;
 	}
 	p_world->num_free_entities = CX_WORLD_MAX_ENTITIES;
@@ -77,7 +77,7 @@ void cx_world_free(struct cx_world* p_world) {
 }
 
 uint16_t cx_world_entity_create(struct cx_world* p_world) {
-	CX_ASSERT(p_world->num_free_entities > 0);
+	CX_ASSERT(p_world->num_free_entities > 0, WORLD);
 
 	uint16_t new_entity_id = p_world->free_entities[--p_world->num_free_entities];
 
@@ -92,7 +92,7 @@ uint16_t cx_world_entity_create(struct cx_world* p_world) {
 }
 
 void cx_world_entity_destroy(struct cx_world* p_world, uint16_t entity_id) {
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, "Invalid entity id: %u", entity_id);
+	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
 
 	for (uint16_t i = 0; i < p_world->num_component_pools; ++i) {
 		cx_world_component_remove(p_world, entity_id, p_world->p_component_pools[i].p_type);
@@ -105,7 +105,7 @@ void cx_world_entity_destroy(struct cx_world* p_world, uint16_t entity_id) {
 }
 
 int cx_world_entity_is_valid(const struct cx_world* p_world, uint16_t entity_id) {
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, "Invalid entity id: %u", entity_id);
+	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
 
 	return p_world->entities[entity_id].b_alive;
 }
@@ -124,7 +124,7 @@ const struct cx_component_pool* cx_world_get_component_pool(
 
 	const size_t pool_id = p_world->component_type_pool_ids[p_type->runtime_id];
 
-	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, "No pool for component type '%s'", p_type->s_name);
+	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, WORLD, "No pool for component type '%s'", p_type->s_name);
 
 	return p_world->p_component_pools + pool_id;
 }
@@ -134,16 +134,16 @@ void* cx_world_component_add(
 	uint16_t entity_id,
 	const struct cx_component_type* p_component_type) {
 
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, "Invalid entity id: %u", entity_id);
+	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
 
 	const size_t pool_id = p_world->component_type_pool_ids[p_component_type->runtime_id];
 
-	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, "No pool for component type '%s'",
+	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, WORLD, "No pool for component type '%s'",
 		p_component_type->s_name);
 
 	struct cx_component_pool* p_pool = p_world->p_component_pools + pool_id;
 
-	CX_ASSERT_MSG_FMT(p_pool->count < p_pool->capacity, "Component pool for type '%s' exhausted",
+	CX_ASSERT_MSG_FMT(p_pool->count < p_pool->capacity, WORLD, "Component pool for type '%s' exhausted",
 		p_component_type->s_name);
 
 	size_t dense_index = p_pool->sparse[entity_id];
@@ -171,16 +171,16 @@ void cx_world_component_remove(
 	uint16_t entity_id,
 	const struct cx_component_type* p_component_type) {
 
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, "Invalid entity id: %u", entity_id);
+	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
 
-	const size_t pool_id = p_world->component_type_pool_ids[p_component_type->runtime_id];
+	const uint16_t pool_id = p_world->component_type_pool_ids[p_component_type->runtime_id];
 
-	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, "No pool for component type '%s'",
+	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, WORLD, "No pool for component type '%s'",
 		p_component_type->s_name);
 
 	struct cx_component_pool* p_pool = p_world->p_component_pools + pool_id;
 
-	const size_t dense_index = p_pool->sparse[entity_id];
+	const uint16_t dense_index = p_pool->sparse[entity_id];
 
 	if (dense_index < p_pool->count && p_pool->p_dense_entities[dense_index] == entity_id) {
 		const size_t last = p_pool->count - 1;
@@ -205,16 +205,16 @@ void* cx_world_component_find(
 	uint16_t entity_id,
 	const struct cx_component_type* p_component_type) {
 
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, "Invalid entity id: %u", entity_id);
+	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
 	
-	const size_t pool_id = p_world->component_type_pool_ids[p_component_type->runtime_id];
+	const uint16_t pool_id = p_world->component_type_pool_ids[p_component_type->runtime_id];
 
-	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, "World does not contain a pool for component type '%s'",
+	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, WORLD, "World does not contain a pool for component type '%s'",
 		p_component_type->s_name);
 
 	const struct cx_component_pool* p_pool = p_world->p_component_pools + pool_id;
 
-	const size_t dense_index = p_pool->sparse[entity_id];
+	const uint16_t dense_index = p_pool->sparse[entity_id];
 
 	if (dense_index < p_pool->count && p_pool->p_dense_entities[dense_index] == entity_id) {
 		const size_t component_off = p_pool->p_type->size * dense_index;
@@ -274,7 +274,7 @@ uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct c
 }
 
 void cx_world_compute_transforms(struct cx_world* p_world) {
-	for (size_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
+	for (uint16_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
 		if (p_world->entities[i].b_alive) {
 			transform_compute_world_trs_matrix(&p_world->entities[i].transform);
 		}

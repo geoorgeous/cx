@@ -124,7 +124,7 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
 
     memcpy(p_new_elem->p_key, p_key, key_len);
 
-    const float new_load_ratio = (float)(p_table->n_elements_ + 1) / p_table->n_buckets_;
+    const float new_load_ratio = (float)(p_table->n_elements_ + 1) / (float)p_table->n_buckets_;
     if (p_table->n_buckets_ == 0 || new_load_ratio > HASHTABLE_LOAD_THRESHOLD) {
         const size_t new_n_buckets = p_table->n_elements_ ? p_table->n_elements_ * 2 : HASHTABLE_MIN_BUCKETS;
         if (!hashtable_resize(p_table, new_n_buckets)) {

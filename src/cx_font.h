@@ -10,16 +10,16 @@
 
 #define CX_LOG_CAT_FONT "font"
 
-#define CX_FONT_NUM_GLYPHS 256
+#define CX_FONT_NUM_GLYPHS 256u
 
 struct cx_font_glyph {
-	unsigned int   codepoint_;
+	uint32_t codepoint_;
 	struct {
-		unsigned short width;
-		unsigned short height;
-		short          off_x;
-		short          off_y;
-		short          adv_x;
+		uint32_t width;
+		uint32_t height;
+		int32_t  off_x;
+		int32_t  off_y;
+		int32_t  adv_x;
 	} metrics_;
 	CX_PADDING(2);
 	struct {
@@ -31,12 +31,12 @@ struct cx_font_glyph {
 
 struct cx_font {
 	struct cx_font_glyph glyphs_[CX_FONT_NUM_GLYPHS];
-	unsigned short       max_glyph_width_;
-	unsigned short       max_glyph_height_;
-	unsigned short       line_height_;
-	unsigned short       descent_;
-	unsigned short       space_adv_;
-	void*                p_glyph_bitmap_buf;
+	uint32_t max_glyph_width_;
+	uint32_t max_glyph_height_;
+	uint32_t line_height_;
+	int32_t  descent_;
+	int32_t  space_adv_;
+	void*    p_glyph_bitmap_buf;
 	};
 
 void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font);

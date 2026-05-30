@@ -312,7 +312,7 @@ float matrix_determinant(size_t n, const float* p_m) {
             }
         }
 
-        result += sign * p_m[n * i] * matrix_determinant(n - 1, subm);
+        result += (float)sign * p_m[n * i] * matrix_determinant(n - 1, subm);
         sign = -sign;
     }
 
@@ -352,7 +352,7 @@ void matrix_cofactor(size_t n, const float* p_m, float* p_result) {
                 }
                 ++p;
             }
-            MAT_ELEM(result, n, i, j) = powf(-1, i + j) * matrix_determinant(n - 1, subm);
+            MAT_ELEM(result, n, i, j) = powf(-1, (float)(i + j)) * matrix_determinant(n - 1, subm);
         }
     }
     memcpy(p_result, result, sizeof(*result) * n * n);

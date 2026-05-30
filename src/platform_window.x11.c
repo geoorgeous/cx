@@ -13,7 +13,7 @@
 #include "platform_window.h"
 #include "input.h"
 #include "keys.h"
-#include "platform_window.nix_x11.h"
+#include "platform_window.x11.h"
 
 static enum cx_error x11_init_connection(void);
 static void          x11_close_connection(void);
@@ -369,6 +369,8 @@ void platform_window_poll_events(struct platform_window* p_window) {
                 }
                 break;
             }
+
+			default: break;
         }
     }
 

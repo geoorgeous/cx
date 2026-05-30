@@ -38,6 +38,11 @@ static struct {
 	const struct cx_gfx_mesh* s_meshes[7];
 } shared_resources;
 
+static void cx_transform_gizmo_init_shared_resource(
+	const struct cx_blueprint* p_blueprint,
+	size_t bp_node_index,
+	const struct cx_gfx_mesh** pp_out_mesh);
+
 static void cx_transform_gizmo_update_transform(
 	struct cx_transform_gizmo* p_gizmo,
 	const struct transform* p_target_transform,
@@ -127,20 +132,6 @@ static void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-static inline void cx_transform_gizmo_init_shared_resource(
-	const struct cx_blueprint* p_blueprint,
-	size_t bp_node_index,
-	const struct cx_gfx_mesh** pp_out_mesh) {
-
-	struct cx_cmp_static_mesh* p_cmp_static_mesh =
-		cx_blueprint_node_find_component(p_blueprint, p_blueprint->p_nodes[bp_node_index].id, &cmp_type_static_mesh);
-
-	struct static_mesh* p_static_mesh = p_cmp_static_mesh->p_asset_package_record->asset_.p_data_;
-	static_mesh_load_device_meshes(p_static_mesh);
-
-	*pp_out_mesh = &p_static_mesh->p_gfx_meshes[0];
-}
-
 static void cx_transform_gizmo_compute_control_drag_plane_normal(
 	enum cx_transform_gizmo_mode mode,
 	int control,
@@ -188,7 +179,7 @@ static void cx_transform_gizmo_compute_control_drag_plane_normal(
 				vec3_mul_s(p_cursor_world_ray, -1, p_out_normal);
 				break;
 			}
-		} }
+		} break; }
 
 		case CX_TRANSFORM_GIZMO_MODE_rotate: {
 		switch (control) {
@@ -211,23 +202,26 @@ static void cx_transform_gizmo_compute_control_drag_plane_normal(
 				vec3_mul_s(p_cursor_world_ray, -1, p_out_normal);
 				break;
 			}
-		} }
+		} break; }
 
 		case CX_TRANSFORM_GIZMO_MODE_scale: {
 		switch(control) {
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ:
+			/* FALLTHROUGH */
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
 				vec3_copy(CX_TRANSFORM_GIZMO_X_AXIS, p_out_normal);
 				break;
 			}
 			
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ:
+			/* FALLTHROUGH */
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
 				vec3_copy(CX_TRANSFORM_GIZMO_Y_AXIS, p_out_normal);
 				break;
 			}
 
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY:
+			/* FALLTHROUGH */
 			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
 				vec3_copy(CX_TRANSFORM_GIZMO_Z_AXIS, p_out_normal);
 				break;
@@ -238,7 +232,7 @@ static void cx_transform_gizmo_compute_control_drag_plane_normal(
 				vec3_mul_s(p_cursor_world_ray, -1, control_plane_normal);
 				break;
 			}
-		} }
+		} break; }
     }
 }
 
@@ -454,6 +448,20 @@ void cx_transform_gizmo_record_picker_pass_commands(
 	struct cx_render_command_buffer* p_buffer) {
 
 	cx_transform_gizmo_record_flat_color_pass_commands(p_gizmo, p_buffer);
+}
+
+void cx_transform_gizmo_init_shared_resource(
+	const struct cx_blueprint* p_blueprint,
+	size_t bp_node_index,
+	const struct cx_gfx_mesh** pp_out_mesh) {
+
+	struct cx_cmp_static_mesh* p_cmp_static_mesh =
+		cx_blueprint_node_find_component(p_blueprint, p_blueprint->p_nodes[bp_node_index].id, &cmp_type_static_mesh);
+
+	struct static_mesh* p_static_mesh = p_cmp_static_mesh->p_asset_package_record->asset_.p_data_;
+	static_mesh_load_device_meshes(p_static_mesh);
+
+	*pp_out_mesh = &p_static_mesh->p_gfx_meshes[0];
 }
 
 void cx_transform_gizmo_update_transform(

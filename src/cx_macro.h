@@ -11,6 +11,32 @@
 #define CX_TRUE  1
 #define CX_FALSE 0
 
+#define CX_PRAGMA(X) _Pragma(#X)
+
+#ifdef __clang__
+#define CX_PRAGMA_DIAGNOSTIC_PUSH()	CX_PRAGMA(clang diagnostic push)
+#elif defined(__GNUC__)
+#define CX_PRAGMA_DIAGNOSTIC_PUSH() CX_PRAGMA(GCC diagnostic push)
+#else
+#efine CXCX_PRAGMA_DIAGNOSTIC_PUSH()
+#endif
+
+#ifdef __clang__
+#define CX_PRAGMA_DIAGNOSTIC_POP()	CX_PRAGMA(clang diagnostic pop)
+#elif defined(__GNUC__)
+#define CX_PRAGMA_DIAGNOSTIC_POP() CX_PRAGMA(GCC diagnostic pop)
+#else
+#define CCX_PRAGMA_DIAGNOSTIC_POP()
+#endif
+
+#ifdef __clang__
+#define CX_PRAGMA_IGNORE_WARNING(W)	CX_PRAGMA(clang diagnostic ignored W)
+#elif defined(__GNUC__)
+#define CX_PRAGMA_IGNORE_WARNING(W) CX_PRAGMA(GCC diagnostic ignored W)
+#else
+#define CX_PCX_PRAGMA_IGNORE_WARNING(W)
+#endif
+
 #define CX_STRINGIFY_INTERNAL(X) #X
 #define CX_STRINGIFY(X) CX_STRINGIFY_INTERNAL(X)
 
@@ -27,7 +53,7 @@
 
 #define CX_ALIGN_DEFAULT_ALIGNMENT 16
 
-#define CX_ALIGN(X, ALIGNMENT) (((X)+ (ALIGNMENT) - 1) & ~((ALIGNMENT) - 1))
+#define CX_ALIGN(X, ALIGNMENT) (((X)+ (ALIGNMENT) - 1u) & ~((ALIGNMENT) - 1u))
 
 #define CX_ALIGN_DEFAULT(X)  CX_ALIGN(X, CX_ALIGN_DEFAULT_ALIGNMENT)
 

@@ -1,55 +1,87 @@
 CC          := clang
-CSTD         = -std-c99
-CFLAGS_WARN := \
-			-pedantic-errors \
-			-Wformat=2 \
-			-Wall \
-			-Wextra \
-			-Wfloat-equal \
-			-Wundef \
-			-Wshadow \
-			-Wpointer-arith \
-			-Wcast-align \
-            -Waggregate-return \
-			-Wcast-qual \
-			-Wstrict-prototypes \
-			-Wmissing-prototypes \
-			-Wold-style-definition \
-			-Wconversion \
-			-Wswitch-enum \
-			-Wstrict-overflow=5 \
-			-Wdouble-promotion \
-			-Wmissing-declarations \
-			-Wstrict-aliasing \
-			-fstrict-aliasing \
-			-Wvla \
-			-Wpacked \
-			-Wpadded \
-			-Walloca \
-			-Wnull-dereference \
-			-Wdisabled-optimization \
-			-fno-common
-
-CFLAGS_DBG  := \
-			-ggdb \
-			-O0 \
-			-fsanitize=address,undefined \
-			-fno-omit-frame-pointer \
-			-g3
-
-LIBS        := m
+LDLIBS      := m 
 TARGET_NAME := cx
 SRC_DIR     := src
-BIN_DIR     := bin
-DBG_DIR     := dbg
+MODE        ?= debug
+BUILD_DIR   := build/$(MODE)
+OBJ_DIR     := $(BUILD_DIR)/obj
+BIN_DIR     := $(BUILD_DIR)/bin
+
+CFLAGS := \
+	-ffp-contract=off \
+	-fno-common \
+	-fstrict-flex-arrays=3 \
+	-Wall -Wextra \
+	-Waggregate-return \
+	-Walloca \
+	-Wbad-function-cast \
+	-Wcast-align \
+	-Wcast-qual \
+	-Wconversion \
+	-Wdate-time \
+	-Wdisabled-optimization \
+	-Wdouble-promotion \
+	-Wenum-conversion \
+	-Wfloat-equal \
+	-Wformat=2 \
+	-Winline \
+	-Wmissing-declarations \
+	-Wmissing-prototypes \
+	-Wnested-externs \
+	-Wnull-dereference \
+	-Wold-style-definition \
+	-Wpacked \
+	-Wpointer-arith \
+	-Wredundant-decls \
+	-Wshadow \
+	-Wsign-conversion \
+	-Wstrict-aliasing \
+	-Wstrict-overflow=2 \
+	-Wstrict-prototypes \
+	-Wundef \
+	-Wunreachable-code \
+	-Wunused \
+	-Wwrite-strings \
+	-Wvla \
+	-MMD -MP \
+	-std=c99 -pedantic-errors
+
+	#-Wswitch-default \
+	#-Wswitch-enum \
+	#-Wpadded \
+
+CFLAGS_release := \
+	-DNDEBUG \
+	-fdata-sections \
+	-ffunction-sections \
+	-flto \
+	-O2
+
+CFLAGS_debug := \
+	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return \
+	-fno-omit-frame-pointer \
+	-g3 \
+	-ggdb \
+	-O0
+
+LDFLAGS :=
+
+LDFLAGS_release := \
+	-flto \
+	-Wl,--gc-sections \
+	-Wl,-Map=$(TARGET_RELEASE).map
+
+LDFLAGS_debug := \
+	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return
 
 # Do not compile platform-specific code individually:
 # We include these types of files in platform-agnostic translation units.
 # For example for Windows builds, the file 'foo.win32.c' will be included and built
 # as part of the 'foo.c' translation unit.
-SRC_IGNORE_WILDCARDS := *.nix.* *.nix_x11.* *.win32.* *.gl.*
-
-CFLAGS := $(CCSTD) $(CFLAGS_WARN) $(CFLAGS_NOWARN)
+SRC_IGNORE_WILDCARDS += *.posix.*  # POSIX
+SRC_IGNORE_WILDCARDS += *.x11.*    # X11 Window System
+SRC_IGNORE_WILDCARDS += *.win32.*    # Windows
+SRC_IGNORE_WILDCARDS += *.gl.*     # OpenGL
 
 # Platform specific configuration
 ifeq ($(OS),Windows_NT)
@@ -61,59 +93,55 @@ ifeq ($(OS),Windows_NT)
 else
 	MKDIRCMD    := mkdir -p
 	RMDIRCMD    := rm -rf
-	LIBS        += GL X11
+	LDLIBS        += GL X11
 endif
 
-COBJFLAGS := $(CFLAGS) -c
+TARGET := $(BIN_DIR)/$(TARGET_NAME)
 
-TARGET     := $(BIN_DIR)/$(TARGET_NAME)
-TARGET_DBG := $(DBG_DIR)/$(TARGET_NAME)
-
-SRC_ALL        := $(wildcard $(addprefix $(SRC_DIR)/*, .c*))
+SRC_ALL        := $(wildcard $(SRC_DIR)/*.c)
 SRC_FILTER_OUT := $(foreach x, $(SRC_IGNORE_WILDCARDS), $(wildcard $(SRC_DIR)/$(x)))
 SRC            := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
 
-OBJ     := $(addprefix $(BIN_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
-OBJ_DBG := $(addprefix $(DBG_DIR)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
+OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-LIBS := $(foreach x,$(LIBS),$(addprefix -l,$(x)))
+LDLIBS := $(foreach x,$(LDLIBS),$(addprefix -l,$(x)))
 
-default: debug
+default: all
 
-# release
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	@$(CC) $(CFLAGS) $(CFLAGS_$(MODE)) -c $< -o $@
 
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.c* | $(BIN_DIR)
-	@$(CC) $(COBJFLAGS) -DNDEBUG -o $@ $<
+$(TARGET): $(OBJ) | $(BIN_DIR)
+	@$(CC) $^ $(LDFLAGS) $(LDFLAGS_$(MODE)) $(LDLIBS) -o $@
+
+$(OBJ_DIR):
+	@$(MKDIRCMD) $(OBJ_DIR)
 
 $(BIN_DIR):
 	@$(MKDIRCMD) $(BIN_DIR)
-	
-$(TARGET): $(OBJ) | $(BIN_DIR)
-	@$(CC) -o $@ $(OBJ) $(LIBS) $(CFLAGS)
 
-#debug
+.PHONY: all clean run release debug compile_commands
 
-$(DBG_DIR)/%.o: $(SRC_DIR)/%.c* | $(DBG_DIR)
-	@$(CC) $(COBJFLAGS) $(CFLAGS_DBG) -o $@ $<
+all: $(TARGET)
 
-$(DBG_DIR):
-	@$(MKDIRCMD) $(DBG_DIR)
-
-$(TARGET_DBG): $(OBJ_DBG) | $(DBG_DIR)
-	@$(CC) $(CFLAGS) $(CFLAGS_DBG) $(OBJ_DBG) $(LIBS) -o $@
-
-#phony rules
-
-.PHONY: release
-release: $(TARGET)
-
-.PHONY: debug
-debug: $(TARGET_DBG)
-
-.PHONY: clean
 clean:
-	@$(RMDIRCMD) $(BIN_DIR) $(DBG_DIR)
+	@$(RMDIRCMD) build
 
-.PHONY: compile_commands
+release:
+	@$(MAKE) MODE=release all
+
+release-run: release
+	@./$(TARGET)
+
+debug:
+	@$(MAKE) MODE=debug all
+
+debug-run: debug
+	@./$(TARGET)
+
 compile_commands:
 	@bear -- make clean debug
+
+# dependency includes
+
+-include $(OBJ:.o=.d)

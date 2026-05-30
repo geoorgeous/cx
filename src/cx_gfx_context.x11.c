@@ -10,7 +10,7 @@
 #include "cx_logging.h"
 #include "cx_error.h"
 #include "platform_window.h"
-#include "platform_window.nix_x11.h"
+#include "platform_window.x11.h"
 
 #define GLX_MIN_VERSION_MAJOR 1
 #define GLX_MIN_VERSION_MINOR 2
@@ -19,7 +19,7 @@ typedef GLXContext glXCreateContextAttribsARB_fn(
     Display *dpy, GLXFBConfig config,
 	GLXContext share_context, Bool direct,
     const int *attrib_list);
-glXCreateContextAttribsARB_fn* glXCreateContextAttribsARB;
+glXCreateContextAttribsARB_fn* f_glXCreateContextAttribsARB;
 
 #define GLX_CONTEXT_MAJOR_VERSION_ARB             0x2091
 #define GLX_CONTEXT_MINOR_VERSION_ARB             0x2092
@@ -41,16 +41,16 @@ glXCreateContextAttribsARB_fn* glXCreateContextAttribsARB;
 #endif
 
 typedef void glXSwapIntervalEXT_fn(Display*, GLXDrawable, int);
-glXSwapIntervalEXT_fn* glXSwapInterfalEXT;
+glXSwapIntervalEXT_fn* f_glXSwapIntervalEXT;
 
 #ifndef NDEBUG
 
 typedef void (*glDebugProcARB_fn)(GLenum, GLenum, GLuint, GLenum, GLsizei, const char*, const void*);
 typedef void glDebugMessageCallbackARB_fn(glDebugProcARB_fn, const void*);
-glDebugMessageCallbackARB_fn* glDebugMessageCallbackARB;
+glDebugMessageCallbackARB_fn* f_glDebugMessageCallbackARB;
 
 typedef void glDebugMessageControlARB_fn(GLenum, GLenum, GLenum, GLsizei, const GLuint*, GLboolean);
-glDebugMessageControlARB_fn* glDebugMessageControlARB;
+glDebugMessageControlARB_fn* f_glDebugMessageControlARB;
 
 #define GL_DEBUG_SOURCE_API_ARB                   0x8246
 #define GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB         0x8247
@@ -85,8 +85,14 @@ static void gl_debug_message_callback(
 
 #endif
 
-int get_glx_proc(const char* s_proc_addr, void(**pp_proc)(void));
-
+#define CX_GFX_CONTEXT_GET_GLX_PROC(PROC_NAME) \
+	do { \
+		f_##PROC_NAME = (PROC_NAME##_fn*)glXGetProcAddressARB((const GLubyte*)#PROC_NAME); \
+		if (!(*f_##PROC_NAME)) { \
+			CX_LOG(ERROR, GFX_CORE, "Failed to load glX function "#PROC_NAME"\n"); \
+		} \
+	} while(0)
+	
 struct gl_context_nix_x11_internals {
     const struct platform_window* p_window;
     XVisualInfo*                  p_visualinfo;
@@ -115,7 +121,8 @@ enum cx_error cx_gfx_context_create(
 	const char* s_extension_list = glXQueryExtensionsString(p_window_internals->p_display, screen);
 	CX_LOG_FMT(TRACE, GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
 
-	if (get_glx_proc("glXCreateContextAttribsARB", (void(**)(void))&glXCreateContextAttribsARB)) {
+	CX_GFX_CONTEXT_GET_GLX_PROC(glXCreateContextAttribsARB);
+	if (!!f_glXCreateContextAttribsARB) {
 		int glx_context_flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 #ifndef NDEBUG
 		glx_context_flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
@@ -129,7 +136,7 @@ enum cx_error cx_gfx_context_create(
 			None
 		};
 
-		p_context_internals->context = glXCreateContextAttribsARB(
+		p_context_internals->context = f_glXCreateContextAttribsARB(
 			p_window_internals->p_display,
 			p_window_internals->fbconfig,
 			0,
@@ -154,20 +161,20 @@ enum cx_error cx_gfx_context_create(
     glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
 
 #ifndef NDEBUG
-	if(get_glx_proc("glDebugMessageCallbackARB", (void(**)(void))&glDebugMessageCallbackARB)
-		&& get_glx_proc("glDebugMessageControlARB", (void(**)(void))&glDebugMessageControlARB)) {
-		
+	CX_GFX_CONTEXT_GET_GLX_PROC(glDebugMessageCallbackARB);
+	CX_GFX_CONTEXT_GET_GLX_PROC(glDebugMessageControlARB);
+	if (f_glDebugMessageCallbackARB && f_glDebugMessageControlARB) {
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-		glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW_ARB, 0, NULL, GL_FALSE);
-		glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
-		glDebugMessageCallbackARB(gl_debug_message_callback, NULL);
+		f_glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW_ARB, 0, NULL, GL_FALSE);
+		f_glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+		f_glDebugMessageCallbackARB(gl_debug_message_callback, NULL);
 	}
 #endif
 
     p_context_internals->p_window = p_window;
 
-	get_glx_proc("glXSwapIntervalEXT", (void(**)(void))&glXSwapInterfalEXT);
+	CX_GFX_CONTEXT_GET_GLX_PROC(glXSwapIntervalEXT);
 
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
@@ -227,15 +234,15 @@ unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_con
 }
 
 enum cx_error cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
-	if (glXSwapInterfalEXT) {
+	if (f_glXSwapIntervalEXT) {
     	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
 		const struct platform_window_nix_x11_internals* p_platform_window_internals =
 			(const void*)p_context_internals->p_window->bytes_;
-		glXSwapInterfalEXT(p_platform_window_internals->p_display, p_platform_window_internals->window, (int)interval);
+		f_glXSwapIntervalEXT(p_platform_window_internals->p_display, p_platform_window_internals->window, (int)interval);
 		CX_LOG_FMT(INFO, GFX_CORE, "Swap interval set to %d\n", interval);
 		return CX_ERROR_none;
 	}
-	CX_LOG(INFO, GFX_CORE, "Failed to set swap interval: Relevant API proc not found\n");
+	CX_LOG(INFO, GFX_CORE, "Failed to set swap interval: gl function not loaded\n");
 	return CX_ERROR_not_supported;
 }
 
@@ -292,13 +299,3 @@ void gl_debug_message_callback(
 		id, s_source, s_type, s_message);
 }
 #endif
-
-int get_glx_proc(const char* s_proc_addr, void(**pp_proc)(void)) {
-	*pp_proc = glXGetProcAddressARB((const GLubyte*)s_proc_addr);
-	
-	if (!(*pp_proc)) {
-		CX_LOG_FMT(ERROR, GFX_CORE, "Failed to get glX proc address: '%s'\n", s_proc_addr);
-	}
-
-	return !!(*pp_proc);
-}	

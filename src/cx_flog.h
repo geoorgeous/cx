@@ -12,7 +12,7 @@
 #define CX_FLOG_NOSTYLE 0
 
 struct cx_flog_style {
-	struct cx_color_f32 color;
+	struct cx_color color;
 };
 
 struct cx_flog_span {

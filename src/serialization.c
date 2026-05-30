@@ -35,8 +35,9 @@ void serialize_size(FILE* p_file, size_t size) {
 }
 
 void serialize_str(FILE* p_file, const char* s_str, uint32_t len) {
-    if (!len)
-        len = strlen(s_str);
+    if (!len) {
+        len = (uint32_t)strlen(s_str);
+	}
     serialize_uint32(p_file, len);
     serialize_bytes(p_file, s_str, len);
 }

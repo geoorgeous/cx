@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "cx_dbg.h"
+#include "cx_io.h"
 #include "cx_logging.h"
 #include "gltf.h"
 #include "json.h"
@@ -188,7 +189,7 @@ void copy_file_directory(const char* s_filename, char* s_dst) {
         return;
     }
 
-    strncpy(s_dst, s_filename, p_last_sep - s_filename + 1);
+    strncpy(s_dst, s_filename, (size_t)(p_last_sep - s_filename + 1));
     s_dst[p_last_sep - s_filename + 1] = '\0';
 }
 
@@ -262,7 +263,7 @@ int read_glb_file_chunk(FILE* p_file, struct glb_chunk* p_result) {
 
 int read_json_file(FILE* p_file, struct gltf_reader* p_reader) {
     fseek(p_file, 0, SEEK_END);
-    long file_size = ftell(p_file);
+    size_t file_size = (size_t)ftell(p_file);
     fseek(p_file, 0, SEEK_SET);
 
     char* p_data = malloc(file_size + 1);
@@ -425,7 +426,7 @@ void read_gltf_number_array(struct gltf_reader* p_reader, const struct json_valu
             return;
         }
 
-        p_result[i] = json_number(p_json_number);
+        p_result[i] = (float)json_number(p_json_number);
     }
 }
 
@@ -440,10 +441,12 @@ void read_gltf_texture_info(struct gltf_reader* p_reader, const struct json_valu
         return;
     }
 
-    p_texture_info->source_texture_index = json_number(p_json_texture_info_texture);
+	const double dsource_texture_index = json_number(p_json_texture_info_texture);
+    p_texture_info->source_texture_index = (gltf_index)dsource_texture_index;
 
     if (p_json_texture_info_tex_coord) {
-        p_texture_info->tex_coord_set_index = json_number(p_json_texture_info_tex_coord);
+		const double dtex_coord_set_index = json_number(p_json_texture_info_tex_coord);
+        p_texture_info->tex_coord_set_index = (gltf_index)dtex_coord_set_index;
     }
 }
 
@@ -457,7 +460,8 @@ void read_buffer(struct gltf_reader* p_reader, const struct json_value* p_json_b
         return;
     }
 
-    p_buffer_->byte_length = json_number(p_json_buffer_byte_length);
+	const double d = json_number(p_json_buffer_byte_length);
+    p_buffer_->byte_length = (size_t)d;
 
     if (p_reader->p_glb_buffer_chunk.p_bytes) {
         p_buffer_->p_bytes = p_reader->p_glb_buffer_chunk.p_bytes;
@@ -495,20 +499,27 @@ void read_buffer_view(struct gltf_reader* p_reader, const struct json_value* p_j
         return;
     }
 
-    p_buffer_view_->buffer_index = json_number(p_json_buffer_view_buffer);
+	double d;
+
+	d = json_number(p_json_buffer_view_buffer);
+    p_buffer_view_->buffer_index = (gltf_index)d;
 
     if (p_json_buffer_view_byte_offset) {
-        p_buffer_view_->byte_offset = json_number(p_json_buffer_view_byte_offset);
+		d = json_number(p_json_buffer_view_byte_offset);
+        p_buffer_view_->byte_offset = (size_t)d;
     }
     
-    p_buffer_view_->byte_length = json_number(p_json_buffer_view_byte_length);
+	d = json_number(p_json_buffer_view_byte_length);
+    p_buffer_view_->byte_length = (size_t)d;
 
     if (p_json_buffer_view_byte_stride) {
-        p_buffer_view_->byte_stride = json_number(p_json_buffer_view_byte_stride);
+		d = json_number(p_json_buffer_view_byte_stride);
+        p_buffer_view_->byte_stride = (size_t)d;
     }
 
     if (p_json_buffer_view_byte_target) {
-        p_buffer_view_->target = (enum gltf_buffer_view_target)json_number(p_json_buffer_view_byte_target);
+		d = json_number(p_json_buffer_view_byte_target);
+        p_buffer_view_->target = (enum gltf_buffer_view_target)d;
     }
 }
 
@@ -533,26 +544,33 @@ void read_accessor(struct gltf_reader* p_reader, const struct json_value* p_json
     read_gltf_object_property(p_reader, p_json_accessor, "max", 0, json_is_array, &p_json_accessor_max);
     read_gltf_object_property(p_reader, p_json_accessor, "min", 0, json_is_array, &p_json_accessor_min);
 
-    if (p_reader->error != GLTF_SUCCESS)
+    if (p_reader->error != GLTF_SUCCESS) {
         return;
+	}
+
+	double d;
 
     if (p_json_accessor_buffer_view) {
-        p_accessor_->buffer_view_index = json_number(p_json_accessor_buffer_view);
+		d = json_number(p_json_accessor_buffer_view);
+        p_accessor_->buffer_view_index = (gltf_index)d;
     } else {
         p_accessor_->buffer_view_index = GLTF_INVALID_INDEX;
     }
 
     if (p_json_accessor_byte_offset) {
-        p_accessor_->byte_offset = json_number(p_json_accessor_byte_offset);
+		d = json_number(p_json_accessor_byte_offset);
+        p_accessor_->byte_offset = (size_t)d;
     }
 
     p_accessor_->component_type = json_number(p_json_accessor_component_type);
 
     if (p_json_accessor_normalized) {
-        p_accessor_->byte_offset = json_bool(p_json_accessor_normalized);
+		d = json_bool(p_json_accessor_normalized);
+        p_accessor_->byte_offset = (size_t)d;
     }
 
-    p_accessor_->count = json_number(p_json_accessor_count);
+	d = json_number(p_json_accessor_count);
+    p_accessor_->count = (unsigned int)d;
 
     size_t num_components = 0;
     const char* s_type = json_string(p_json_accessor_type);
@@ -634,7 +652,8 @@ void read_image(struct gltf_reader* p_reader, const struct json_value* p_json_im
         return;
     }
 
-    p_image_->source.buffer_view_index = json_number(p_json_image_buffer_view);
+	const double d = json_number(p_json_image_buffer_view);
+    p_image_->source.buffer_view_index = (gltf_index)d;
 }
 
 void read_texture(struct gltf_reader* p_reader, const struct json_value* p_json_texture, void* p_texture) {
@@ -655,7 +674,8 @@ void read_texture(struct gltf_reader* p_reader, const struct json_value* p_json_
     }
 
     if (p_json_texture_sampler) {
-        const size_t sampler_index = json_number(p_json_texture_sampler);
+		const double dsampler_index = json_number(p_json_texture_sampler);
+        const size_t sampler_index = (gltf_index)dsampler_index;
         const struct json_value* p_json_samplers = json_object_get(p_reader->p_json_gltf, "samplers");
         const struct json_value* p_json_sampler = json_array_get(p_json_samplers, sampler_index);
 
@@ -670,18 +690,32 @@ void read_texture(struct gltf_reader* p_reader, const struct json_value* p_json_
             read_gltf_object_property(p_reader, p_json_sampler, "wrapS", 0, json_is_number, &p_json_sampler_wrap_s);
             read_gltf_object_property(p_reader, p_json_sampler, "wrapT", 0, json_is_number, &p_json_sampler_wrap_t);
 
-            if (p_json_sampler_mag_filter)
+            if (p_json_sampler_mag_filter) {
                 p_texture_->sampler_mag_filter = json_number(p_json_sampler_mag_filter);
+			}
                 
-            if (p_json_sampler_min_filter)
+            if (p_json_sampler_min_filter) {
                 p_texture_->sampler_min_filter = json_number(p_json_sampler_min_filter);
+			}
 
-            p_texture_->sampler_wrap_s = p_json_sampler_wrap_s ? json_number(p_json_sampler_wrap_s) : GLTF_SAMPLER_WRAP_repeat;
-            p_texture_->sampler_wrap_t = p_json_sampler_wrap_t ? json_number(p_json_sampler_wrap_t) : GLTF_SAMPLER_WRAP_repeat;
+			if (p_json_sampler_wrap_s) {
+				const double ds = json_number(p_json_sampler_wrap_s);
+				p_texture_->sampler_wrap_s = (enum gltf_sampler_wrap)ds;
+			} else {
+				p_texture_->sampler_wrap_s = GLTF_SAMPLER_WRAP_repeat;
+			}
+
+			if (p_json_sampler_wrap_t) {
+				const double dt = json_number(p_json_sampler_wrap_t);
+				p_texture_->sampler_wrap_t = (enum gltf_sampler_wrap)dt;
+			} else {
+				p_texture_->sampler_wrap_t = GLTF_SAMPLER_WRAP_repeat;
+			}
         }
     }
 
-    p_texture_->source_image_index = json_number(p_json_texture_source);
+	const double dsource_image_index = json_number(p_json_texture_source);
+    p_texture_->source_image_index = (gltf_index)dsource_image_index;
 }
 
 void read_material(struct gltf_reader* p_reader, const struct json_value* p_json_material, void* p_material) {
@@ -738,11 +772,13 @@ void read_material(struct gltf_reader* p_reader, const struct json_value* p_json
         }
 
         if (p_json_pbr_metallic_roughness_metallic_factor) {
-            p_material_->pbr_metallic_factor = json_number(p_json_pbr_metallic_roughness_metallic_factor);
+			const double d = json_number(p_json_pbr_metallic_roughness_metallic_factor);
+            p_material_->pbr_metallic_factor = (float)d;
         }
 
         if (p_json_pbr_metallic_roughness_roughness_factor) {
-            p_material_->pbr_roughness_factor = json_number(p_json_pbr_metallic_roughness_roughness_factor);
+			const double d = json_number(p_json_pbr_metallic_roughness_roughness_factor);
+            p_material_->pbr_roughness_factor = (float)d;
         }
 
         if (p_json_pbr_metallic_roughness_metallic_roughness_texture) {
@@ -853,67 +889,78 @@ void read_mesh(struct gltf_reader* p_reader, const struct json_value* p_json_mes
         read_gltf_object_property(p_reader, p_json_mesh_primitive_attributes, "WEIGHTS_0", 0, json_is_number, &p_json_mesh_primitive_attributes_weights);
 
         if (p_json_mesh_primitive_attributes_position) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_position] = json_number(p_json_mesh_primitive_attributes_position);
+			const double d = json_number(p_json_mesh_primitive_attributes_position);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_position] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_position] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_normal) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_normal] = json_number(p_json_mesh_primitive_attributes_normal);
+			const double d = json_number(p_json_mesh_primitive_attributes_normal);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_normal] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_normal] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_tangent) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_tangent] = json_number(p_json_mesh_primitive_attributes_tangent);
+			const double d = json_number(p_json_mesh_primitive_attributes_tangent);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_tangent] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_tangent] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_texcoord_0) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_texcoord_0] = json_number(p_json_mesh_primitive_attributes_texcoord_0);
+			const double d = json_number(p_json_mesh_primitive_attributes_texcoord_0);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_texcoord_0] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_texcoord_0] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_texcoord_1) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_texcoord_1] = json_number(p_json_mesh_primitive_attributes_texcoord_1);
+			const double d = json_number(p_json_mesh_primitive_attributes_texcoord_1);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_texcoord_1] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_texcoord_1] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_color) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_color] = json_number(p_json_mesh_primitive_attributes_color);
+			const double d = json_number(p_json_mesh_primitive_attributes_color);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_color] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_color] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_joints) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_joints] = json_number(p_json_mesh_primitive_attributes_joints);
+			const double d = json_number(p_json_mesh_primitive_attributes_joints);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_joints] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_joints] = GLTF_INVALID_INDEX;
         }
         
         if (p_json_mesh_primitive_attributes_weights) {
-            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_weights] = json_number(p_json_mesh_primitive_attributes_weights);
+			const double d = json_number(p_json_mesh_primitive_attributes_weights);
+            p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_weights] = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_attribute_accessors_indices[GLTF_MESH_VERTEX_ATTRIBUTE_weights] = GLTF_INVALID_INDEX;
         }
 
         if (p_json_mesh_primitive_indices) {
-            p_mesh_primitive->vertex_indices_accessor_index = json_number(p_json_mesh_primitive_indices);
+			const double d = json_number(p_json_mesh_primitive_indices);
+            p_mesh_primitive->vertex_indices_accessor_index = (gltf_index)d;
         } else {
             p_mesh_primitive->vertex_indices_accessor_index = GLTF_INVALID_INDEX;
         }
 
         if (p_json_mesh_primitive_material) {
-            p_mesh_primitive->material_index = json_number(p_json_mesh_primitive_material);
+			const double d = json_number(p_json_mesh_primitive_material);
+            p_mesh_primitive->material_index = (gltf_index)d;
         } else {
             p_mesh_primitive->material_index = GLTF_INVALID_INDEX;
         }
 
         if (p_json_mesh_primitive_mode) {
-            p_mesh_primitive->mode = (enum gltf_mesh_primitive_mode)json_number(p_json_mesh_primitive_mode);
+			const double d = json_number(p_json_mesh_primitive_mode);
+            p_mesh_primitive->mode = (enum gltf_mesh_primitive_mode)d;
         }
     }
 }
@@ -932,7 +979,8 @@ void read_skin(struct gltf_reader* p_reader, const struct json_value* p_json_ski
     }
 
     if (p_json_skin_inverse_bind_matrices) {
-        p_skin_->inverse_bind_matrices_accessor_index = json_number(p_json_skin_inverse_bind_matrices);
+		const double d = json_number(p_json_skin_inverse_bind_matrices);
+        p_skin_->inverse_bind_matrices_accessor_index = (gltf_index)d;
     } else {
         p_skin_->inverse_bind_matrices_accessor_index = GLTF_INVALID_INDEX;
     }
@@ -951,7 +999,8 @@ void read_skin(struct gltf_reader* p_reader, const struct json_value* p_json_ski
             return;
         }
 
-        p_skin_->p_joints_indices[i] = json_number(p_json_joint_index);
+		const double d = json_number(p_json_joint_index);
+        p_skin_->p_joints_indices[i] = (gltf_index)d;
 
         p_reader->p_result->p_nodes[p_skin_->p_joints_indices[i]].b_is_joint = 1;
     }
@@ -997,12 +1046,17 @@ void read_animation(struct gltf_reader* p_reader, const struct json_value* p_jso
             .interpolation = GLTF_ANIMATION_SAMPLER_INTERPOLATION_linear
         };
 
-        p_sampler->input_accessor_index = json_number(p_json_animation_sampler_input);
+		double d;
 
-        p_sampler->output_accessor_index = json_number(p_json_animation_sampler_output);
+		d = json_number(p_json_animation_sampler_input);
+        p_sampler->input_accessor_index = (gltf_index)d;
+
+		d = json_number(p_json_animation_sampler_output);
+        p_sampler->output_accessor_index = (gltf_index)d;
 
         if (p_json_animation_sampler_interpolation) {
-            p_sampler->interpolation = (enum gltf_animation_sampler_interpolation)json_number(p_json_animation_sampler_interpolation);
+			d = json_number(p_json_animation_sampler_interpolation);
+            p_sampler->interpolation = (enum gltf_animation_sampler_interpolation)d;
         }
     }
 
@@ -1032,10 +1086,14 @@ void read_animation(struct gltf_reader* p_reader, const struct json_value* p_jso
         }
 
         struct gltf_animation_channel* p_channel = &p_animation_->p_channels[i];
+
+		double d;
         
-        p_channel->source_sampler_index = json_number(p_json_animation_channel_sampler);
+		d = json_number(p_json_animation_channel_sampler);
+        p_channel->source_sampler_index = (gltf_index)d;
         
-        p_channel->target_node_index = json_number(p_json_animation_channel_target_node);
+		d = json_number(p_json_animation_channel_target_node);
+        p_channel->target_node_index = (gltf_index)d;
         
         const char* s_target_path = json_string(p_json_animation_channel_target_path);
         if (strcmp(s_target_path, "translation") == 0) {
@@ -1091,18 +1149,21 @@ void read_node(struct gltf_reader* p_reader, const struct json_value* p_json_nod
                 return;
             }
 
-            p_node_->p_children_indices[i] = json_number(p_json_node_children_elem);
+			const double d = json_number(p_json_node_children_elem);
+            p_node_->p_children_indices[i] = (gltf_index)d;
         }
     }
 
     if (p_json_node_skin) {
-        p_node_->skin_index = json_number(p_json_node_skin);
+		const double d = json_number(p_json_node_skin);
+        p_node_->skin_index = (gltf_index)d;
     } else {
         p_node_->skin_index = GLTF_INVALID_INDEX;
     }
 
     if (p_json_node_mesh) {
-        p_node_->mesh_index = json_number(p_json_node_mesh);
+		const double d = json_number(p_json_node_mesh);
+        p_node_->mesh_index = (gltf_index)d;
     } else {
         p_node_->mesh_index = GLTF_INVALID_INDEX;
     }
@@ -1173,7 +1234,8 @@ void read_scene(struct gltf_reader* p_reader, const struct json_value* p_json_sc
             return;
         }
 
-        p_scene_->p_root_nodes_indices[i] = json_number(p_json_scene_nodes_elem);
+		const double d = json_number(p_json_scene_nodes_elem);
+        p_scene_->p_root_nodes_indices[i] = (gltf_index)d;
     }
 }
 
@@ -1187,14 +1249,15 @@ void read_default_scene(struct gltf_reader* p_reader) {
         return;
     }
 
-    p_reader->p_result->default_scene_index = json_number(p_json_gltf_scene);
+	const double d = json_number(p_json_gltf_scene);
+    p_reader->p_result->default_scene_index = (gltf_index)d;
 }
 
 void* load_uri_payload(struct gltf_reader* p_reader, const char* s_uri, size_t* p_bytes_len) {
     if (strncmp(s_uri, "data:", 5) == 0) {
         const char* p_data_start = strchr(s_uri, ',') + 1;
         const size_t uri_len = strlen(s_uri);
-        const size_t data_len = uri_len - (p_data_start - s_uri);
+        const size_t data_len = uri_len - (size_t)(p_data_start - s_uri);
         const size_t data_bytes = ((data_len + (data_len % 4)) / 4) * 3;
 
         unsigned char* p_data = malloc(data_bytes);
@@ -1229,10 +1292,12 @@ void* load_uri_payload(struct gltf_reader* p_reader, const char* s_uri, size_t* 
 
             printf("[");
 
-            for (size_t j = 0; j < 3 && (i * 3 + j) < data_bytes; ++j) {
-                const int first_sextet_left_shift = 2 * (j + 1);
-                const int second_sextet_left_shift = 6 - first_sextet_left_shift;
-                p_data[i * 3 + j] = (sextets[j] << first_sextet_left_shift) | (sextets[j + 1] >> second_sextet_left_shift);
+            for (uint32_t j = 0; j < 3 && (i * 3 + j) < data_bytes; ++j) {
+                const uint32_t first_sextet_left_shift = 2 * (j + 1);
+                const uint32_t second_sextet_left_shift = 6 - first_sextet_left_shift;
+                p_data[i * 3 + j] =
+					(unsigned char)(sextets[j] << first_sextet_left_shift) |
+					(unsigned char)(sextets[j + 1] >> second_sextet_left_shift);
 
                 printf("%s%d", j != 0 ? "-" : "", p_data[i * 3 + j]);
             }
@@ -1247,27 +1312,13 @@ void* load_uri_payload(struct gltf_reader* p_reader, const char* s_uri, size_t* 
     }
 
     make_file_path(p_reader->s_filedir, s_uri, p_reader->s_temp_filepath);
-    FILE* p_file = fopen(p_reader->s_temp_filepath, "rb");
-    if (!p_file) {
-        CX_LOG_FMT(ERROR, GLTF, "Failed to open glTF file from URI path '%s'\n", p_reader->s_temp_filepath);  
-        p_reader->error = GLTF_ERROR_BAD_URI;
-    }
 
-    fseek(p_file, 0, SEEK_END);
-    const long file_size = ftell(p_file);
-    fseek(p_file, 0, SEEK_SET);
+	void* p_data;
+	if (!cx_io_file_read_all(p_reader->s_temp_filepath, &p_data, p_bytes_len)) {
+		p_reader->error = GLTF_ERROR_FILE;
+		return 0;
+	}
 
-    void* p_data = malloc(file_size);
-    if (!p_data) {
-        p_reader->error = GLTF_ERROR_MEMORY;
-        return 0;
-    }
-
-    fread(p_data, file_size, 1, p_file);
-
-    fclose(p_file);
-
-    *p_bytes_len = file_size;
     return p_data;
 }
 

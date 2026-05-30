@@ -26,7 +26,7 @@
 #define CX_ACTION_DEF(NAME)\
 	static void cx_ed_action_##NAME##_do(void* p_ctx);\
 	static void cx_ed_action_##NAME##_undo(void* p_ctx);\
-	const static struct cx_ed_action_def action_def_##NAME = {\
+	static const struct cx_ed_action_def action_def_##NAME = {\
 		.context_size = sizeof(struct cx_ed_action_##NAME##_ctx),\
 		.f_do = cx_ed_action_##NAME##_do,\
 		.f_undo = cx_ed_action_##NAME##_undo\
@@ -364,8 +364,8 @@ void cx_ed_init(struct platform_window* p_window) {
 	void* p_vsource;
 	void* p_fsource;
 	
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
 
 	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
 		.program_source = {
@@ -377,13 +377,13 @@ void cx_ed_init(struct platform_window* p_window) {
 		.s_material_block_name = "blk_material_properties",
 		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
 		.num_opaque_params = 1
-	}), &ed.render_pass_forward));
+	}), &ed.render_pass_forward), ED);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
 
 	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
 		.program_source = {
@@ -393,7 +393,7 @@ void cx_ed_init(struct platform_window* p_window) {
 		.s_pass_block_name = "blk_camera",
 		.s_object_block_name = "blk_object",
 		.s_material_block_name = "blk_material_properties",
-	}), &ed.render_pass_flat_color));
+	}), &ed.render_pass_flat_color), ED);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);

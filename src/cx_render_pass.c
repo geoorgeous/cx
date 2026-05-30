@@ -3,7 +3,7 @@
 #include "gl.h"
 
 int cx_render_pass_build(const struct cx_render_pass_build_info* p_info, struct cx_render_pass* p_out) {
-	CX_ASSERT(p_info->num_opaque_params <= CX_RENDER_PASS_MAX_OPAQUES);
+	CX_ASSERT(p_info->num_opaque_params <= CX_RENDER_PASS_MAX_OPAQUES, RENDER_PASS);
 
 	*p_out = (struct cx_render_pass){0};
 	
@@ -87,7 +87,7 @@ void cx_render_pass_execute(
 	}
 
 	if (p_info->b_clear_depth) {
-		glClearDepth(p_info->clear_depth);
+		glClearDepth((GLdouble)p_info->clear_depth);
 	}
 
 	if (p_info->b_clear_stencil) {

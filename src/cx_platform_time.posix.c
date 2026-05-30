@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "cx_platform_time.h"
 
 #include <stdint.h>

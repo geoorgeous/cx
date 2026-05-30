@@ -32,7 +32,8 @@ void compute_compliment_axes(const float* p_forward, float* p_side, float* p_up)
 }
 
 float randf(void) {
-    return ((float)rand()/(float)(RAND_MAX));
+	const int r = rand();
+    return ((float)r/(float)(RAND_MAX));
 }
 
 float segment_point_dist_sq(const float* p_p0, const float* p_p1, const float* p_q) {

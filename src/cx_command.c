@@ -46,14 +46,14 @@ int cx_command_resolve_args(
 				CX_LOG(INFO, COMMAND, "usage error: unmatched quotes\n");
 				return 0;
 			}
-			len = p - s_arg + 1;
+			len = (size_t)(p - s_arg + 1);
 			p++;
 		} else {
 			s_arg = p;
 			while (p[1] && !isspace((unsigned char)p[1])) {
 				p++;
 			}
-			len = p - s_arg + 1;
+			len = (size_t)(p - s_arg + 1);
 		}
 
 		if (cx_var_parse(

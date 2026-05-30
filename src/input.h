@@ -6,6 +6,8 @@
 #include "keys.h"
 #include "mouse_buttons.h"
 
+#define CX_LOG_CAT_INPUT "input"
+
 enum input_mod {
 	INPUT_MOD_ctrl  = (0x1 << 0),
 	INPUT_MOD_shift = (0x1 << 1),
@@ -50,7 +52,7 @@ struct input_event_data_scroll {
 };
 
 struct input_event_data_char {
-	unsigned int code;
+	uint32_t code;
 };
 
 void input_init(void);

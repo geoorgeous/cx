@@ -80,6 +80,8 @@
 #ifndef CX_LOGGING_H
 #define CX_LOGGING_H
 
+#include "cx_macro.h"
+
 #define CX_LOG_LEVEL_SILENT   -1
 #define CX_LOG_LEVEL_ALL       0
 #define CX_LOG_LEVEL_TRACE     0
@@ -104,7 +106,13 @@
  */
 
 #define CX_LOG(LEVEL, CAT, MSG) (cx_log(CX_LOG_LEVEL_##LEVEL, CX_LOG_CAT_##CAT, MSG))
-#define CX_LOG_FMT(LEVEL, CAT, MSG, ...) (cx_log_fmt(CX_LOG_LEVEL_##LEVEL, CX_LOG_CAT_##CAT, MSG, __VA_ARGS__))
+#define CX_LOG_FMT(LEVEL, CAT, MSG, ...) \
+	CX_PRAGMA_DIAGNOSTIC_PUSH(); \
+	CX_PRAGMA_IGNORE_WARNING("-Wdouble-promotion"); \
+	do { \
+		cx_log_fmt(CX_LOG_LEVEL_##LEVEL, CX_LOG_CAT_##CAT, MSG, __VA_ARGS__); \
+	} while(0); \
+	CX_PRAGMA_DIAGNOSTIC_POP()
 
 /**
  * These are purely for development ease. Must include "cx_dbg.h"

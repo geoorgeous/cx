@@ -60,7 +60,7 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 				.bitmap_bit_offset_ = bitmap_bit_offset
 			};
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_ENCODING)) {
-			p_glyph->codepoint_ = (uint8_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_glyph->codepoint_ = (uint32_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_DWIDTH)) {
 			p_glyph->adv_x_ = (int16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_CHAR_BBX)) {
@@ -76,18 +76,18 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 					break;
 				}
 
-				const size_t num_bytes = (p_glyph->width_ + 7) / 8;
+				const size_t num_bytes = (p_glyph->width_ + 7u) / 8u;
 				for (size_t i_byte = 0; i_byte < num_bytes; ++i_byte) {
 					for (size_t i_nibble = 0; i_nibble < 2; ++i_nibble) {
-						const char nibble = p_tok[i_byte * 2 + i_nibble];
+						const uint8_t nibble = (uint8_t)p_tok[i_byte * 2u + i_nibble];
 						/* Convert hex character (0-9, A-F) to value (0-15) */
-						const int nibble_value = (nibble & 0xF) + (nibble >> 6) * 9;
+						const uint8_t nibble_value = (uint8_t)((nibble & 0xFu) + (nibble >> 6u) * 9u);
 						/* Calculate number of bits of the nibble to read, up to four */
-						const int bits_remaining = p_glyph->width_ - (i_byte * 8 + i_nibble * 4);
-						const int num_bits = bits_remaining < 4 ? bits_remaining : 4;
-						for (int i_bit = 0; i_bit < num_bits; ++i_bit) {
+						const size_t bits_remaining = p_glyph->width_ - (i_byte * 8 + i_nibble * 4u);
+						const uint8_t num_bits = bits_remaining < 4u ? (uint8_t)bits_remaining : 4u;
+						for (size_t i_bit = 0; i_bit < num_bits; ++i_bit) {
 							/* Extract bit value from nibble. 0 or 1 */
-							const int bit_value = (nibble_value >> (3 - i_bit)) & 1;
+							const int bit_value = (nibble_value >> (3u - i_bit)) & 1u;
 							/* Set bit */
 							*p_bitmap_pos = (char)((*p_bitmap_pos & ~(1 << bitmap_bit_offset))
 								| (bit_value << bitmap_bit_offset));
@@ -112,7 +112,7 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_CHARCOUNT)) {
 			p_out_bdf->num_glyphs_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_ASCENT)) {
-			p_out_bdf->line_height_ += cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
+			p_out_bdf->line_height_ += (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 		} else if (cx_tok_cmp(p_tok, CX_BDF_KW_FONT_DESCENT)) {
 			p_out_bdf->descent_ = (uint16_t)cx_tok_strtol(cx_tok_next(&p, &tok_len), tok_len);
 			p_out_bdf->line_height_ += p_out_bdf->descent_;

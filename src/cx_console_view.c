@@ -17,7 +17,7 @@ static struct cx_render_pass render_pass_text;
 
 static struct cx_render_command render_pass_commands[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
 static float render_command_object_data[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS][16];
-static struct cx_color_f32 render_command_material_data[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
+static struct cx_color render_command_material_data[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
 
 static struct cx_gfx_mesh text_mesh;
 static struct cx_gfx_mesh log_text_mesh;
@@ -33,7 +33,7 @@ static void cx_console_view_record_quad(
 	struct cx_render_command_buffer* p_render_command_buffer,
 	float x, float y,
 	float width, float height,
-	const struct cx_color_f32* p_color);
+	const struct cx_color* p_color);
 
 static void cx_console_view_record_text_mesh(
 	struct cx_render_command_buffer* p_render_command_buffer,
@@ -66,25 +66,25 @@ void cx_console_view_draw(
 	const float margin_y = 5;
 	const float padding_x = 5;
 	const float padding_y = 3;
-	const float line_height = p_font_render_data->p_font->max_glyph_height_;
+	const float line_height = (float)p_font_render_data->p_font->max_glyph_height_;
 	const float spacing = 5;
 	const uint8_t output_line_count = 25;
 
-	const struct cx_color_f32 bg_color = { .rgba = { 0, 0, 0, 0.5f } };
-	const struct cx_color_f32 fg_color = { .rgba = { 1, 1, 1, 1.0f } };
+	const struct cx_color bg_color = { .rgba = { 0, 0, 0, 0.5f } };
+	const struct cx_color fg_color = { .rgba = { 1, 1, 1, 1.0f } };
 
 	// quads
 
 	const float left = margin_x;
 	const float bottom = margin_y;
 	
-	const float input_bg_width = fb_width - margin_x * 2;
+	const float input_bg_width = (float)fb_width - margin_x * 2;
 	const float input_bg_height = line_height + padding_y * 2;
 	const float input_bg_x = left + input_bg_width * 0.5f;
 	const float input_bg_y = bottom + input_bg_height * 0.5f;
 
 	const float input_text_x = left + padding_x;
-	const float input_text_baseline = bottom + padding_y + p_font_render_data->p_font->descent_;
+	const float input_text_baseline = bottom + padding_y + (float)p_font_render_data->p_font->descent_;
 	
 	float pre_cursor_text_width;
 	float pre_cursor_text_height;
@@ -108,11 +108,11 @@ void cx_console_view_draw(
 	const float output_bg_y = output_bg_bottom + 0.5f * output_bg_height;
 
 	const float output_text_x = left + padding_x;
-	const float output_text_baseline = output_bg_bottom + padding_y + p_font_render_data->p_font->descent_;
+	const float output_text_baseline = output_bg_bottom + padding_y + (float)p_font_render_data->p_font->descent_;
 
 	struct cx_render_pass_execute_info render_pass_execute_info = {
 		.p_framebuffer = p_fb,
-		.viewport = { 0, 0, fb_width, fb_height },
+		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
 		.b_clear_depth = 1,
 		.clear_depth = 1.0f
 	};
@@ -153,7 +153,7 @@ void cx_console_view_draw(
 		size_t size;
 		const struct cx_flog_entry* p_flog = cx_alloc_ring_get(&p_console->flogger.ring_entries_, 0, &size);
 		float log_width, log_height;
-		cx_text_mesher_measure(p_flog->s, -1, p_font_render_data, 1, &log_width, &log_height);
+		cx_text_mesher_measure(p_flog->s, SIZE_MAX, p_font_render_data, 1, &log_width, &log_height);
 
 		cx_console_view_record_text_mesh(&render_command_buffer,
 			&log_text_mesh, p_font_render_data->p_glyph_texture,
@@ -194,7 +194,7 @@ int cx_console_view_init(void) {
 		.s_pass_block_name = "blk_camera",
 		.s_object_block_name = "blk_object",
 		.s_material_block_name = "blk_material_properties"
-	}), &render_pass_flat_color));
+	}), &render_pass_flat_color), CONSOLE);
 
 	cx_io_file_free(s_vert);
 	cx_io_file_free(s_frag);
@@ -211,7 +211,7 @@ int cx_console_view_init(void) {
 		.s_object_block_name = "blk_object",
 		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
 		.num_opaque_params = 1
-	}), &render_pass_text));
+	}), &render_pass_text), CONSOLE);
 
 	cx_io_file_free(s_vert);
 	cx_io_file_free(s_frag);
@@ -273,7 +273,7 @@ void cx_console_view_record_quad(
 	struct cx_render_command_buffer* p_render_command_buffer,
 	float x, float y,
 	float width, float height,
-	const struct cx_color_f32* color) {
+	const struct cx_color* color) {
 
 	matrix_make_ts((float[]){ x, y, 0 }, (float[]){ width, height, 1 },
 		render_command_object_data[p_render_command_buffer->num]);
