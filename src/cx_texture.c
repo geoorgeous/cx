@@ -23,3 +23,7 @@ void cx_texture_unload_gfx_texture(struct cx_texture* p_texture) {
 	cx_gfx_texture_destroy(&p_texture->gfx_texture_);
 	p_texture->b_gfx_texture_loaded_ = 0;
 }
+
+void cx_asset_free_texture(void* p) {
+	cx_texture_unload_gfx_texture((struct cx_texture*)p);
+}

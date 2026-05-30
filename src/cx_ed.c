@@ -131,6 +131,91 @@ uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
 
 static void cx_ed_on_key(const void* p_e, void* p_user_ptr);
 
+void cx_ed_init(struct platform_window* p_window) {
+	ed.p_window = p_window;
+
+	cx_asset_package_init(&ed.asset_package);
+
+	ed.flog_builder = (struct cx_flog_builder) {
+		.p_buf = ed.flog_builder_str_buf,
+		.p_styles = ed.flog_builder_style_buf,
+		.p_spans = ed.flog_builder_span_buf
+	};
+
+	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
+	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
+
+	CX_NEW_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, 0,
+		CX_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
+	
+	void* p_vsource;
+	void* p_fsource;
+	
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
+
+	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
+		.program_source = {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		},
+		.s_pass_block_name = "blk_camera",
+		.s_object_block_name = "blk_object",
+		.s_material_block_name = "blk_material_properties",
+		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
+		.num_opaque_params = 1
+	}), &ed.render_pass_forward), ED);
+
+	cx_io_file_free(p_vsource);
+	cx_io_file_free(p_fsource);
+
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
+
+	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
+		.program_source = {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		},
+		.s_pass_block_name = "blk_camera",
+		.s_object_block_name = "blk_object",
+		.s_material_block_name = "blk_material_properties",
+	}), &ed.render_pass_flat_color), ED);
+
+	cx_io_file_free(p_vsource);
+	cx_io_file_free(p_fsource);
+
+	cx_transform_gizmo_init_shared_resources(&ed.asset_package);
+	cx_transform_gizmo_init_controls(&ed.gizmo);
+
+	struct cx_component_pool_def world_component_pool_defs[] = {
+		{ &cmp_type_static_mesh,  CX_WORLD_MAX_ENTITIES },
+		{ &cmp_type_collider,     512 },
+		{ &cmp_type_rigidbody,    128 }
+	};
+
+	cx_world_init(&ed.world, world_component_pool_defs, CX_ARRAY_LEN(world_component_pool_defs));
+
+    physics_world_init(&ed.physics_world);
+    physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
+    physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
+
+	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
+	cx_ed_import_gltf_file(&ed.asset_package, "res/Industrial_exterior_v2.glb", &p_gltf_scene_blueprint_asset);
+	struct cx_blueprint* p_gltf_scene_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
+
+	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
+
+	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
+}
+
+void cx_ed_shutdown(void) {
+	cx_asset_package_free(&ed.asset_package);
+	cx_world_free(&ed.world);
+}
+
 void cx_ed_update(double dt_seconds) {
 	float move_direction[3] = {0};
 	if (!cx_console_get()->b_is_input_enabled) {
@@ -336,86 +421,6 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 
 	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer,
 		mouse_position_normalized[0], mouse_position_normalized[1]);
-}
-
-void cx_ed_init(struct platform_window* p_window) {
-	ed.p_window = p_window;
-
-	cx_asset_package_init(&ed.asset_package);
-
-	ed.flog_builder = (struct cx_flog_builder) {
-		.p_buf = ed.flog_builder_str_buf,
-		.p_styles = ed.flog_builder_style_buf,
-		.p_spans = ed.flog_builder_span_buf
-	};
-
-	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
-	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
-
-	CX_NEW_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, 0,
-		CX_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
-	
-	void* p_vsource;
-	void* p_fsource;
-	
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
-
-	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
-		.program_source = {
-			.s_vertex_stage_source = p_vsource,
-			.s_fragment_stage_source = p_fsource
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-		.s_material_block_name = "blk_material_properties",
-		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
-		.num_opaque_params = 1
-	}), &ed.render_pass_forward), ED);
-
-	cx_io_file_free(p_vsource);
-	cx_io_file_free(p_fsource);
-
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
-
-	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
-		.program_source = {
-			.s_vertex_stage_source = p_vsource,
-			.s_fragment_stage_source = p_fsource
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-		.s_material_block_name = "blk_material_properties",
-	}), &ed.render_pass_flat_color), ED);
-
-	cx_io_file_free(p_vsource);
-	cx_io_file_free(p_fsource);
-
-	cx_transform_gizmo_init_shared_resources(&ed.asset_package);
-	cx_transform_gizmo_init_controls(&ed.gizmo);
-
-	struct cx_component_pool_def world_component_pool_defs[] = {
-		{ &cmp_type_static_mesh,  CX_WORLD_MAX_ENTITIES },
-		{ &cmp_type_collider,     512 },
-		{ &cmp_type_rigidbody,    128 }
-	};
-
-	cx_world_init(&ed.world, world_component_pool_defs, CX_ARRAY_LEN(world_component_pool_defs));
-
-    physics_world_init(&ed.physics_world);
-    physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
-    physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
-
-	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
-	cx_ed_import_gltf_file(&ed.asset_package, "res/Industrial_exterior_v2.glb", &p_gltf_scene_blueprint_asset);
-	struct cx_blueprint* p_gltf_scene_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
-
-	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
-
-	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
 }
 
 void cx_ed_on_key(const void* p_e, void* p_user_ptr) {

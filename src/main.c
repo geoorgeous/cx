@@ -56,7 +56,13 @@
 // todo: refactor object_id_capturer, extras render pass configuration and setup, maybe extract framebuffer stuff in
 // to render target
 
+struct {
+	struct platform_window window;
+	struct cx_gfx_context  gfx_context;
+} cx;
+
 static void platform_window_on_created(struct platform_window*, void*);
+static void platform_window_on_close(struct platform_window*, void*);
 static void platform_window_on_key(struct platform_window*, void*, enum key, int, unsigned int);
 static void platform_window_on_mouse_button(struct platform_window*, void*, enum mouse_button, int, unsigned int);
 static void platform_window_on_mouse_move(struct platform_window*, void*, int, int, unsigned int);
@@ -69,10 +75,18 @@ static int console_command_quit(const struct cx_command_args* p_args, const stru
 void platform_window_on_created(struct platform_window* p_window, void* p_user_ptr) {
 	(void)p_user_ptr;
 
-    platform_window_set_on_key_callback(p_window, platform_window_on_key, 0);
-    platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, 0);
-    platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, 0);
-	platform_window_set_on_char_callback(p_window, platform_window_on_char, 0);
+	platform_window_set_on_close_callback(p_window, platform_window_on_close, CX_NULL);
+    platform_window_set_on_key_callback(p_window, platform_window_on_key, CX_NULL);
+    platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, CX_NULL);
+    platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, CX_NULL);
+	platform_window_set_on_char_callback(p_window, platform_window_on_char, CX_NULL);
+}
+
+void platform_window_on_close(struct platform_window* p_window, void* p_user_ptr) {
+	(void)p_window;
+	(void)p_user_ptr;
+
+	cx_gfx_context_destroy(&cx.gfx_context);
 }
 
 void platform_window_on_key(struct platform_window* p_window, void* p_user_ptr, enum key key, int b_is_down, unsigned int mods) {
@@ -163,20 +177,18 @@ int main(int argc, const char* argv[]) {
 
     uint32_t window_size[] = { 1200, 900 };
 
-    static struct platform_window platform_window;
-    err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &platform_window);
+    err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &cx.window);
 	
-	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &platform_window, CX_COMMAND_NO_PARAMS);
+	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &cx.window, CX_COMMAND_NO_PARAMS);
 	CX_NEW_COMMAND_ALIAS("q", "quit");
 
 	if (err != CX_ERROR_none) {
 		return (int)err;
 	}
 
-    struct cx_gfx_context gl_context;
-    err = cx_gfx_context_create(&platform_window, &gl_context);
+    err = cx_gfx_context_create(&cx.window, &cx.gfx_context);
 
-	cx_gfx_context_set_swap_interval(&gl_context, 0);
+	cx_gfx_context_set_swap_interval(&cx.gfx_context, 0);
 
 	if (err != CX_ERROR_none) {
 		return (int)err;
@@ -278,11 +290,11 @@ int main(int argc, const char* argv[]) {
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
     cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
-    cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, 0);
+    cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, cx_asset_free_texture);
     cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
-    cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, (void(*)(void*))static_mesh_free);
-	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, (void(*)(void*))cx_font_free_glyph_bitmap_buffer);
-	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint), 0, 0, (void(*)(void*))cx_blueprint_free);
+    cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, cx_asset_free_static_mesh);
+	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, cx_asset_free_font);
+	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint), 0, 0, cx_asset_free_blueprint);
     
 	input_init();
 
@@ -312,11 +324,11 @@ int main(int argc, const char* argv[]) {
 
 	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
 
-	cx_ed_init(&platform_window);
+	cx_ed_init(&cx.window);
 
     uint64_t old_frame_start = cx_platform_time_now();
 
-    while (platform_window_is_open(&platform_window)) {
+    while (platform_window_is_open(&cx.window)) {
         const uint64_t frame_start = cx_platform_time_now();
         const double frame_delta_seconds = cx_platform_time_delta_seconds(old_frame_start, frame_start);
 
@@ -326,7 +338,11 @@ int main(int argc, const char* argv[]) {
 		old_frame_start = frame_start;
 
         input_frame_reset();
-        platform_window_poll_events(&platform_window);
+        platform_window_poll_events(&cx.window);
+
+		if (!platform_window_is_open(&cx.window)) {
+			break;
+		}
 
 		cx_ed_update(frame_delta_seconds);
 
@@ -362,9 +378,9 @@ int main(int argc, const char* argv[]) {
 
             // SCREEN QUAD
             {
-                platform_window_size(&platform_window, &window_size[0], &window_size[1]);
+                platform_window_size(&cx.window, &window_size[0], &window_size[1]);
 
-				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&gl_context));
+				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&cx.gfx_context));
 
                 glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
 				glClearColor(0, 0, 0, 0);
@@ -385,8 +401,14 @@ int main(int argc, const char* argv[]) {
             }
         }
 
-		cx_gfx_context_swap_buffers(&gl_context);
+		cx_gfx_context_swap_buffers(&cx.gfx_context);
     }
+
+	cx_ed_shutdown();
+
+	cx_asset_package_free(&asset_package);
+
+	CX_LOG(INFO, DONTCARE, "Exiting\n");
 
     return 0;
 }

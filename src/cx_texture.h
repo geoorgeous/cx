@@ -19,4 +19,6 @@ struct cx_texture {
 void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_load);
 void cx_texture_unload_gfx_texture(struct cx_texture* p_texture);
 
+void cx_asset_free_texture(void* p);
+
 #endif

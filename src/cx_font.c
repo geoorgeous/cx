@@ -161,3 +161,7 @@ int cx_font_glyph_atlas_dst_cmp(
 		p_b->p_glyph->metrics_.width * p_b->p_glyph->metrics_.height -
 		p_a->p_glyph->metrics_.width * p_a->p_glyph->metrics_.height);
 }
+
+void cx_asset_free_font(void* p) {
+	cx_font_free_glyph_bitmap_buffer((struct cx_font*)p);
+}

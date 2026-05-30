@@ -20,6 +20,8 @@ struct static_mesh {
 
 void static_mesh_free(struct static_mesh* p_static_mesh);
 void static_mesh_load_device_meshes(struct static_mesh* p_static_mesh);
-void static_mesh_unlod_device_meshes(struct static_mesh* p_static_mesh);
+void static_mesh_unload_device_meshes(struct static_mesh* p_static_mesh);
+
+void cx_asset_free_static_mesh(void* p);
 
 #endif

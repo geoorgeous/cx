@@ -173,3 +173,7 @@ struct cx_blueprint_node* cx_blueprint_find_node(const struct cx_blueprint* p_bl
 
 	return 0;
 }
+
+void cx_asset_free_blueprint(void* p) {
+	cx_blueprint_free((struct cx_blueprint*)p);
+}

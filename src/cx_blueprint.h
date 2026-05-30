@@ -67,4 +67,6 @@ int cx_blueprint_node_has_component(
 	uint16_t node_id,
 	const struct cx_component_type* p_type);
 
+void cx_asset_free_blueprint(void* p);
+
 #endif

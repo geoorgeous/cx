@@ -52,25 +52,35 @@ struct cx_asset_package {
 };
 
 void cx_asset_package_init(struct cx_asset_package* p_package);
+
 void cx_asset_package_free(struct cx_asset_package* p_package);
+
 int  cx_asset_package_load_records(struct cx_asset_package* p_result, const char* s_filename);
+
 void cx_asset_package_save(struct cx_asset_package* p_package);
+
 void cx_asset_package_save_as(struct cx_asset_package* p_package, const char* s_filename);
+
 int cx_asset_package_find_record(
 	const struct cx_asset_package* p_package,
 	cx_asset_id id,
 	struct cx_asset_package_record** pp_out);
+
 void cx_asset_package_new_record(
 	struct cx_asset_package* p_package,
 	uint8_t type,
 	struct cx_asset_package_record** pp_out);
+
 void cx_asset_package_delete_record(struct cx_asset_package* p_package, cx_asset_id id);
 
 void cx_asset_directory_register_package(const struct cx_asset_package* p_package);
+
 int cx_asset_directory_find(cx_asset_id id, struct cx_asset_package_record** pp_out);
+
 const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_packages);
 
 void cx_asset_serialize_handle(FILE* p_file, const cx_asset_handle p_asset_handle);
+
 void cx_asset_deserialize_handle(FILE* p_file, cx_asset_handle* p_result);
 
 #endif

@@ -33,7 +33,7 @@ struct cx_font {
 	int32_t  descent_;
 	int32_t  space_adv_;
 	void*    p_glyph_bitmap_buf;
-	};
+};
 
 void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font);
 
@@ -46,5 +46,7 @@ void cx_font_create_atlas(
 	const struct cx_font* p_font,
 	struct cx_image* p_out_atlas,
 	struct cx_texture_atlas_layout* p_out_layout);
+
+void cx_asset_free_font(void* p);
 
 #endif

@@ -103,8 +103,9 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
         return 0;
     }
 
-    const size_t elem_size = sizeof(struct hashtable_element) + key_len + p_table->element_size_;
-    unsigned char* p_new_elem_bytes = malloc(elem_size);
+	const size_t hashtable_element_size = (sizeof(*p_table));
+    const size_t total_element_size = hashtable_element_size + p_table->element_size_ + key_len;
+    unsigned char* p_new_elem_bytes = malloc(total_element_size);
 
     if (!p_new_elem_bytes) {
         CX_LOG_FMT(ERROR, HASHTABLE,
@@ -117,9 +118,9 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
 
     struct hashtable_element* p_new_elem = (void*)p_new_elem_bytes;
     *p_new_elem = (struct hashtable_element) {
-        .p_key = p_new_elem_bytes + sizeof(*p_new_elem),
+        .p_value = p_new_elem_bytes + hashtable_element_size,
+        .p_key = p_new_elem_bytes + hashtable_element_size + p_table->element_size_,
         .key_len = key_len,
-        .p_value = p_new_elem_bytes + sizeof(*p_new_elem) + key_len
     };
 
     memcpy(p_new_elem->p_key, p_key, key_len);

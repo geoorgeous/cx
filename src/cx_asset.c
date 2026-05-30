@@ -90,9 +90,15 @@ void cx_asset_free(struct cx_asset_package_record* p_record) {
     if (!p_record->asset_.p_data_) {
         return;
 	}
+
+	CX_LOG_FMT(INFO, ASSET, "Unloading asset (%s) %x\n", 
+		asset_type_tables[CX_ASSET_GET_TYPE_ID(p_record->asset_.id_)].s_display_name,
+		p_record->asset_.id_);
     
     const struct asset_type_table* p_type_table = &asset_type_tables[CX_ASSET_GET_TYPE_ID(p_record->asset_.id_)];
-    p_type_table->f_free(p_record->asset_.p_data_);
+	if (p_type_table->f_free) {
+    	p_type_table->f_free(p_record->asset_.p_data_);
+	}
 
     free(p_record->asset_.p_data_);
     p_record->asset_.p_data_ = 0;
@@ -364,6 +370,6 @@ void cx_asset_package_new_record_internal(
 }
 
 uint32_t cx_asset_generate_random_idn(void) {
-    uint32_t result = (uint32_t)(((uint16_t)rand() << 17) + ((uint16_t)rand() << 2) + ((uint16_t)rand()>>13));
+    uint32_t result = (uint32_t)(((uint32_t)rand() << 17) + ((uint32_t)rand() << 2) + ((uint32_t)rand()>>13));
     return result % CX_ASSET_IDN_MAX;
 }

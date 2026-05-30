@@ -24,6 +24,8 @@ struct platform_window;
 
 void cx_ed_init(struct platform_window* p_window);
 
+void cx_ed_shutdown(void);
+
 void cx_ed_update(double dt_seconds);
 
 struct cx_gfx_framebuffer;

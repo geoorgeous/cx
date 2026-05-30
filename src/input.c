@@ -105,7 +105,10 @@ void input_event_broadcast(enum input_event event, const void* p_event_data) {
 
 void input_on_key(const void* p_e, void* p_user_ptr) {
     const struct input_event_data_key* p_key_event = p_e;
-	CX_ASSERT(p_key_event->key >= 0 && p_key_event->key < KEY_MAX_, INPUT);
+
+	if (p_key_event->key < 0 || p_key_event->key >= KEY_MAX_) {
+		return;
+	}
 
     struct input* p_input = p_user_ptr;
 

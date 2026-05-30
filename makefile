@@ -6,6 +6,7 @@ MODE        ?= debug
 BUILD_DIR   := build/$(MODE)
 OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
+MAKEFLAGS   += --no-print-directory
 
 CFLAGS := \
 	-ffp-contract=off \
@@ -74,6 +75,21 @@ LDFLAGS_release := \
 LDFLAGS_debug := \
 	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return
 
+# Platform specific configuration
+ifeq ($(OS),Windows_NT)
+	CMD_MKDIR    := mkdir
+	CMD_RMDIR    := rmdir /q /s
+	LDLIBS       += opengl32 gdi32
+	TARGET_NAME  := $(addsuffix .exe,$(TARGET_NAME))
+	CFLAGS       += -DPLATFORM_WIN32
+else
+	CMD_MKDIR    := mkdir -p
+	CMD_RMDIR    := rm -rf
+	LDLIBS       += GL X11
+endif
+
+TARGET := $(BIN_DIR)/$(TARGET_NAME)
+
 # Do not compile platform-specific code individually:
 # We include these types of files in platform-agnostic translation units.
 # For example for Windows builds, the file 'foo.win32.c' will be included and built
@@ -82,21 +98,6 @@ SRC_IGNORE_WILDCARDS += *.posix.*  # POSIX
 SRC_IGNORE_WILDCARDS += *.x11.*    # X11 Window System
 SRC_IGNORE_WILDCARDS += *.win32.*    # Windows
 SRC_IGNORE_WILDCARDS += *.gl.*     # OpenGL
-
-# Platform specific configuration
-ifeq ($(OS),Windows_NT)
-	MKDIRCMD    := mkdir
-	RMDIRCMD    := rmdir /q /s
-	LIBS        += opengl32 gdi32
-	TARGET_NAME := $(addsuffix .exe,$(TARGET_NAME))
-	CFLAGS      += -DPLATFORM_WIN32
-else
-	MKDIRCMD    := mkdir -p
-	RMDIRCMD    := rm -rf
-	LDLIBS        += GL X11
-endif
-
-TARGET := $(BIN_DIR)/$(TARGET_NAME)
 
 SRC_ALL        := $(wildcard $(SRC_DIR)/*.c)
 SRC_FILTER_OUT := $(foreach x, $(SRC_IGNORE_WILDCARDS), $(wildcard $(SRC_DIR)/$(x)))
@@ -115,29 +116,32 @@ $(TARGET): $(OBJ) | $(BIN_DIR)
 	@$(CC) $^ $(LDFLAGS) $(LDFLAGS_$(MODE)) $(LDLIBS) -o $@
 
 $(OBJ_DIR):
-	@$(MKDIRCMD) $(OBJ_DIR)
+	@$(CMD_MKDIR) $(OBJ_DIR)
 
 $(BIN_DIR):
-	@$(MKDIRCMD) $(BIN_DIR)
+	@$(CMD_MKDIR) $(BIN_DIR)
 
-.PHONY: all clean run release debug compile_commands
+.PHONY: all clean run release release-run debug-run compile_commands
 
 all: $(TARGET)
 
 clean:
-	@$(RMDIRCMD) build
+	@$(CMD_RMDIR) build
+
+run: $(TARGET)
+	@./$(TARGET)
 
 release:
 	@$(MAKE) MODE=release all
 
-release-run: release
-	@./$(TARGET)
+release-run:
+	@$(MAKE) run MODE=release
 
 debug:
 	@$(MAKE) MODE=debug all
 
-debug-run: debug
-	@./$(TARGET)
+debug-run:
+	@$(MAKE) run MODE=debug
 
 compile_commands:
 	@bear -- make clean debug
