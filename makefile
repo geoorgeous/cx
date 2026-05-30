@@ -6,7 +6,8 @@ MODE        ?= debug
 BUILD_DIR   := build/$(MODE)
 OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
-MAKEFLAGS   += --no-print-directory
+JOBS        ?= 8
+MAKEFLAGS   += --no-print-directory -j$(JOBS)
 
 # Platform specific configuration
 ifeq ($(OS),Windows_NT)
@@ -74,7 +75,7 @@ CFLAGS_release += \
 	-fno-exceptions \
 	-fno-unwind-tables \
 	-flto \
-	-Os
+	-O2
 
 CFLAGS_debug += \
 	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return \
