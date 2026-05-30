@@ -178,7 +178,7 @@ int main(int argc, const char* argv[]) {
     uint32_t window_size[] = { 1200, 900 };
 
     err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &cx.window);
-	
+
 	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &cx.window, CX_COMMAND_NO_PARAMS);
 	CX_NEW_COMMAND_ALIAS("q", "quit");
 
@@ -289,7 +289,7 @@ int main(int argc, const char* argv[]) {
 
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
-    cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, 0);
+    cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, cx_asset_free_image);
     cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, cx_asset_free_texture);
     cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
     cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, cx_asset_free_static_mesh);
@@ -304,10 +304,12 @@ int main(int argc, const char* argv[]) {
 	struct cx_asset_package_record* p_imported_font;
 	cx_ed_import_bdf_file(&asset_package, "res/builtin/font_dbg_8x14.bdf", &p_imported_font);
 
+	struct cx_texture_atlas_entry font_atlas_layout_entries[CX_FONT_NUM_GLYPHS] = {0};
+
 	struct cx_font* p_font = p_imported_font->asset_.p_data_;
 	struct cx_image font_atlas_image;
 	struct cx_texture_atlas_layout font_atlas_layout;
-	font_atlas_layout.p_entries = malloc(sizeof(*font_atlas_layout.p_entries) * CX_FONT_NUM_GLYPHS);
+	font_atlas_layout.p_entries = font_atlas_layout_entries;
 	cx_font_create_atlas(p_font, &font_atlas_image, &font_atlas_layout);
 	cx_font_free_glyph_bitmap_buffer(p_font);
 

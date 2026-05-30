@@ -93,7 +93,8 @@ LDFLAGS_release += \
 	-Wl,-Map=$(TARGET).map
 
 LDFLAGS_debug += \
-	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return
+	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return \
+	-rdynamic
 
 # Do not compile platform-specific code individually:
 # We include these types of files in platform-agnostic translation units.

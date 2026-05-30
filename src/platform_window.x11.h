@@ -6,12 +6,14 @@
 #include <X11/Xutil.h>
 
 struct platform_window_nix_x11_internals {
-    Display*    p_display;
-    Window      window;
-    XIC         input_ctx;
-    Atom        wm_delete_window;
-	GLXFBConfig fbconfig;
-    Screen*     p_screen;
+    Display*     p_display;
+    Window       window;
+    XIC          input_ctx;
+	Colormap     cmap;
+    Atom         wm_delete_window;
+	GLXFBConfig  fbconfig;
+	XVisualInfo* p_visual_info;
+    Screen*      p_screen;
 };
 
 #endif

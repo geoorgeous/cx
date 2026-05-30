@@ -107,15 +107,17 @@ int gltf_load_from_file(const char* s_filename, struct gltf* p_result) {
             READ_GLTF_OBJECT_ARRAY("scenes", scenes, read_scene) &&
             (read_default_scene(&reader), reader.error == GLTF_SUCCESS)
         );
-        
-        json_free(reader.p_json_gltf);
     }
 
+    json_free(reader.p_json_gltf);
+
     if (reader.error != GLTF_SUCCESS) {
-        free(reader.p_glb_buffer_chunk.p_bytes);
-        reader.p_glb_buffer_chunk = (struct glb_chunk){0};
         gltf_free(reader.p_result);
     }
+
+	if (b_is_glb) {
+        free(reader.p_glb_buffer_chunk.p_bytes);
+	}
 
     return reader.error;
 }
@@ -165,6 +167,7 @@ void gltf_free(struct gltf* p_gltf) {
     free(p_gltf->p_buffer_views);
     free(p_gltf->p_accessors);
     free(p_gltf->p_images);
+    free(p_gltf->p_meshes);
     free(p_gltf->p_textures);
     free(p_gltf->p_materials);
     free(p_gltf->p_skins);
@@ -240,6 +243,8 @@ int read_glb_file(FILE* p_file, struct gltf_reader* p_reader) {
         free(p_reader->p_glb_buffer_chunk.p_bytes);
         return GLTF_ERROR_JSON_PARSING;
     }
+
+    free(json_chunk.p_bytes);
 
     return GLTF_SUCCESS;
 }

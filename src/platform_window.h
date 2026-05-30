@@ -32,7 +32,7 @@ struct platform_window {
     int          mouse_pos_[2];
     int          mouse_pos_old_[2];
 	unsigned int mods_;
-	CX_OPAQUE_INTERNALS(48);
+	CX_OPAQUE_INTERNALS(50);
 };
 
 enum cx_error platform_window_create(

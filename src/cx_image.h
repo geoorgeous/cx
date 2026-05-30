@@ -14,4 +14,6 @@ struct cx_image {
     void*                         p_pixel_data;
 };
 
+void cx_asset_free_image(void* p);
+
 #endif

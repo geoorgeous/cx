@@ -50,9 +50,8 @@ enum cx_error platform_window_create(
 	const Window root_window = XDefaultRootWindow(p_x11_display);
 
 	Window x11_window = 0;
-	GLXFBConfig fbconfig = 0;
 
-	int fb_attribs[] = {
+	const int fb_attribs[] = {
 		GLX_RENDER_TYPE,   GLX_RGBA_BIT,
 		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
 		GLX_DOUBLEBUFFER,  True,
@@ -65,28 +64,35 @@ enum cx_error platform_window_create(
 		None
 	};
 
-	XVisualInfo* p_visual_info = 0;
+	GLXFBConfig chosen_fbconfig = 0;
+	XVisualInfo* p_chosen_visual_info = 0;
 
 	int fbconfigs_count;
 	GLXFBConfig* p_fbconfigs = glXChooseFBConfig(p_x11_display, default_screen, fb_attribs, &fbconfigs_count);
+
 	for (int i = 0; i < fbconfigs_count; ++i) {
-		p_visual_info = glXGetVisualFromFBConfig(p_x11_display, p_fbconfigs[i]);
+		XVisualInfo* p_visual_info = glXGetVisualFromFBConfig(p_x11_display, p_fbconfigs[i]);
+		
 		if (!p_visual_info) {
 			continue;
 		}
 
-		fbconfig = p_fbconfigs[i];
+		chosen_fbconfig = p_fbconfigs[i];
+		p_chosen_visual_info = p_visual_info;
+		break;
 	}
 
-	if (!fbconfig) {
+	XFree(p_fbconfigs);
+
+	if (!p_chosen_visual_info) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to find required visual info\n"));
 		return CX_ERROR_api_glx;
 	}
 
-	const Colormap colormap = XCreateColormap(p_x11_display, root_window, p_visual_info->visual, AllocNone);
+	const Colormap x11_cmap = XCreateColormap(p_x11_display, root_window, p_chosen_visual_info->visual, AllocNone);
 
 	XSetWindowAttributes attribs = {
-		.colormap = colormap,
+		.colormap = x11_cmap,
 		.background_pixel = None,
 		.border_pixmap = None,
 		.event_mask = 
@@ -112,14 +118,15 @@ enum cx_error platform_window_create(
 		0, 0,
 		width, height,
 		0,
-		p_visual_info->depth,
+		p_chosen_visual_info->depth,
 		InputOutput,
-		p_visual_info->visual,
+		p_chosen_visual_info->visual,
 		attrib_mask,
 		&attribs);
 
 	if (!x11_window) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform window\n"));
+
 		return CX_ERROR_api_x11;
 	}
 
@@ -158,9 +165,11 @@ enum cx_error platform_window_create(
     *p_internals = (struct platform_window_nix_x11_internals) {
         .p_display = p_x11_display,
         .window = x11_window,
+		.cmap = x11_cmap,
         .input_ctx = x11_input_ctx,
         .wm_delete_window = XInternAtom(p_x11_display, "WM_DELETE_WINDOW", 0),
-		.fbconfig = fbconfig
+		.fbconfig = chosen_fbconfig,
+		.p_visual_info = p_chosen_visual_info
     };
 
     XSetWMProtocols(
@@ -184,8 +193,10 @@ void platform_window_destroy(struct platform_window* p_window) {
     }
     
     struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
+	XFree(p_internals->p_visual_info);
     XDestroyIC(p_internals->input_ctx);
     XDestroyWindow(p_internals->p_display, p_internals->window);
+	XFreeColormap(p_internals->p_display, p_internals->cmap);
     
     CX_LOG(INFO, PLATFORM_WINDOW, "Window destroyed\n");
 

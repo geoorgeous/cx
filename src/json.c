@@ -96,6 +96,7 @@ int json_parse(const char* s_json, size_t len, struct json_value** p_result) {
 
 void json_free(struct json_value* p_json_root_value) {
     reset_value(p_json_root_value);
+	free(p_json_root_value);
 }
 
 enum json_type json_typeof(const struct json_value* p_value) {
