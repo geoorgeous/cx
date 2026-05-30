@@ -29,7 +29,7 @@ struct cx_bdf {
 	uint16_t descent_;
 };
 
-void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf);
+int cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf);
 
 void cx_bdf_free(struct cx_bdf* p_bdf);
 
