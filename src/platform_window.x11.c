@@ -154,7 +154,7 @@ enum cx_error platform_window_create(
         .p_callback_on_created_user_ptr_ = f_callback_on_created_user_ptr
     };
 
-    struct platform_window_nix_x11_internals* p_internals = (void*)p_out_window->bytes_;
+    struct platform_window_nix_x11_internals* p_internals = (void*)p_out_window->internals_.bytes_;
     *p_internals = (struct platform_window_nix_x11_internals) {
         .p_display = p_x11_display,
         .window = x11_window,
@@ -183,7 +183,7 @@ void platform_window_destroy(struct platform_window* p_window) {
         p_window->f_callback_on_close_(p_window, p_window->p_callback_on_close_user_ptr_);
     }
     
-    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->bytes_;
+    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
     XDestroyIC(p_internals->input_ctx);
     XDestroyWindow(p_internals->p_display, p_internals->window);
     
@@ -198,7 +198,7 @@ void platform_window_destroy(struct platform_window* p_window) {
 }
 
 void platform_window_poll_events(struct platform_window* p_window) {
-    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->bytes_;
+    struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
 
     while (p_internals->p_display && XPending(p_internals->p_display) > 0) {
         XEvent event = {0};
@@ -379,7 +379,7 @@ void platform_window_poll_events(struct platform_window* p_window) {
 }
 
 int platform_window_is_open(const struct platform_window* p_window) {
-    const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->bytes_;
+    const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
 
     if (p_internals->p_display == 0 || p_internals->window == 0) {
         return 0;
@@ -393,7 +393,7 @@ void platform_window_size(
 	const struct platform_window* p_window,
 	uint32_t* p_out_width, uint32_t* p_out_height) {
     
-	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->bytes_;
+	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
 
     *p_out_width =
     *p_out_height = 0;

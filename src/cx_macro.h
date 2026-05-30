@@ -49,6 +49,13 @@
 
 #define CX_SIZEOF_MEMBER(TYPE, MEMBER) (sizeof(((TYPE*)0)->MEMBER))
 
+/* helper for aligning opaque struct bytes */
+#define CX_OPAQUE_INTERNALS(N) \
+	union { \
+		char bytes_[N]; \
+		long double unused_alignment_; \
+	} internals_
+
 #define CX_PADDING(N) uint8_t CX_CONCAT(CX_CONCAT(PADDING, __LINE__), _##N##_)[N]
 
 #define CX_ALIGN_DEFAULT_ALIGNMENT 16

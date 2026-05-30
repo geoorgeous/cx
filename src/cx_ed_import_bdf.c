@@ -1,5 +1,4 @@
-#include <stdlib.h>
-
+#include "cx_alloc.h"
 #include "cx_asset.h"
 #include "cx_bdf.h"
 #include "cx_bits.h"
@@ -13,7 +12,7 @@ int cx_ed_import_bdf(
 	const struct cx_bdf* p_bdf,
 	struct cx_asset_package_record** pp_out) {
 
-	struct cx_font* p_font = malloc(sizeof(struct cx_font));
+	struct cx_font* p_font = CX_MALLOC(sizeof(struct cx_font));
 	*p_font = (struct cx_font) {
 		.max_glyph_width_ = p_bdf->max_glyph_width_,
 		.max_glyph_height_ = p_bdf->max_glyph_height_,
@@ -22,7 +21,7 @@ int cx_ed_import_bdf(
 	};
 
 	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
-	p_font->p_glyph_bitmap_buf = malloc(buf_size);
+	p_font->p_glyph_bitmap_buf = CX_MALLOC(buf_size);
 
 	uint8_t* p_bitmap_pos = p_font->p_glyph_bitmap_buf;
 	uint8_t bitmap_bit_offset = 0;
@@ -67,12 +66,9 @@ int cx_ed_import_bdf(
 		bitmap_bit_offset = (bitmap_bit_offset + num_bits) % 8;;
 	}
 
-	const size_t compact_size = (size_t)(p_bitmap_pos - (uint8_t*)p_font->p_glyph_bitmap_buf) + (bitmap_bit_offset != 0);
-	p_font->p_glyph_bitmap_buf = realloc(p_font->p_glyph_bitmap_buf, compact_size);
-
 	CX_LOG_FMT(INFO, IMPORT_BDF, "Font imported from BDF font: %d glyphs read, glyph bitmap buffer size=%llu\n",
 		num_glyphs_read,
-		compact_size);
+		buf_size);
 
 	const struct cx_font_glyph* p_space_glyph;
 	if (cx_font_find_glyph(p_font, (uint32_t)' ', &p_space_glyph)) {

@@ -105,9 +105,8 @@ void* cx_blueprint_node_add_component(
 		p_last->data_off + p_last->p_type->size :
 		0;
 
-	const size_t components_new_size = sizeof(*p_node->p_components) * p_node->components_count + 1;
+	const size_t components_new_size = sizeof(*p_node->p_components) * (p_node->components_count + 1);
 	const size_t component_data_new_size = component_data_old_size + p_type->size;
-
 
 	p_node->p_components = realloc(p_node->p_components, components_new_size);
 	p_node->p_component_data = realloc(p_node->p_component_data, component_data_new_size);

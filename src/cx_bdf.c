@@ -1,6 +1,6 @@
-#include <stdlib.h>
 #include <string.h>
 
+#include "cx_alloc.h"
 #include "cx_bdf.h"
 #include "cx_dbg.h"
 #include "cx_logging.h"
@@ -118,15 +118,10 @@ void cx_bdf_parse(const char* s_bdf_buf, struct cx_bdf* p_out_bdf) {
 			p_out_bdf->line_height_ += p_out_bdf->descent_;
 		}
 	}
-
-	const size_t compact_size = (size_t)(p_bitmap_pos - (char*)p_out_bdf->p_buf_);
-	p_out_bdf->p_buf_ = realloc(p_out_bdf->p_buf_, compact_size);
-
-	CX_DBG(CX_LOG_FMT(INFO, BDF, "Final buffer size: %d\n", compact_size));
 }
 
 void cx_bdf_free(struct cx_bdf* p_bdf) {
-	free(p_bdf->p_buf_);
+	CX_FREE(p_bdf->p_buf_);
 	*p_bdf = (struct cx_bdf){0};
 }
 
@@ -176,19 +171,19 @@ int64_t cx_tok_strtol(const char* p_token, size_t token_len) {
 
 void cx_bdf_allocate_buf(struct cx_bdf* p_bdf, const char* p_font_name, size_t font_name_len) {
 	/* Allocate single buffer containing font name, glyph array, and bitmap buffer */
-	const size_t font_name_size = font_name_len + 1;
+	const size_t glyphs_size = sizeof(*p_bdf->p_glyphs_) * p_bdf->num_glyphs_;
 	const size_t bitmap_atlas_size =
 		(p_bdf->max_glyph_width_ * p_bdf->max_glyph_width_ * p_bdf->num_glyphs_ + 7) / 8;
-	const size_t glyphs_size = sizeof(*p_bdf->p_glyphs_) * p_bdf->num_glyphs_;
+	const size_t font_name_size = font_name_len + 1;
+	
 	const size_t buf_size = font_name_size + bitmap_atlas_size + glyphs_size;
 	
-	p_bdf->p_buf_ = malloc(buf_size);
+	p_bdf->p_buf_ = CX_MALLOC(buf_size);
+	p_bdf->p_glyphs_ = p_bdf->p_buf_;
+	p_bdf->s_name_ = (char*)p_bdf->p_buf_ + glyphs_size + bitmap_atlas_size;
 
-	p_bdf->s_name_ = p_bdf->p_buf_;
 	memcpy(p_bdf->s_name_, p_font_name, font_name_len);
 	p_bdf->s_name_[font_name_len] = '\0';
-
-	p_bdf->p_glyphs_ = (void*)(p_bdf->s_name_ + font_name_len + 1);
 
 	CX_DBG(CX_LOG_FMT(INFO, BDF, "Buffer size: %d\n", buf_size));
 }

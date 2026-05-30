@@ -55,7 +55,6 @@ static struct {
 	uint16_t selected_entity_id;
 	uint16_t entity_id_at_cursor;
 
-	CX_PADDING(4);
 	struct cx_transform_gizmo gizmo;
 
 	// buffers for command flog builder
@@ -72,8 +71,6 @@ static struct {
 		float projection_matrix[16];
 		float view_matrix[16];
 	} camera;
-
-	CX_PADDING(4);
 } ed;
 
 // CREATE ENTITY
@@ -85,7 +82,6 @@ struct cx_ed_action_create_entity_ctx {
 	struct cx_world* p_world;
 	float position[3];
 	uint16_t entity_id;
-	CX_PADDING(2);
 };
 
 CX_ACTION_DEF(create_entity);

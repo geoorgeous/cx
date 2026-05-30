@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 #include "cx_component.h"
-#include "cx_macro.h"
 #include "transform.h"
 
 #define CX_LOG_CAT_WORLD "world"
@@ -17,7 +16,6 @@
 struct cx_entity {
 	struct transform transform;
 	int b_alive;
-	CX_PADDING(4);
 };
 
 struct cx_component_pool {

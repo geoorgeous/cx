@@ -73,7 +73,7 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 }
 
 void cx_world_free(struct cx_world* p_world) {
-	free(p_world->p_buf);
+	CX_FREE(p_world->p_buf);
 }
 
 uint16_t cx_world_entity_create(struct cx_world* p_world) {

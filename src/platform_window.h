@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "cx_error.h"
+#include "cx_macro.h"
 #include "keys.h"
 #include "mouse_buttons.h"
 
@@ -31,10 +32,8 @@ struct platform_window {
     int          mouse_pos_[2];
     int          mouse_pos_old_[2];
 	unsigned int mods_;
-    char         bytes_[48]; // Reserved for platform-dependent internals
+	CX_OPAQUE_INTERNALS(48);
 };
-
-// Platform-dependent interface
 
 enum cx_error platform_window_create(
 	uint32_t width, uint32_t height,
