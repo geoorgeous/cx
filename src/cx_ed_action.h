@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define CX_LOG_CAT_ACTION "action"
+
 typedef void (*cx_ed_action_do_fn)(void*);
 typedef void (*cx_ed_action_undo_fn)(void*);
 
@@ -11,11 +13,12 @@ struct cx_ed_action_def {
 	cx_ed_action_do_fn f_do;
 	cx_ed_action_undo_fn f_undo;
 	size_t context_size;
+	size_t context_alignment;
 };
 
 struct cx_ed_action {
 	const struct cx_ed_action_def* p_def;
-	void* p_context;
+	size_t context_off;
 };
 
 struct cx_ed_action_history {
@@ -25,8 +28,6 @@ struct cx_ed_action_history {
 	size_t context_buf_size;
 	size_t cursor;
 	size_t count;
-	size_t cursor_off;
-	size_t count_off;
 };
 
 void cx_ed_action_history_execute(struct cx_ed_action_history* p_history,

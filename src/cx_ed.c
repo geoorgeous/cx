@@ -23,17 +23,24 @@
 
 #include "gl.h"
 
-#define CX_ACTION_DEF(NAME)\
-	static void cx_ed_action_##NAME##_do(void* p_ctx);\
-	static void cx_ed_action_##NAME##_undo(void* p_ctx);\
-	static const struct cx_ed_action_def action_def_##NAME = {\
-		.context_size = sizeof(struct cx_ed_action_##NAME##_ctx),\
-		.f_do = cx_ed_action_##NAME##_do,\
-		.f_undo = cx_ed_action_##NAME##_undo\
+#define CX_ACTION_DEF(NAME, ...) \
+	struct cx_ed_action_##NAME##_ctx { \
+		__VA_ARGS__ \
+	}; \
+	static void cx_ed_action_##NAME##_do(void* p_ctx); \
+	static void cx_ed_action_##NAME##_undo(void* p_ctx); \
+	static const struct cx_ed_action_def action_##NAME##_def = { \
+		.context_size = sizeof(struct cx_ed_action_##NAME##_ctx), \
+		.context_alignment = CX_ALIGNOF(struct cx_ed_action_##NAME##_ctx), \
+		.f_do = cx_ed_action_##NAME##_do, \
+		.f_undo = cx_ed_action_##NAME##_undo \
 	}
 
 #define CX_ACTION_EXECUTE(NAME, P_CTX)\
-	cx_ed_action_history_execute(&ed.action_history, &action_def_##NAME, P_CTX)
+	cx_ed_action_history_execute( \
+		&ed.action_history, \
+		&action_##NAME##_def, \
+		P_CTX)
 
 static struct {
 	struct platform_window* p_window;
@@ -73,29 +80,35 @@ static struct {
 	} camera;
 } ed;
 
+// COMMANDS
+
+int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+int cx_cmd_ent_rot(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+int cx_cmd_ent_parent(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+int cx_cmd_ent_clone(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+int cx_cmd_ent_destroy(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+
 // CREATE ENTITY
 
-uint16_t cx_ed_create_entity(float x, float y, float z);
 int cx_ed_create_entity_command(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
 
-struct cx_ed_action_create_entity_ctx {
+CX_ACTION_DEF(create_entity,
 	struct cx_world* p_world;
 	float position[3];
-	uint16_t entity_id;
-};
-
-CX_ACTION_DEF(create_entity);
+	uint16_t created_entity_id;
+);
 
 void cx_ed_action_create_entity_do(void* p_ctx) {
 	struct cx_ed_action_create_entity_ctx* p_c = p_ctx;
-	p_c->entity_id = cx_world_entity_create(p_c->p_world);
-	struct transform* p_t = cx_world_entity_get_transform(p_c->p_world, p_c->entity_id);
+	p_c->created_entity_id = cx_world_entity_create(p_c->p_world);
+	struct transform* p_t = cx_world_entity_get_transform(p_c->p_world, p_c->created_entity_id);
 	transform_set_world_position(p_t, p_c->position);
 }
 
 void cx_ed_action_create_entity_undo(void* p_ctx) {
 	struct cx_ed_action_create_entity_ctx* p_c = p_ctx;
-	cx_world_entity_destroy(p_c->p_world, p_c->entity_id);
+	cx_world_entity_destroy(p_c->p_world, p_c->created_entity_id);
 }
 
 int cx_ed_create_entity_command(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
@@ -103,30 +116,52 @@ int cx_ed_create_entity_command(const struct cx_command_args* p_args, const stru
 	const double x = p_args->count > 0 ? p_args->list[0].as_float : 0;
 	const double y = p_args->count > 1 ? p_args->list[1].as_float : 0;
 	const double z = p_args->count > 2 ? p_args->list[2].as_float : 0;
-	
-	const uint16_t new_entity_id = cx_ed_create_entity((float)x, (float)y, (float)z);
+
+	struct cx_ed_action_create_entity_ctx ctx = (struct cx_ed_action_create_entity_ctx) {
+		.p_world = &ed.world,
+		.position = { 
+			(float)x,
+			(float)y,
+			(float)z
+		}
+	};
+
+	CX_ACTION_EXECUTE(create_entity, &ctx);
 
 	struct cx_flog_builder flog = ed.flog_builder;
 
-	cx_flog_append_fmt(&flog, "Created new entity (%d) at [%g, %g, %g]\n", new_entity_id, x, y, z);
+	cx_flog_append_fmt(&flog, "Created new entity (%d) at [%g, %g, %g]\n", ctx.created_entity_id, x, y, z);
 	cx_flog_end(p_ctx->p_flogger, &flog);
 	
 	return 1;
 }
 
-uint16_t cx_ed_create_entity(float x, float y, float z) {
-	struct cx_ed_action_create_entity_ctx ctx = {
-		.p_world = &ed.world,
-		.position = { x , y, z }
-	};
+// SET ENTITY TRANSFORM
 
-	CX_ACTION_EXECUTE(create_entity, &ctx);
+CX_ACTION_DEF(set_entity_transform,
+	struct cx_world* p_world;
+	uint16_t entity_id;
+	struct transform transform_old;
+	struct transform transform;
+);
 
-	return ctx.entity_id;
+void cx_ed_action_set_entity_transform_do(void* p_ctx) {
+	const struct cx_ed_action_set_entity_transform_ctx* p = p_ctx;
+	struct transform* p_t = cx_world_entity_get_transform(p->p_world, p->entity_id);
+	transform_set_world_position(p_t, p->transform.world_position);
+	transform_set_world_scale(p_t, p->transform.world_scale);
+	transform_set_world_rotation(p_t, p->transform.world_rotation);
+}
+
+void cx_ed_action_set_entity_transform_undo(void* p_ctx) {
+	const struct cx_ed_action_set_entity_transform_ctx* p = p_ctx;
+	struct transform* p_t = cx_world_entity_get_transform(p->p_world, p->entity_id);
+	transform_set_world_position(p_t, p->transform_old.world_position);
+	transform_set_world_scale(p_t, p->transform_old.world_scale);
+	transform_set_world_rotation(p_t, p->transform_old.world_rotation);
 }
 
 uint16_t cx_ed_destroy_entity(uint16_t entity_id);
-uint16_t cx_ed_set_entity_transform(uint16_t entity_id);
 uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
 
 static void cx_ed_on_key(const void* p_e, void* p_user_ptr);
@@ -144,6 +179,24 @@ void cx_ed_init(struct platform_window* p_window) {
 
 	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
 	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
+
+	CX_NEW_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, 0,
+		CX_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
+		CX_COMMAND_PARAM(FLOAT("x", "Position X component"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("y", "Position Y component"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("z", "Position Z component"), OPTIONAL));
+
+	CX_NEW_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_scale, 0,
+		CX_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
+		CX_COMMAND_PARAM(FLOAT("x", "Scale X component (default = 1)"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("y", "Scale Y component (default = x)"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("z", "Scale Z component (default = x)"), OPTIONAL));
+
+	CX_NEW_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, 0,
+		CX_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
+		CX_COMMAND_PARAM(FLOAT("x", "Rotation X component"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("y", "Rotation Y component"), OPTIONAL),
+		CX_COMMAND_PARAM(FLOAT("z", "Rotation Z component"), OPTIONAL));
 
 	CX_NEW_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, 0,
 		CX_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
@@ -234,7 +287,7 @@ void cx_ed_update(double dt_seconds) {
 		if (input_frame_is_key_down(KEY_space)) {
 			move_direction[1] += 1;
 		}
-		if (input_frame_is_key_down(KEY_ctrl_left)) {
+		if (input_frame_is_key_down(KEY_c)) {
 			move_direction[1] -= 1;
 		}
 
@@ -309,15 +362,14 @@ void cx_ed_update(double dt_seconds) {
 		ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
 	}
 
-	if (input_frame_is_mouse_button_released(MOUSE_BUTTON_left)) {
+	if (ed.gizmo.interaction_state != CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress &&
+		input_frame_is_mouse_button_released(MOUSE_BUTTON_left)) {
+		
 		ed.selected_entity_id = ed.entity_id_at_cursor;
 	}
 
 	// upate the gizmo while we have a selected entity
 	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
-		struct transform* p_selected_entity_transform =
-			cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
-
 		int mouse_client_coords[2];
 		platform_window_get_mouse_client_coords(ed.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
 
@@ -328,6 +380,9 @@ void cx_ed_update(double dt_seconds) {
 			cursor_ray);
 		
 		const float gizmo_view_scale = 2.0f / ed.camera.projection_matrix[5];
+		
+		struct transform* p_selected_entity_transform =
+			cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
 
 		struct transform t;
 		const enum cx_transform_gizmo_interaction_state gizmo_interaction_state = 
@@ -339,12 +394,14 @@ void cx_ed_update(double dt_seconds) {
 				&t);
 
 		if (gizmo_interaction_state == CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress) {
-			struct transform* p_t = cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
-			*p_t = t;
+			*p_selected_entity_transform = t;
 		} else if (gizmo_interaction_state == CX_TRANSFORM_GIZMO_INTERACTION_STATE_ended) {
-			struct transform* p_t = cx_world_entity_get_transform(&ed.world, ed.selected_entity_id);
-			*p_t = t;
-			// todo: execute history action
+			CX_ACTION_EXECUTE(set_entity_transform, &((struct cx_ed_action_set_entity_transform_ctx) {
+				.p_world = &ed.world,
+				.entity_id = ed.selected_entity_id,
+				.transform_old = ed.gizmo.drag_state.initial_target_transform,
+				.transform = t
+			}));
 		}
 	}
 
@@ -428,7 +485,33 @@ void cx_ed_on_key(const void* p_e, void* p_user_ptr) {
 
 	const struct input_event_data_key* p_key_event = p_e;
 
-	if (p_key_event->key == KEY_v && p_key_event->mods & INPUT_MOD_ctrl) {
-		
+	if (!p_key_event->b_is_down) {
+		return;
 	}
+
+	if (p_key_event->key == KEY_z && p_key_event->mods & INPUT_MOD_ctrl) {
+		cx_ed_action_history_undo(&ed.action_history);
+	}
+	else if (p_key_event->key == KEY_y && p_key_event->mods & INPUT_MOD_ctrl) {
+		cx_ed_action_history_redo(&ed.action_history);
+	}
+}
+
+int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+	
+}
+
+int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+}
+
+int cx_cmd_ent_rot(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+}
+
+int cx_cmd_ent_parent(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+}
+
+int cx_cmd_ent_clone(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+}
+
+int cx_cmd_ent_destroy(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
 }
