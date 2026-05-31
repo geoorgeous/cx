@@ -149,9 +149,11 @@ debug:
 debug-run:
 	@$(MAKE) run MODE=debug
 
+# build debug target, run through gdb, and show backtrace when gdb breaks
+
 debug-gdb:
 	@$(MAKE) debug
-	gdb ./$(TARGET)
+	gdb -ex run -ex bt --args ./$(TARGET)
 
 # generate compile_commands.json compilation database for clangd lsp tooling
 
