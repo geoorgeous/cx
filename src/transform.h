@@ -15,7 +15,6 @@ struct transform {
 void transform_make_identity(struct transform* p_transform);
 void transform_reset_local(struct transform* p_transform);
 void transform_compute_world_trs_matrix(struct transform* p_transform);
-void transform_copy(const struct transform* p_transform, struct transform* p_result);
 void transform_set_world_position(struct transform* p_transform, const float* p_position);
 void transform_set_world_rotation(struct transform* p_transform, const float* p_rotation);
 void transform_set_world_scale(struct transform* p_transform, const float* p_scale);

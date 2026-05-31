@@ -5,7 +5,10 @@
 void transform_make_identity(struct transform* p_transform) {
     *p_transform = (struct transform) {0};
     quaternion_identity(p_transform->rotation);
+	quaternion_identity(p_transform->world_rotation);
     vec3_set_s(1, p_transform->scale);
+    vec3_set_s(1, p_transform->world_scale);
+	matrix_make_identity(p_transform->world_trs_matrix);
 }
 
 void transform_reset_local(struct transform* p_transform) {
@@ -38,17 +41,6 @@ void transform_compute_world_trs_matrix(struct transform* p_transform) {
     matrix_multiply(p_transform->world_trs_matrix, temp, p_transform->world_trs_matrix);
     matrix_make_translation(p_transform->world_position[0], p_transform->world_position[1], p_transform->world_position[2], temp);
     matrix_multiply(temp, p_transform->world_trs_matrix, p_transform->world_trs_matrix);
-}
-
-void transform_copy(const struct transform* p_transform, struct transform* p_result) {
-    vec3_copy(p_transform->position, p_result->position);
-    vec_copy(4, p_transform->rotation, p_result->rotation);
-    vec3_copy(p_transform->scale, p_result->scale);
-    vec3_copy(p_transform->world_position, p_result->world_position);
-    vec_copy(4, p_transform->world_rotation, p_result->world_rotation);
-    vec3_copy(p_transform->world_scale, p_result->world_scale);
-    matrix_copy(p_transform->world_trs_matrix, p_result->world_trs_matrix);
-    p_result->p_local_transform = p_transform->p_local_transform;
 }
 
 void transform_set_world_position(struct transform* p_transform, const float* p_position) {
