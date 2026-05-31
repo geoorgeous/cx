@@ -12,6 +12,7 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 	const size_t component_pool_size = sizeof(struct cx_component_pool);
 	const size_t component_pools_array_size = component_pool_size * num_pool_defs;
 	const size_t entity_id_size = sizeof(*((struct cx_component_pool*)0)->p_dense_entities);
+	const size_t entity_id_alignment = CX_ALIGNOF(*((struct cx_component_pool*)0)->p_dense_entities);
 
 	size_t buf_size = component_pool_size * num_pool_defs;
 
@@ -22,17 +23,22 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 	}
 
 	for (uint16_t i = 0; i < num_pool_defs; ++i) {
-		const size_t dense_arrays_size = (entity_id_size + p_pool_defs[i].p_type->size) * p_pool_defs[i].capacity;
-		buf_size = CX_ALIGN_DEFAULT(buf_size);
-		buf_size += dense_arrays_size;
+		buf_size = CX_ALIGN_UP(buf_size, entity_id_alignment);
+		buf_size += entity_id_size * p_pool_defs[i].capacity;
+
+		buf_size = CX_ALIGN_UP(buf_size, p_pool_defs[i].p_type->alignment);
+		buf_size += p_pool_defs[i].p_type->size * p_pool_defs[i].capacity;
+
 		p_world->component_type_pool_ids[p_pool_defs[i].p_type->runtime_id] = i;
 
 		CX_LOG_FMT(INFO, WORLD,
-			" [%"CX_PRI_SIZE"] type='%s', runtime_id=%u, size=%"CX_PRI_SIZE", capacity=%"CX_PRI_SIZE"\n",
+			" [%"CX_PRI_SIZE"] type='%s', runtime_id=%u, size=%"CX_PRI_SIZE", alignment=%"CX_PRI_SIZE", "
+			"capacity=%"CX_PRI_SIZE"\n",
 			i,
 			p_pool_defs[i].p_type->s_name,
 			p_pool_defs[i].p_type->runtime_id,
 			p_pool_defs[i].p_type->size,
+			p_pool_defs[i].p_type->alignment,
 			p_pool_defs[i].capacity);
 	}
 
@@ -49,16 +55,15 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 	size_t cursor = component_pools_array_size;
 
 	for (size_t i = 0; i < num_pool_defs; ++i) {
-		struct cx_component_pool* p_pool = p_world->p_component_pools + i;
-
+		cursor = CX_ALIGN_UP(cursor, entity_id_alignment);
 		void* p_dense_entities_buf = p_buf + cursor;
 		cursor += entity_id_size * p_pool_defs[i].capacity;
-		cursor = CX_ALIGN_DEFAULT(cursor);
+
+		cursor = CX_ALIGN_UP(cursor, p_pool_defs[i].p_type->alignment);
 		void* p_dense_components_buf = p_buf + cursor;
 		cursor += p_pool_defs[i].p_type->size * p_pool_defs[i].capacity;
-		cursor = CX_ALIGN_DEFAULT(cursor);
 
-		*p_pool = (struct cx_component_pool) {
+		p_world->p_component_pools[i] = (struct cx_component_pool) {
 			.p_type = p_pool_defs[i].p_type,
 			.p_dense_entities = p_dense_entities_buf,
 			.p_dense_components = p_dense_components_buf,
@@ -242,9 +247,9 @@ uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct c
 
 		node_entities[i] = new_entity_id;
 
-		transform_copy(
-			cx_blueprint_node_get_transform(p_blueprint, p_node->id),
-			cx_world_entity_get_transform(p_world, new_entity_id));
+		const struct transform* p_bp_t = cx_blueprint_node_get_transform(p_blueprint, p_node->id);
+		struct transform* p_t = cx_world_entity_get_transform(p_world, new_entity_id);
+		*p_t = *p_bp_t;
 
 		void* p_component_data;
 		size_t num_components;

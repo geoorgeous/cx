@@ -37,6 +37,13 @@
 #define CX_PCX_PRAGMA_IGNORE_WARNING(W)
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#define CX_ALIGNOF(TYPE) (__alignof__(TYPE))
+#else
+/* warning: fallback approximation for unknown compilers */
+#define CX_ALIGNOF(TYPE) (sizeof(long double))
+#endif
+
 #define CX_STRINGIFY_INTERNAL(X) #X
 #define CX_STRINGIFY(X) CX_STRINGIFY_INTERNAL(X)
 
@@ -58,11 +65,7 @@
 
 #define CX_PADDING(N) uint8_t CX_CONCAT(CX_CONCAT(PADDING, __LINE__), _##N##_)[N]
 
-#define CX_ALIGN_DEFAULT_ALIGNMENT 16
-
-#define CX_ALIGN(X, ALIGNMENT) (((X) + (ALIGNMENT) - 1u) & ~((ALIGNMENT) - 1u))
-
-#define CX_ALIGN_DEFAULT(X)  CX_ALIGN(X, CX_ALIGN_DEFAULT_ALIGNMENT)
+#define CX_ALIGN_UP(X, ALIGNMENT) (((X) + (ALIGNMENT) - 1u) & ~((ALIGNMENT) - 1u))
 
 #define CX_BSEARCH(ARRAY, NUM, KEY, F_CMP_KEY, P_OUT_INDEX, P_OUT_B_FOUND) do {\
 	*(P_OUT_B_FOUND) = 0;\
