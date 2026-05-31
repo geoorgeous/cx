@@ -127,7 +127,7 @@ $(OBJ_DIR):
 $(BIN_DIR):
 	@$(CMD_MKDIR) $(BIN_DIR)
 
-.PHONY: all clean run release release-run debug-run compile_commands
+.PHONY: all clean run release release-run debug-run gdb compile_commands
 
 all: $(TARGET)
 
@@ -148,6 +148,12 @@ debug:
 
 debug-run:
 	@$(MAKE) run MODE=debug
+
+debug-gdb:
+	@$(MAKE) debug
+	gdb ./$(TARGET)
+
+# generate compile_commands.json compilation database for clangd lsp tooling
 
 compile_commands:
 	@bear -- make clean debug
