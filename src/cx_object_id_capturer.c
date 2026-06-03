@@ -37,6 +37,9 @@ void cx_object_id_capturer_draw(
 		cx_object_id_capturer_rebuild_framebuffer(p_capturer, fb_width, fb_height);
     }
 
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+
 	struct cx_render_pass_execute_info render_pass_execute_info = {
 		.p_framebuffer = &p_capturer->framebuffer,
 		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
