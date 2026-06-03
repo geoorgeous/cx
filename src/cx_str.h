@@ -7,6 +7,10 @@
 
 #include "cx_alloc.h"
 
+char* cx_str_f32(char* p_dst, float f);
+
+char* cx_str_f32_n(char* p_dst, const float* p_v, size_t n);
+
 static inline int cx_strcmp_n(const char* s_a, const char* p_b, size_t len) {
 	while(len-- && *s_a && *s_a == *p_b) {
 		s_a++;
@@ -38,6 +42,18 @@ static inline char* cx_strndup(const char* s, size_t n) {
 
 static inline char* cx_strdup(const char* s) {
 	return cx_strndup(s, strlen(s));
+}
+
+static inline char* cx_str_tmp_buf(void) {
+	static char bufs[8][64];
+	static unsigned int idx;
+	return bufs[idx++ & 7];
+}
+
+static inline char* cx_str_tmp_vec3(const float* p_v) {
+	char* p_buf = cx_str_tmp_buf();
+	*cx_str_f32_n(p_buf, p_v, 3) = '\0';
+	return p_buf;
 }
 
 #endif
