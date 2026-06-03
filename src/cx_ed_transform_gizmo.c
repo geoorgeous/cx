@@ -688,8 +688,10 @@ void cx_transform_gizmo_apply_scale(
 
     switch (control_id) {
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
+            float control_axis[3];
+            vec3_norm(&p_gizmo->gizmo_transform[0], control_axis);
             cx_transform_gizmo_apply_scale_on_axis(
-				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_X_AXIS,
+				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
 				p_v, p_out_v);
@@ -697,8 +699,10 @@ void cx_transform_gizmo_apply_scale(
         }
         
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
+            float control_axis[3];
+            vec3_norm(&p_gizmo->gizmo_transform[4], control_axis);
             cx_transform_gizmo_apply_scale_on_axis(
-				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Y_AXIS,
+				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
 				p_v, p_out_v);
@@ -706,8 +710,10 @@ void cx_transform_gizmo_apply_scale(
         }
 
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
+            float control_axis[3];
+            vec3_norm(&p_gizmo->gizmo_transform[8], control_axis);
             cx_transform_gizmo_apply_scale_on_axis(
-				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Z_AXIS,
+				&p_gizmo->gizmo_transform[12], control_axis,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
 				p_v, p_out_v);
@@ -715,8 +721,10 @@ void cx_transform_gizmo_apply_scale(
         }
         
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY: {
+            float control_plane_normal[3];
+            vec3_norm(&p_gizmo->gizmo_transform[8], control_plane_normal);
             cx_transform_gizmo_apply_scale_on_plane(
-				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Z_AXIS,
+				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
 				p_v, p_out_v);
@@ -724,8 +732,10 @@ void cx_transform_gizmo_apply_scale(
         }
         
 		case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ: {
+            float control_plane_normal[3];
+            vec3_norm(&p_gizmo->gizmo_transform[4], control_plane_normal);
             cx_transform_gizmo_apply_scale_on_plane(
-				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_Y_AXIS,
+				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
 				p_v, p_out_v);
@@ -733,8 +743,10 @@ void cx_transform_gizmo_apply_scale(
         }
         
         case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ: {
+            float control_plane_normal[3];
+            vec3_norm(&p_gizmo->gizmo_transform[0], control_plane_normal);
             cx_transform_gizmo_apply_scale_on_plane(
-				&p_gizmo->gizmo_transform[12], CX_TRANSFORM_GIZMO_X_AXIS,
+				&p_gizmo->gizmo_transform[12], control_plane_normal,
 				p_view_pos, p_view_ray,
 				p_gizmo->drag_state.manipulation_origin,
 				p_v, p_out_v);
