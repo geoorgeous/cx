@@ -395,12 +395,15 @@ void cx_ed_update(double dt_seconds) {
 		int mouse_client_coords[2];
 		platform_window_get_mouse_client_coords(ed.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
 
+		float projection_view_matrix[16];
+		matrix_multiply(ed.camera.projection_matrix, ed.camera.view_matrix, projection_view_matrix);
+
 		float cursor_ray[3];
 		platform_window_client_to_world_ray(ed.p_window,
-			ed.camera.projection_matrix,
+			projection_view_matrix,
 			mouse_client_coords[0], mouse_client_coords[1],
 			cursor_ray);
-		
+
 		const float gizmo_view_scale = 2.0f / ed.camera.projection_matrix[5];
 		
 		struct transform* p_selected_entity_transform =
@@ -424,6 +427,14 @@ void cx_ed_update(double dt_seconds) {
 				.transform_old = ed.gizmo.drag_state.initial_target_transform,
 				.transform = t
 			}));
+		} else {
+			if (input_frame_is_key_pressed(KEY_e)) {
+				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_translate;
+			} else if (input_frame_is_key_pressed(KEY_r)) {
+				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_rotate;
+			} else if (input_frame_is_key_pressed(KEY_t)) {
+				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_scale;
+			}
 		}
 	}
 
@@ -502,6 +513,7 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 
 	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
 		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
 
 		cx_transform_gizmo_record_flat_color_pass_commands(&ed.gizmo, &render_command_buffer);
 
