@@ -167,13 +167,11 @@ enum cx_error cx_gfx_program_build(struct cx_gfx_program* p_program, const struc
 	enum cx_error err;
 
 	err = compile_shader_source(vertex_shader, p_source->s_vertex_stage_source);
-	
 	if (err != CX_ERROR_none) {
 		goto end;
 	}
 
 	err = compile_shader_source(fragment_shader, p_source->s_fragment_stage_source);
-
 	if (err != CX_ERROR_none) {
 		goto end;
 	}
