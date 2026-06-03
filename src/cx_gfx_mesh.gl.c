@@ -54,6 +54,7 @@ void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive*
     *p_mesh = (struct cx_gfx_mesh){0};
 
     glGenVertexArrays(1, &p_internals->vao);
+
     glBindVertexArray(p_internals->vao);
 
     p_internals->vbos_len = (GLsizei)p_mesh_primitive->num_vertex_buffers;
