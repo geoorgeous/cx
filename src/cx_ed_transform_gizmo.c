@@ -6,6 +6,7 @@
 #include "cx_gfx_mesh.h"
 #include "cx_logging.h"
 #include "cx_object_id_capturer.h"
+#include "cx_str.h"
 #include "input.h"
 #include "matrix.h"
 #include "mouse_buttons.h"
@@ -32,10 +33,15 @@
 #define CX_TRANSFORM_GIZMO_Y_AXIS ((const float[]){ 0, 1, 0 })
 #define CX_TRANSFORM_GIZMO_Z_AXIS ((const float[]){ 0, 0, 1 })
 
+#define CX_TRANSFORM_GIZMO_SCALE_MOD 0.3f
+
 static struct {
 	const struct cx_gfx_mesh* t_meshes[7];
 	const struct cx_gfx_mesh* r_meshes[4];
 	const struct cx_gfx_mesh* s_meshes[7];
+	struct {
+		float color_ka[4];
+	} material_hovered;
 } shared_resources;
 
 static void cx_transform_gizmo_init_shared_resource(
@@ -48,6 +54,14 @@ static void cx_transform_gizmo_update_transform(
 	const struct transform* p_target_transform,
 	const float* p_view_pos,
 	float gizmo_view_scale);
+
+static void cx_transform_gizmo_compute_control_drag_plane_normal(
+	enum cx_transform_gizmo_mode mode,
+	int control,
+	const float* p_gizmo_transform,
+	const float* p_view_pos,
+	const float* p_cursor_world_ray,
+	float* p_out_normal);
 
 static void cx_transform_gizmo_apply(
 	const struct cx_transform_gizmo* p_gizmo,
@@ -132,110 +146,6 @@ static void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-static void cx_transform_gizmo_compute_control_drag_plane_normal(
-	enum cx_transform_gizmo_mode mode,
-	int control,
-	const float* p_gizmo_transform,
-	const float* p_view_pos,
-	const float* p_cursor_world_ray,
-	float* p_out_normal) {
-
-	switch (mode) {
-		case CX_TRANSFORM_GIZMO_MODE_translate: {
-		switch (control) {
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
-				vec3_norm(&p_gizmo_transform[0], p_out_normal);
-				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
-				vec3_norm(&p_gizmo_transform[4], p_out_normal);
-				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
-				vec3_norm(&p_gizmo_transform[8], p_out_normal);
-				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY: {
-				vec3_norm(&p_gizmo_transform[8], p_out_normal);
-				break;
-			}
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ: {
-				vec3_norm(&p_gizmo_transform[4], p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ: {
-				vec3_norm(&p_gizmo_transform[0], p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
-				vec3_mul_s(p_cursor_world_ray, -1, p_out_normal);
-				break;
-			}
-		} break; }
-
-		case CX_TRANSFORM_GIZMO_MODE_rotate: {
-		switch (control) {
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
-				vec3_norm(&p_gizmo_transform[0], p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
-				vec3_norm(&p_gizmo_transform[4], p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
-				vec3_norm(&p_gizmo_transform[8], p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
-				vec3_mul_s(p_cursor_world_ray, -1, p_out_normal);
-				break;
-			}
-		} break; }
-
-		case CX_TRANSFORM_GIZMO_MODE_scale: {
-		switch(control) {
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ:
-			/* FALLTHROUGH */
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
-				vec3_copy(CX_TRANSFORM_GIZMO_X_AXIS, p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ:
-			/* FALLTHROUGH */
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
-				vec3_copy(CX_TRANSFORM_GIZMO_Y_AXIS, p_out_normal);
-				break;
-			}
-
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY:
-			/* FALLTHROUGH */
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
-				vec3_copy(CX_TRANSFORM_GIZMO_Z_AXIS, p_out_normal);
-				break;
-			}
-			
-			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
-				float control_plane_normal[3];
-				vec3_mul_s(p_cursor_world_ray, -1, control_plane_normal);
-				break;
-			}
-		} break; }
-    }
-}
-
 void cx_transform_gizmo_init_shared_resources(struct cx_asset_package* p_package) {
 	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
 	struct cx_blueprint* p_blueprint;
@@ -269,9 +179,9 @@ void cx_transform_gizmo_init_shared_resources(struct cx_asset_package* p_package
 	cx_transform_gizmo_init_shared_resource(p_blueprint, 5, &shared_resources.s_meshes[4]);
 	cx_transform_gizmo_init_shared_resource(p_blueprint, 6, &shared_resources.s_meshes[5]);
 	cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.s_meshes[6]);
-}
 
-#undef CX_GIZMO_CONTROL_INIT
+	vec_copy(4, CX_TRANSFORM_GIZMO_CONTROL_COLOR_HOVER, shared_resources.material_hovered.color_ka);
+}
 
 static inline void cx_transform_gizmo_init_control(
 	uint32_t object_id,
@@ -280,7 +190,7 @@ static inline void cx_transform_gizmo_init_control(
 
 	matrix_make_identity(p_out->object_data.transform);
 	p_out->object_data.object_id = CX_OBJECT_ID_MAKE(CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY, object_id);
-	vec3_copy(p_color, p_out->material_data.color_ka);
+	vec_copy(4, p_color, p_out->material_data.color_ka);
 }
 
 void cx_transform_gizmo_init_controls(struct cx_transform_gizmo* p_gizmo) {
@@ -353,48 +263,51 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 
 	cx_transform_gizmo_update_transform(p_gizmo, p_target_transform, p_view_pos, gizmo_view_scale);
 
+	const int b_mouse_on_gizmo =
+		CX_OBJECT_ID_GET_CATEGORY(object_id_under_cursor) ==
+		CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY;
+	
 	if (p_gizmo->interaction_state == CX_TRANSFORM_GIZMO_INTERACTION_STATE_idle) {
-		const int b_mouse_on_gizmo =
-			CX_OBJECT_ID_GET_CATEGORY(object_id_under_cursor) ==
-			CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY;
+		if (b_mouse_on_gizmo) {
+			p_gizmo->active_control_id = object_id_under_cursor;
 
-		if (input_frame_is_mouse_button_pressed(MOUSE_BUTTON_left) && b_mouse_on_gizmo) {
-			p_gizmo->drag_state.initial_target_transform = *p_target_transform;
+			if (input_frame_is_mouse_button_pressed(MOUSE_BUTTON_left)) {
+				p_gizmo->drag_state.initial_target_transform = *p_target_transform;
 
-			float control_drag_plane_normal[3];
-			cx_transform_gizmo_compute_control_drag_plane_normal(
-				p_gizmo->mode,
-				CX_OBJECT_ID_GET_PAYLOAD(object_id_under_cursor),
-				p_gizmo->gizmo_transform,
-				p_view_pos,
-				p_cursor_world_ray,
-				control_drag_plane_normal);
+				float control_drag_plane_normal[3];
+				cx_transform_gizmo_compute_control_drag_plane_normal(
+					p_gizmo->mode,
+					CX_OBJECT_ID_GET_PAYLOAD(p_gizmo->active_control_id),
+					p_gizmo->gizmo_transform,
+					p_view_pos,
+					p_cursor_world_ray,
+					control_drag_plane_normal);
 
-			cx_transform_gizmo_compute_control_plane_cursor_intersection(
-				&p_gizmo->gizmo_transform[12],
-				control_drag_plane_normal,
-				p_view_pos,
-				p_cursor_world_ray,
-				p_gizmo->drag_state.manipulation_origin);
-			
-			p_gizmo->interaction_state = CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress;
+				cx_transform_gizmo_compute_control_plane_cursor_intersection(
+					&p_gizmo->gizmo_transform[12],
+					control_drag_plane_normal,
+					p_view_pos,
+					p_cursor_world_ray,
+					p_gizmo->drag_state.manipulation_origin);
+				
+				p_gizmo->interaction_state = CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress;
 
-			CX_LOG(INFO, GIZMO, "interaction started\n");
-
+				*p_out_transform = p_gizmo->drag_state.initial_target_transform;
+			}
+		} else {
+			p_gizmo->active_control_id = CX_OBJECT_ID_NONE;
 		}
 	} else if (p_gizmo->interaction_state == CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress) {
+		*p_out_transform = p_gizmo->drag_state.initial_target_transform;
+
 		cx_transform_gizmo_apply(
 			p_gizmo,
-			CX_OBJECT_ID_GET_PAYLOAD(object_id_under_cursor),
+			CX_OBJECT_ID_GET_PAYLOAD(p_gizmo->active_control_id),
 			p_view_pos, p_cursor_world_ray,
 			p_out_transform);
 
-		cx_transform_gizmo_update_transform(p_gizmo, p_out_transform, p_view_pos, gizmo_view_scale);
-
 		if (input_frame_is_mouse_button_released(MOUSE_BUTTON_left)) {
 			p_gizmo->interaction_state = CX_TRANSFORM_GIZMO_INTERACTION_STATE_ended;
-
-			CX_LOG(INFO, GIZMO, "interaction ended\n");
 		}
 	} else {
 		p_gizmo->interaction_state = CX_TRANSFORM_GIZMO_INTERACTION_STATE_idle;
@@ -410,10 +323,14 @@ void cx_transform_gizmo_record_flat_color_pass_commands(
 	switch (p_gizmo->mode) {
 		case CX_TRANSFORM_GIZMO_MODE_translate: {
 			for (size_t i = 0; i < 7; ++i) {
+				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.t[i];
 				cx_render_command_buffer_push(p_buffer, &((struct cx_render_command){
 					.p_mesh = shared_resources.t_meshes[i],
-					.p_object_data = &p_gizmo->render_data.t[i].object_data,
-					.p_material_data = &p_gizmo->render_data.t[i].material_data,
+					.p_object_data = &p_rd->object_data,
+					.p_material_data =
+						(p_rd->object_data.object_id == p_gizmo->active_control_id) ? 
+							(const void*)&shared_resources.material_hovered :
+							(const void*)&p_rd->material_data,
 				}));
 			}
 			break;
@@ -421,10 +338,14 @@ void cx_transform_gizmo_record_flat_color_pass_commands(
 
 		case CX_TRANSFORM_GIZMO_MODE_rotate: {
 			for (size_t i = 0; i < 4; ++i) {
+				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.r[i];
 				cx_render_command_buffer_push(p_buffer, &((struct cx_render_command){
 					.p_mesh = shared_resources.r_meshes[i],
-					.p_object_data = &p_gizmo->render_data.r[i].object_data,
-					.p_material_data = &p_gizmo->render_data.r[i].material_data,
+					.p_object_data = &p_rd->object_data,
+					.p_material_data =
+						(p_rd->object_data.object_id == p_gizmo->active_control_id) ? 
+							(const void*)&shared_resources.material_hovered :
+							(const void*)&p_rd->material_data,
 				}));
 			}
 			break;
@@ -432,10 +353,14 @@ void cx_transform_gizmo_record_flat_color_pass_commands(
 
 		case CX_TRANSFORM_GIZMO_MODE_scale: {
 			for (size_t i = 0; i < 7; ++i) {
+				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.s[i];
 				cx_render_command_buffer_push(p_buffer, &((struct cx_render_command){
 					.p_mesh = shared_resources.s_meshes[i],
-					.p_object_data = &p_gizmo->render_data.s[i].object_data,
-					.p_material_data = &p_gizmo->render_data.s[i].material_data,
+					.p_object_data = &p_rd->object_data,
+					.p_material_data =
+						(p_rd->object_data.object_id == p_gizmo->active_control_id) ? 
+							(const void*)&shared_resources.material_hovered :
+							(const void*)&p_rd->material_data,
 				}));
 			}
 			break;
@@ -503,40 +428,119 @@ void cx_transform_gizmo_update_transform(
 	}
 }
 
+void cx_transform_gizmo_compute_control_drag_plane_normal(
+	enum cx_transform_gizmo_mode mode,
+	int control,
+	const float* p_gizmo_transform,
+	const float* p_view_pos,
+	const float* p_cursor_world_ray,
+	float* p_out_normal) {
+
+	switch (mode) {
+		case CX_TRANSFORM_GIZMO_MODE_translate:
+		/* FALLTHROUGH */
+		case CX_TRANSFORM_GIZMO_MODE_scale: {
+		switch (control) {
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
+				vec3_norm(&p_gizmo_transform[0], p_out_normal);
+				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
+				vec3_norm(&p_gizmo_transform[4], p_out_normal);
+				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
+				vec3_norm(&p_gizmo_transform[8], p_out_normal);
+				cx_transform_gizmo_compute_control_plane_normal(p_out_normal, p_view_pos, p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XY: {
+				vec3_norm(&p_gizmo_transform[8], p_out_normal);
+				break;
+			}
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_XZ: {
+				vec3_norm(&p_gizmo_transform[4], p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_YZ: {
+				vec3_norm(&p_gizmo_transform[0], p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
+				vec3_mul_s(p_cursor_world_ray, -1, p_out_normal);
+				break;
+			}
+		} break; }
+
+		case CX_TRANSFORM_GIZMO_MODE_rotate: {
+		switch (control) {
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_X: {
+				vec3_norm(&p_gizmo_transform[0], p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Y: {
+				vec3_norm(&p_gizmo_transform[4], p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_Z: {
+				vec3_norm(&p_gizmo_transform[8], p_out_normal);
+				break;
+			}
+			
+			case CX_TRANSFORM_GIZMO_CONTROL_OBJECT_ID_CENTER: {
+				vec3_mul_s(p_cursor_world_ray, -1, p_out_normal);
+				break;
+			}
+		} break; }
+    }
+}
+
 void cx_transform_gizmo_apply(
 	const struct cx_transform_gizmo* p_gizmo,
 	uint32_t control_id,
 	const float* p_view_pos, const float* p_view_ray,
-	struct transform* p_out_transform) {
+	struct transform* p_transform) {
 
 	switch (p_gizmo->mode) {
 		case CX_TRANSFORM_GIZMO_MODE_translate: {
+			float position[3];
 			cx_transform_gizmo_apply_translation(p_gizmo,
 				control_id,
 				p_view_pos, p_view_ray,
-				p_out_transform->world_position, p_out_transform->world_position);
+				p_transform->world_position, position);
+			transform_set_world_position(p_transform, position);
 			break;
 		}
 
 		case CX_TRANSFORM_GIZMO_MODE_rotate: {
+			float rotation[4];
 			cx_transform_gizmo_apply_rotation(p_gizmo, 
 				control_id,
 				p_view_pos, p_view_ray,
-				p_out_transform->world_rotation, p_out_transform->world_rotation);
+				p_transform->world_rotation, rotation);
+			transform_set_world_rotation(p_transform, rotation);
 			break;
 		}
 
 		case CX_TRANSFORM_GIZMO_MODE_scale: {
-			float new_world_scale[3];
+			float scale[3];
 			cx_transform_gizmo_apply_scale(p_gizmo,
 				control_id,
 				p_view_pos, p_view_ray,
-				p_out_transform->world_scale, new_world_scale);
-			transform_set_world_scale(p_out_transform, new_world_scale);
+				p_transform->world_scale, scale);
+			transform_set_world_scale(p_transform, scale);
 			break;
 		}
 	}
-
 }
 
 void cx_transform_gizmo_apply_translation(
@@ -807,6 +811,7 @@ void cx_transform_gizmo_compute_cursor_delta_on_plane(
     }
 
     vec3_sub(cursor_ray_intersection, p_cursor_world_start, p_out_cursor_world_delta);
+
 }
 
 float cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
@@ -900,19 +905,21 @@ void cx_transform_gizmo_apply_rotation_around_axis(
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_q, float* p_out_q) {
 
-    const float angle = cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
+
+    const float angle_delta = cx_transform_gizmo_compute_cursor_angle_delta_on_plane(
 		p_control_origin,
 		p_control_axis,
 		p_cursor_ray_origin,
 		p_cursor_ray,
 		p_cursor_world_start);
 
-    if (FLT_CMP(angle, 0)) {
+    if (FLT_CMP(angle_delta, 0)) {
+		vec_copy(4, p_q, p_out_q);
         return;
     }
 
     float rotation[4];
-    quaternion_from_axis_angle(p_control_axis, angle, rotation);
+    quaternion_from_axis_angle(p_control_axis, angle_delta, rotation);
     quaternion_multiply(rotation, p_q, p_out_q);
     quaternion_norm(p_out_q, p_out_q);
 }
@@ -965,8 +972,7 @@ void cx_transform_gizmo_apply_scale_on_axis(
 		p_cursor_world_start,
 		cursor_world_delta);
     
-    const float mod = 0.3f;
-    vec3_mul_s(cursor_world_delta, mod, cursor_world_delta);
+	vec3_mul_s(cursor_world_delta, CX_TRANSFORM_GIZMO_SCALE_MOD, cursor_world_delta);
     
     vec3_add(p_v, cursor_world_delta, p_out_v);
 }
@@ -985,8 +991,7 @@ void cx_transform_gizmo_apply_scale_on_plane(
 		p_cursor_world_start,
 		cursor_world_delta);
 
-    const float mod = 0.3f;
-    vec3_mul_s(cursor_world_delta, mod, cursor_world_delta);
+	vec3_mul_s(cursor_world_delta, CX_TRANSFORM_GIZMO_SCALE_MOD, cursor_world_delta);
 
     vec3_add(p_v, cursor_world_delta, p_out_v);
 }
@@ -1006,7 +1011,6 @@ void cx_transform_gizmo_apply_scale_uniformly(
 		cursor_world_delta);
 
     const float avg = (cursor_world_delta[0] + cursor_world_delta[1] + cursor_world_delta[2]) / 3;
-    const float mod = 0.3f;
 
-    vec3_add_s(p_v, avg * mod, p_out_v);
+    vec3_add_s(p_v, avg * CX_TRANSFORM_GIZMO_SCALE_MOD, p_out_v);
 }

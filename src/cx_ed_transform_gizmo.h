@@ -36,8 +36,9 @@ struct cx_transform_gizmo_control_render_data {
 struct cx_transform_gizmo {
 	enum cx_transform_gizmo_mode mode;
 	enum cx_transform_gizmo_interaction_state interaction_state;
-	int                  b_use_local_axes;
-	float                gizmo_transform[16];
+	int      b_use_local_axes;
+	float    gizmo_transform[16];
+	uint32_t active_control_id;
 
 	struct {
 		struct transform initial_target_transform;
