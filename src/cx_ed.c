@@ -53,6 +53,13 @@ static struct {
 	struct cx_render_pass render_pass_forward;
 	struct cx_render_pass render_pass_flat_color;
 
+	struct cx_transform_gizmo gizmo;
+
+	GLuint gl_dummy_vao;
+	struct cx_gfx_program grid_program;
+	struct cx_gfx_program_param_block grid_program_pblk_camera;
+	struct cx_gfx_program_param_buffer grid_program_pbuf_camera;
+
 	struct cx_world world;
 	struct physics_world physics_world;
 
@@ -61,8 +68,6 @@ static struct {
 	uint32_t object_id_at_cursor;
 	uint16_t selected_entity_id;
 	uint16_t entity_id_at_cursor;
-
-	struct cx_transform_gizmo gizmo;
 
 	// buffers for command flog builder
 	char                   flog_builder_str_buf[1024];
@@ -206,6 +211,23 @@ void cx_ed_init(struct platform_window* p_window) {
 	void* p_vsource;
 	void* p_fsource;
 	
+	glGenVertexArrays(1, &ed.gl_dummy_vao);
+
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/fullscreen_tri.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/ed_grid.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
+
+	CX_ASSERT(cx_gfx_program_create(&ed.grid_program) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_gfx_program_build(&ed.grid_program, &((struct cx_gfx_program_source) {
+		.s_vertex_stage_source = p_vsource,
+		.s_fragment_stage_source = p_fsource
+	})) == CX_ERROR_none, ED);
+
+	cx_io_file_free(p_vsource);
+	cx_io_file_free(p_fsource);
+
+	cx_gfx_program_refl_param_block(&ed.grid_program, "blk_camera", &ed.grid_program_pblk_camera);
+	cx_gfx_program_param_buffer_create(&ed.grid_program_pbuf_camera, ed.grid_program_pblk_camera.size_);
+
 	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
 	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
 
@@ -414,7 +436,14 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 		(float)fb_width / (float)fb_height,
 		0.01f, 1000.0f,
 		ed.camera.projection_matrix);
-            
+           
+	// WORLD
+	
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	glDepthMask(GL_TRUE);
+
 	struct cx_render_pass_execute_info render_pass_execute_info = {
 		.p_framebuffer = p_fb,
 		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
@@ -442,10 +471,42 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 		&render_command_buffer);
 	render_command_buffer.num = 0;
 
+	// GRID
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDepthMask(GL_FALSE);
+
+	cx_gfx_program_bind(&ed.grid_program);
+
+	cx_gfx_program_param_block_bind_buffer(&((struct cx_gfx_program_param_block_binding) { 
+		.p_block = &ed.grid_program_pblk_camera,
+		.p_buffer = &ed.grid_program_pbuf_camera
+	}));
+
+	struct {
+		float projection_view_matrix[16];
+		float inv_projection_view_matrix[16];
+	} pblk_camera_data;
+
+	matrix_multiply(ed.camera.projection_matrix, ed.camera.view_matrix, pblk_camera_data.projection_view_matrix);
+	matrix_inverse(4, pblk_camera_data.projection_view_matrix, pblk_camera_data.inv_projection_view_matrix);
+
+	cx_gfx_program_param_buffer_set(&ed.grid_program_pbuf_camera, 0, 0, &pblk_camera_data);
+
+	glBindVertexArray(ed.gl_dummy_vao);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	// GIZMO
+
 	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
+		glEnable(GL_DEPTH_TEST);
+
 		cx_transform_gizmo_record_flat_color_pass_commands(&ed.gizmo, &render_command_buffer);
 
 		render_pass_execute_info.b_clear_color = 0;
+		render_pass_execute_info.b_clear_depth = 1;
 
 		cx_render_pass_execute(
 			&ed.render_pass_flat_color,
@@ -454,6 +515,8 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 			&render_command_buffer);
 		render_command_buffer.num = 0;
 	}
+
+	// OBJECT PICKER
 
 	cx_world_renderer_record_picker_pass_commands(&ed.world, &render_command_buffer);
 
