@@ -57,9 +57,9 @@ void transform_set_world_rotation(struct transform* p_transform, const float* p_
         quaternion_conjugate(p_transform->p_local_transform->world_rotation, p_transform->rotation);
         quaternion_multiply(p_transform->rotation, p_rotation, p_transform->rotation);
     } else {
-        vec3_copy(p_rotation, p_transform->rotation);
+        vec_copy(4, p_rotation, p_transform->rotation);
     }
-    vec3_copy(p_rotation, p_transform->world_rotation);
+    vec_copy(4, p_rotation, p_transform->world_rotation);
 }
 
 void transform_set_world_scale(struct transform* p_transform, const float* p_scale) {
