@@ -56,4 +56,10 @@ static inline char* cx_str_tmp_vec3(const float* p_v) {
 	return p_buf;
 }
 
+static inline char* cx_str_tmp_quaternion(const float* p_q) {
+	char* p_buf = cx_str_tmp_buf();
+	*cx_str_f32_n(p_buf, p_q, 4) = '\0';
+	return p_buf;
+}
+
 #endif
