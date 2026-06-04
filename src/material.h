@@ -6,8 +6,8 @@
 #define ASSET_TYPE_MATERIAL 3
 
 struct material {
-    cx_asset_handle p_texture;
-    float        color[4];
+	cx_asset_handle p_texture;
+	float        color[4];
 };
 
 #endif

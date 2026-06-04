@@ -7,20 +7,20 @@
 #define CX_LOG_CAT_HASHTABLE "hashtable"
 
 struct hashtable {
-    size_t element_size_;
-    size_t n_elements_;
-    void*  p_buckets_;
-    size_t n_buckets_;
+	size_t element_size_;
+	size_t n_elements_;
+	void*  p_buckets_;
+	size_t n_buckets_;
 };
 
 struct hashtable_itr {
-    const void*  p_key;
-    size_t       key_len;
-    void*        p_value;
+	const void*  p_key;
+	size_t       key_len;
+	void*        p_value;
 
-    const struct hashtable* p_table_;
-    size_t                  bucket_index_;
-    const void*             p_element_;
+	const struct hashtable* p_table_;
+	size_t                  bucket_index_;
+	const void*             p_element_;
 };
 
 void  hashtable_init(struct hashtable* p_table, size_t element_size);

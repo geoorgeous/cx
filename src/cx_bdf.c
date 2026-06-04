@@ -195,9 +195,9 @@ const char* cx_tok_next(const char** pp, size_t* p_out_len) {
 	const char* p_token = *pp;
 
 	while (**pp &&
-           **pp != ' ' &&
-           **pp != '\t' &&
-           **pp != '\n') {
+		   **pp != ' ' &&
+		   **pp != '\t' &&
+		   **pp != '\n') {
 		(*pp)++;
 	}
 

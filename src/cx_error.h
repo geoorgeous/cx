@@ -2,7 +2,7 @@
 #define CX_ERROR_H
 
 enum cx_error {
-    CX_ERROR_none = 0,
+	CX_ERROR_none = 0,
 
 	CX_ERROR_invalid_argument,
 	CX_ERROR_allocation_failed,

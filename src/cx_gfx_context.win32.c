@@ -84,20 +84,20 @@ static void gl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLe
 #endif
 
 struct gl_context_win32_internals {
-    HDC   hdc;
-    HGLRC hrc;
+	HDC   hdc;
+	HGLRC hrc;
 };
 
 enum error cx_gfx_context_create(const struct platform_window* p_window, struct cx_gfx_context* p_out_context) {
-    struct gl_context_win32_internals* p_context_win32_internals = (void*)p_out_context->_bytes;
-    const struct platform_window_win32_internals* p_window_win32_internals = (const void*)p_window->_bytes;
+	struct gl_context_win32_internals* p_context_win32_internals = (void*)p_out_context->_bytes;
+	const struct platform_window_win32_internals* p_window_win32_internals = (const void*)p_window->_bytes;
 
-    enum error err = win32_load_gl_functions();
+	enum error err = win32_load_gl_functions();
 	if (err != CX_ERROR_none) {
 		return err;
 	}
 
-    // Now we can choose a pixel format the modern way, using wglChoosePixelFormatARB.
+	// Now we can choose a pixel format the modern way, using wglChoosePixelFormatARB.
 	int pixel_format_attribs[] = {
 		WGL_DRAW_TO_WINDOW_ARB,     GL_TRUE,
 		WGL_SUPPORT_OPENGL_ARB,     GL_TRUE,
@@ -164,7 +164,7 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 
 	p_context_win32_internals->hdc = p_window_win32_internals->hdc;
 	p_context_win32_internals->hrc = hrc;
-	            
+				
 	GLint context_flags;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
 	
@@ -180,24 +180,24 @@ enum error cx_gfx_context_create(const struct platform_window* p_window, struct 
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
-    struct gl_context_win32_internals* p_internals = (void*)p_context->_bytes;
+	struct gl_context_win32_internals* p_internals = (void*)p_context->_bytes;
 
 	wglDeleteContext(p_internals->hrc);
 }
 
 enum error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
-    const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
+	const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
-    if (wglMakeCurrent(p_internals->hdc, p_internals->hrc)) {
+	if (wglMakeCurrent(p_internals->hdc, p_internals->hrc)) {
 		return CX_ERROR_none;
 	}
 	return CX_ERROR_gl_make_current;
 }
 
 enum error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
-    const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
+	const struct gl_context_win32_internals* p_internals = (const void*)p_context->_bytes;
 
-    if (wglSwapLayerBuffers(p_internals->hdc, WGL_SWAP_MAIN_PLANE)) {
+	if (wglSwapLayerBuffers(p_internals->hdc, WGL_SWAP_MAIN_PLANE)) {
 		return CX_ERROR_none;
 	}
 
@@ -221,7 +221,7 @@ enum error cx_gfx_context_set_swap_interval(const struct cx_gfx_context *p_conte
 }
 
 enum error win32_load_gl_functions(void) {
-    static int b_loaded = 0;
+	static int b_loaded = 0;
 
 	if (b_loaded) {
 		return CX_ERROR_none;
@@ -353,10 +353,10 @@ void gl_debug_message_callback(
 	const char* message,
 	const void*) {
 
-    const char* s_source = 0;
-    const char* s_type = 0;
+	const char* s_source = 0;
+	const char* s_type = 0;
 
-    switch(source) {
+	switch(source) {
 		case GL_DEBUG_SOURCE_API_ARB:             s_source = "API"; break;
 		case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:   s_source = "Window system"; break;
 		case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB: s_source = "Shader compiler"; break;
@@ -366,7 +366,7 @@ void gl_debug_message_callback(
 		default:                                  s_source = "???"; break;
 	};
 
-    switch (type) {
+	switch (type) {
 		case GL_DEBUG_TYPE_ERROR_ARB:               s_type = "Error"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB: s_type = "Deprecated behaviour"; break;
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:  s_type = "Undedfined behaviour"; break;

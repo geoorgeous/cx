@@ -19,8 +19,8 @@
 typedef uint32_t cx_asset_id;
 
 struct cx_asset {
-    void* p_data_;
-    cx_asset_id id_;
+	void* p_data_;
+	cx_asset_id id_;
 };
 
 typedef int(*cx_asset_serialize_fn)(FILE*, const void*);
@@ -36,9 +36,9 @@ void cx_asset_register_type(
 	cx_asset_free_fn f_free);
 
 struct cx_asset_package_record {
-    struct cx_asset asset_;
-    struct cx_asset_package* p_package_;
-    uint32_t file_location_;
+	struct cx_asset asset_;
+	struct cx_asset_package* p_package_;
+	uint32_t file_location_;
 };
 
 typedef struct cx_asset_package_record* cx_asset_handle;
@@ -47,8 +47,8 @@ int  cx_asset_load(cx_asset_handle p_record);
 void cx_asset_free(cx_asset_handle p_record);
 
 struct cx_asset_package {
-    char s_filename_[CX_ASSET_PACKAGE_FILENAME_MAX_LEN];
-    struct hashtable asset_type_record_tables_;
+	char s_filename_[CX_ASSET_PACKAGE_FILENAME_MAX_LEN];
+	struct hashtable asset_type_record_tables_;
 };
 
 void cx_asset_package_init(struct cx_asset_package* p_package);

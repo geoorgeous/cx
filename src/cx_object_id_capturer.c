@@ -32,10 +32,10 @@ void cx_object_id_capturer_draw(
 
 	cx_object_id_capturer_init_statics();
 
-    if (p_capturer->framebuffer_width != fb_width ||
+	if (p_capturer->framebuffer_width != fb_width ||
 		p_capturer->framebuffer_height!= fb_height) {
 		cx_object_id_capturer_rebuild_framebuffer(p_capturer, fb_width, fb_height);
-    }
+	}
 
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -64,7 +64,7 @@ void cx_object_id_capturer_draw(
 }
 
 uint32_t cx_object_id_capturer_query(const struct cx_object_id_capturer* p_capturer, float x, float y) {
-    x = clampf(x, 0, 1);
+	x = clampf(x, 0, 1);
 	y = clampf(y, 0, 1);
 	
 	uint32_t pixel_location[] = { 

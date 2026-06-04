@@ -4,11 +4,11 @@
 #include <stddef.h>
 
 struct object_pool {
-    size_t object_size_;
-    size_t capacity_;
-    void*  p_objects_;
-    void*  p_next_free_;
-    void*  p_allocated_head_;
+	size_t object_size_;
+	size_t capacity_;
+	void*  p_objects_;
+	void*  p_next_free_;
+	void*  p_allocated_head_;
 };
 
 void  object_pool_init(struct object_pool* p_pool, size_t object_size, size_t capacity);

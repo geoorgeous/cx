@@ -52,14 +52,14 @@ enum cx_error cx_gfx_texture_create(
 	struct cx_gfx_texture* p_texture,
 	uint32_t width, uint32_t height,
 	enum cx_pixel_format pixel_format) {
-    
+	
 	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
 
 	GLuint id;
 
-    glGenTextures(1, &id);
+	glGenTextures(1, &id);
 
-    glBindTexture(GL_TEXTURE_2D, id);
+	glBindTexture(GL_TEXTURE_2D, id);
 
 	const GLint gl_internal_format = gl_pixel_format_table[pixel_format];
 	
@@ -67,7 +67,7 @@ enum cx_error cx_gfx_texture_create(
 	GLint gl_pixel_type;
 	get_valid_pixel_transfer_params_for_format(gl_internal_format, &gl_pixel_format, &gl_pixel_type);
 
-    glTexImage2D(
+	glTexImage2D(
 		GL_TEXTURE_2D,
 		0,
 		gl_internal_format,
@@ -150,8 +150,8 @@ void cx_gfx_texture_set_sampler_settings(
 
 	glBindTexture(GL_TEXTURE_2D, p_internals->id);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  gl_filter_mode_table[p_sampler_settings->min_filter_mode]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_mode_table[p_sampler_settings->mag_filter_mode]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  gl_filter_mode_table[p_sampler_settings->min_filter_mode]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_mode_table[p_sampler_settings->mag_filter_mode]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, gl_address_mode_table[p_sampler_settings->address_mode_u]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gl_address_mode_table[p_sampler_settings->address_mode_v]);
 

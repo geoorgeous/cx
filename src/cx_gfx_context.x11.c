@@ -16,9 +16,9 @@
 #define GLX_MIN_VERSION_MINOR 2
 
 typedef GLXContext glXCreateContextAttribsARB_fn(
-    Display *dpy, GLXFBConfig config,
+	Display *dpy, GLXFBConfig config,
 	GLXContext share_context, Bool direct,
-    const int *attrib_list);
+	const int *attrib_list);
 glXCreateContextAttribsARB_fn* f_glXCreateContextAttribsARB;
 
 #define GLX_CONTEXT_MAJOR_VERSION_ARB             0x2091
@@ -94,17 +94,17 @@ static void gl_debug_message_callback(
 	} while(0)
 	
 struct gl_context_nix_x11_internals {
-    const struct platform_window* p_window;
-    XVisualInfo*                  p_visualinfo;
-    GLXContext                    context;
+	const struct platform_window* p_window;
+	XVisualInfo*                  p_visualinfo;
+	GLXContext                    context;
 };
 
 enum cx_error cx_gfx_context_create(
 	const struct platform_window* p_window,
 	struct cx_gfx_context* p_out_context) {
 
-    struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->bytes_;
-    const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->internals_.bytes_;
+	struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->bytes_;
+	const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->internals_.bytes_;
 	
 	GLint glx_version_major = 0;
 	GLint glx_version_minor = 0;
@@ -158,7 +158,7 @@ enum cx_error cx_gfx_context_create(
 		return CX_ERROR_api_glx;
 	}
 
-    glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
+	glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
 
 #ifndef NDEBUG
 	CX_GFX_CONTEXT_GET_GLX_PROC(glDebugMessageCallbackARB);
@@ -172,7 +172,7 @@ enum cx_error cx_gfx_context_create(
 	}
 #endif
 
-    p_context_internals->p_window = p_window;
+	p_context_internals->p_window = p_window;
 
 	CX_GFX_CONTEXT_GET_GLX_PROC(glXSwapIntervalEXT);
 
@@ -188,22 +188,22 @@ enum cx_error cx_gfx_context_create(
 		"Graphics platform: %s, %s\n",
 		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
-    return CX_ERROR_none;
+	return CX_ERROR_none;
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-    const struct platform_window_nix_x11_internals* p_window_internals =
+	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+	const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
-    glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
+	glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
 }
 
 enum cx_error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-    const struct platform_window_nix_x11_internals* p_window_internals =
+	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+	const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
-    glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
-    return CX_ERROR_none;
+	glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
+	return CX_ERROR_none;
 }
 
 const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_gfx_context* p_context) {
@@ -213,15 +213,15 @@ const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_g
 }
 
 enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-    const struct platform_window_nix_x11_internals* p_window_internals =
+	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+	const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
-    glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
-    return CX_ERROR_none;
+	glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
+	return CX_ERROR_none;
 }
 
 unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_context) {
-    const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
 	const struct platform_window_nix_x11_internals* p_platform_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	unsigned int interval;
@@ -235,7 +235,7 @@ unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_con
 
 enum cx_error cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
 	if (f_glXSwapIntervalEXT) {
-    	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
+		const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
 		const struct platform_window_nix_x11_internals* p_platform_window_internals =
 			(const void*)p_context_internals->p_window->internals_.bytes_;
 		f_glXSwapIntervalEXT(p_platform_window_internals->p_display, p_platform_window_internals->window, (int)interval);
@@ -259,10 +259,10 @@ void gl_debug_message_callback(
 	(void)length;
 	(void)p_user_ptr;
 
-    const char* s_source = 0;
-    const char* s_type = 0;
+	const char* s_source = 0;
+	const char* s_type = 0;
 
-    switch(source) {
+	switch(source) {
 		case GL_DEBUG_SOURCE_API_ARB:             s_source = "API"; break;
 		case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:   s_source = "Window system"; break;
 		case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB: s_source = "Shader compiler"; break;
@@ -272,7 +272,7 @@ void gl_debug_message_callback(
 		default:                                  s_source = "???"; break;
 	};
 
-    switch (type) {
+	switch (type) {
 		case GL_DEBUG_TYPE_ERROR_ARB:               s_type = "Error"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB: s_type = "Deprecated behaviour"; break;
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:  s_type = "Undedfined behaviour"; break;

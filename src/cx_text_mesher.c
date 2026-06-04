@@ -250,66 +250,66 @@ void cx_text_mesher_generate(
 
 	struct cx_mesh_data* p_mesh_data = &p_out_outputs->mesh_data;
 
-    *p_mesh_data = (struct cx_mesh_data) {
+	*p_mesh_data = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-       		.p_attributes = (void*)(p_buffer + primitive_vertex_buffers_size),
+			.p_attributes = (void*)(p_buffer + primitive_vertex_buffers_size),
 			.num_attributes = 3,
 			.index_type = CX_MESH_VERTEX_INDEX_TYPE_u16,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 		},
-        .p_vertex_buffers = (void*)p_buffer,
-        .vertex_count = num_vertices,
-        .index_buffer = {
-            .p_bytes = p_indices,
-            .count = num_indices,
-        },
-        .bounds_min = { 0, 0, 0 },
-        .bounds_max = { 0, 0, 0 }
-    };
+		.p_vertex_buffers = (void*)p_buffer,
+		.vertex_count = num_vertices,
+		.index_buffer = {
+			.p_bytes = p_indices,
+			.count = num_indices,
+		},
+		.bounds_min = { 0, 0, 0 },
+		.bounds_max = { 0, 0, 0 }
+	};
 
-    *p_mesh_data->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = p_vertices,
-        .size = vertices_size
-    };
+	*p_mesh_data->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = p_vertices,
+		.size = vertices_size
+	};
 
-    p_mesh_data->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index = 0,
-        .vertex_buffer_index = 0,
+	p_mesh_data->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index = 0,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride = vertex_size,
-        }
-    };
+		.layout = {
+			.stride = vertex_size,
+		}
+	};
 
-    p_mesh_data->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index = 1,
-        .vertex_buffer_index = 0,
+	p_mesh_data->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index = 1,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 2
 		},
-        .layout = {
-            .offset = sizeof(float) * 3,
-            .stride = vertex_size
-        }
-    };
+		.layout = {
+			.offset = sizeof(float) * 3,
+			.stride = vertex_size
+		}
+	};
 
-    p_mesh_data->layout.p_attributes[2] = (struct cx_mesh_vertex_attribute) {
-        .index = 2,
-        .vertex_buffer_index = 0,
+	p_mesh_data->layout.p_attributes[2] = (struct cx_mesh_vertex_attribute) {
+		.index = 2,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 4
 		},
-        .layout = {
-            .offset = sizeof(float) * 5,
-            .stride = vertex_size
-        }
-    };
+		.layout = {
+			.offset = sizeof(float) * 5,
+			.stride = vertex_size
+		}
+	};
 
 	*p_out_num_outputs = 1;
 }

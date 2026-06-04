@@ -19,36 +19,36 @@ enum input_mod {
 };
 
 enum input_event {
-    INPUT_EVENT_key,
-    INPUT_EVENT_mouse_button,
-    INPUT_EVENT_mouse_move,
-    INPUT_EVENT_scroll,
+	INPUT_EVENT_key,
+	INPUT_EVENT_mouse_button,
+	INPUT_EVENT_mouse_move,
+	INPUT_EVENT_scroll,
 	INPUT_EVENT_char,
 	INPUT_EVENT_MAX_
 };
 
 struct input_event_data_key {
-    enum key     key;
-    int          b_is_down;
+	enum key     key;
+	int          b_is_down;
 	unsigned int mods;
 };
 
 struct input_event_data_mouse_button {
-    enum mouse_button button;
-    int               b_is_down;
-    int               client_pos[2];
+	enum mouse_button button;
+	int               b_is_down;
+	int               client_pos[2];
 	unsigned int      mods;
 };
 
 struct input_event_data_mouse_move {
-    int          delta_x;
-    int          delta_y;
+	int          delta_x;
+	int          delta_y;
 	unsigned int mods;
 };
 
 struct input_event_data_scroll {
-    int delta_x;
-    int delta_y;
+	int delta_x;
+	int delta_y;
 };
 
 struct input_event_data_char {

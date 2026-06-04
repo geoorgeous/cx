@@ -20,10 +20,10 @@ static int  is_log_visible(const char* s_cat, int level);
 static void print_prefix(FILE* p_file, int log_level, const char* s_category);
 
 static const char* k_log_level_strings[] = {
-    CX_LOG_LABEL_TRACE,
-    CX_LOG_LABEL_INFO,
-    CX_LOG_LABEL_WARNING,
-    CX_LOG_LABEL_ERROR,
+	CX_LOG_LABEL_TRACE,
+	CX_LOG_LABEL_INFO,
+	CX_LOG_LABEL_WARNING,
+	CX_LOG_LABEL_ERROR,
 	CX_LOG_LABEL_UNDEFINED
 };
 
@@ -38,11 +38,11 @@ void cx_log(int level, const char* s_cat, const char* s_msg) {
 		return;
 	}
 
-    FILE* const p_file = level == CX_LOG_LEVEL_ERROR ? stderr : stdout;
+	FILE* const p_file = level == CX_LOG_LEVEL_ERROR ? stderr : stdout;
 
-    print_prefix(p_file, level, s_cat);
+	print_prefix(p_file, level, s_cat);
 
-    (void)fputs(s_msg, p_file);
+	(void)fputs(s_msg, p_file);
 }
 
 void cx_log_fmt(int level, const char* s_cat, const char* s_fmt, ...) {
@@ -50,13 +50,13 @@ void cx_log_fmt(int level, const char* s_cat, const char* s_fmt, ...) {
 		return;
 	}
 
-    FILE* const p_file = level == CX_LOG_LEVEL_ERROR ? stderr : stdout;
+	FILE* const p_file = level == CX_LOG_LEVEL_ERROR ? stderr : stdout;
 	
-    print_prefix(p_file, level, s_cat);
+	print_prefix(p_file, level, s_cat);
 
-    va_list args;
-    va_start(args, s_fmt);
-    
+	va_list args;
+	va_start(args, s_fmt);
+	
 	// Suppress warning about passing non-literal string to printf func.	
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -65,14 +65,14 @@ void cx_log_fmt(int level, const char* s_cat, const char* s_fmt, ...) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 #endif
-    (void)vfprintf(p_file, s_fmt, args);
+	(void)vfprintf(p_file, s_fmt, args);
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNU__)
 #pragma GCC diagnostic pop
 #endif
 
-    va_end(args);
+	va_end(args);
 }
 
 void cx_log_cat_set(const char *s_cat, int min_level) {
@@ -174,15 +174,15 @@ int is_log_visible(const char* s_cat, int level) {
 }
 
 void print_prefix(FILE* p_file, int log_level, const char* s_category) {
-    static char timestamp_str_buffer[20];
+	static char timestamp_str_buffer[20];
 
-    time_t timestamp = time(0);
-    struct tm* tm = localtime(&timestamp);
-    (void)strftime(timestamp_str_buffer, sizeof(timestamp_str_buffer), "%Y-%m-%d %H:%M:%S", tm);
+	time_t timestamp = time(0);
+	struct tm* tm = localtime(&timestamp);
+	(void)strftime(timestamp_str_buffer, sizeof(timestamp_str_buffer), "%Y-%m-%d %H:%M:%S", tm);
 
-    if (s_category) {
-        (void)fprintf(p_file, "[%s]%s: (%s) ", timestamp_str_buffer, k_log_level_strings[log_level], s_category);
-    } else {
-        (void)fprintf(p_file, "[%s]%s: ", timestamp_str_buffer, k_log_level_strings[log_level]);
-    }
+	if (s_category) {
+		(void)fprintf(p_file, "[%s]%s: (%s) ", timestamp_str_buffer, k_log_level_strings[log_level], s_category);
+	} else {
+		(void)fprintf(p_file, "[%s]%s: ", timestamp_str_buffer, k_log_level_strings[log_level]);
+	}
 }

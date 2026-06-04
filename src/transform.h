@@ -2,14 +2,14 @@
 #define TRANSFORM_H
 
 struct transform {
-    float             position[3];
-    float             rotation[4];
-    float             scale[3];
-    float             world_position[3];
-    float             world_rotation[4];
-    float             world_scale[3];
-    float             world_trs_matrix[16];
-    struct transform* p_local_transform;
+	float             position[3];
+	float             rotation[4];
+	float             scale[3];
+	float             world_position[3];
+	float             world_rotation[4];
+	float             world_scale[3];
+	float             world_trs_matrix[16];
+	struct transform* p_local_transform;
 };
 
 void transform_make_identity(struct transform* p_transform);

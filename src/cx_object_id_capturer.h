@@ -34,7 +34,7 @@ struct cx_object_id_capturer_object_data {
 };
 
 struct cx_object_id_capturer {
-    uint32_t                  framebuffer_width;
+	uint32_t                  framebuffer_width;
 	uint32_t                  framebuffer_height;
 	struct cx_gfx_framebuffer framebuffer;
 	struct cx_gfx_texture     framebuffer_color;

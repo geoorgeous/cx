@@ -887,20 +887,20 @@ void qh_purge_duplicate_input_points(float* p_point_cloud, size_t* p_num_points)
 	qsort(p_point_cloud, *p_num_points, sizeof(float) * 3, (int(*)(const void*, const void*))qh_sort_cmp);
 
 	size_t m = 1;
-    for (size_t i = 1; i < *p_num_points; ++i) {
+	for (size_t i = 1; i < *p_num_points; ++i) {
 		float* p_a = &p_point_cloud[i * 3];
 		float* p_b = &p_point_cloud[(m - 1) * 3];
-        if (!vec3_cmp(p_a, p_b)) {
-            if (i != m) {
+		if (!vec3_cmp(p_a, p_b)) {
+			if (i != m) {
 				vec3_copy(p_a, &p_point_cloud[m * 3]);
-            }
-            ++m;
-        }
-    }
+			}
+			++m;
+		}
+	}
 
 	CX_DBG(CX_LOG_FMT(INFO, QH, "Purged %d point duplicates\n", *p_num_points - m));
 
-    *p_num_points = m;
+	*p_num_points = m;
 }
 
 void quickhull(float* p_point_cloud, size_t num_points, struct he_mesh* p_hull) {

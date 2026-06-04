@@ -11,26 +11,26 @@
 #define CX_LOG_CAT_PLATFORM_WINDOW "platform:window"
 
 struct platform_window {
-    void(*f_callback_on_created_)(struct platform_window*, void*);
-    void* p_callback_on_created_user_ptr_;
-    void(*f_callback_on_close_)(struct platform_window*, void*);
-    void* p_callback_on_close_user_ptr_;
-    void(*f_callback_on_focus_change_)(struct platform_window*, void*, int);
-    void* p_callback_on_focus_change_user_ptr_;
-    void(*f_callback_on_resize_)(struct platform_window*, void*, uint32_t, uint32_t);
-    void* p_callback_on_resize_user_ptr_;
-    void(*f_callback_on_key_)(struct platform_window*, void*, enum key, int, unsigned int);
-    void* p_callback_on_key_user_ptr_;
-    void(*f_callback_on_mouse_button_)(struct platform_window*, void*, enum mouse_button, int, unsigned int);
-    void* p_callback_on_mouse_button_user_ptr_;
-    void(*f_callback_on_mouse_move_)(struct platform_window*, void*, int, int, unsigned int);
-    void* p_callback_on_mouse_move_user_ptr_;
-    void(*f_callback_on_scroll_)(struct platform_window*, void*, int, unsigned int);
-    void* p_callback_on_scroll_user_ptr_;
-    void(*f_callback_on_char_)(struct platform_window*, void*, unsigned int);
-    void* p_callback_on_char_user_ptr_;
-    int          mouse_pos_[2];
-    int          mouse_pos_old_[2];
+	void(*f_callback_on_created_)(struct platform_window*, void*);
+	void* p_callback_on_created_user_ptr_;
+	void(*f_callback_on_close_)(struct platform_window*, void*);
+	void* p_callback_on_close_user_ptr_;
+	void(*f_callback_on_focus_change_)(struct platform_window*, void*, int);
+	void* p_callback_on_focus_change_user_ptr_;
+	void(*f_callback_on_resize_)(struct platform_window*, void*, uint32_t, uint32_t);
+	void* p_callback_on_resize_user_ptr_;
+	void(*f_callback_on_key_)(struct platform_window*, void*, enum key, int, unsigned int);
+	void* p_callback_on_key_user_ptr_;
+	void(*f_callback_on_mouse_button_)(struct platform_window*, void*, enum mouse_button, int, unsigned int);
+	void* p_callback_on_mouse_button_user_ptr_;
+	void(*f_callback_on_mouse_move_)(struct platform_window*, void*, int, int, unsigned int);
+	void* p_callback_on_mouse_move_user_ptr_;
+	void(*f_callback_on_scroll_)(struct platform_window*, void*, int, unsigned int);
+	void* p_callback_on_scroll_user_ptr_;
+	void(*f_callback_on_char_)(struct platform_window*, void*, unsigned int);
+	void* p_callback_on_char_user_ptr_;
+	int          mouse_pos_[2];
+	int          mouse_pos_old_[2];
 	unsigned int mods_;
 	CX_OPAQUE_INTERNALS(50);
 };

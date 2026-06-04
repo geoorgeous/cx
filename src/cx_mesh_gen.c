@@ -27,33 +27,33 @@ void cx_mesh_gen_quad(
 	const float by = half_height * bitangent[1];
 	const float bz = half_height * bitangent[2];
 
-    const float vertices[] = {
-         -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
-          tx - bx,  ty - by,  tz - bz, p_normal[0], p_normal[1], p_normal[2],
-          tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
+	const float vertices[] = {
+		-tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
+		 tx - bx,  ty - by,  tz - bz, p_normal[0], p_normal[1], p_normal[2],
+		 tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
 
-          tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
-         -tx + bx, -ty + by, -tz + bz, p_normal[0], p_normal[1], p_normal[2],
-         -tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
-    };
-    
-    const size_t num_vertices = 6;
-    const size_t vertex_size = sizeof(float) * 6;
-    const size_t vertices_size = num_vertices * vertex_size;
+		 tx + bx,  ty + by,  tz + bz, p_normal[0], p_normal[1], p_normal[2],
+		-tx + bx, -ty + by, -tz + bz, p_normal[0], p_normal[1], p_normal[2],
+		-tx - bx, -ty - by, -tz - bz, p_normal[0], p_normal[1], p_normal[2],
+	};
+	
+	const size_t num_vertices = 6;
+	const size_t vertex_size = sizeof(float) * 6;
+	const size_t vertices_size = num_vertices * vertex_size;
 
-    float* p_vertices = malloc(vertices_size);
-    memcpy(p_vertices, vertices, vertices_size);
+	float* p_vertices = malloc(vertices_size);
+	memcpy(p_vertices, vertices, vertices_size);
 
-    *p_out = (struct cx_mesh_data) {
+	*p_out = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-        	.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
+			.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
 			.num_attributes = 2,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 		},
-        .p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
-        .vertex_count = num_vertices,
-        .bounds_min = {
+		.p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
+		.vertex_count = num_vertices,
+		.bounds_min = {
 			-(fabsf(tx) + fabsf(bx)),
 			-(fabsf(ty) + fabsf(by)),
 			-(fabsf(tz) + fabsf(bz))
@@ -63,143 +63,143 @@ void cx_mesh_gen_quad(
 			 (fabsf(ty) + fabsf(by)),
 			 (fabsf(tz) + fabsf(bz))
 		}
-    };
+	};
 
 	p_out->bounds_max[0] = -p_out->bounds_min[0];
 	p_out->bounds_max[1] = -p_out->bounds_min[1];
 	p_out->bounds_max[2] = -p_out->bounds_min[2];
 
-    *p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = p_vertices,
-        .size = vertices_size
-    };
+	*p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = p_vertices,
+		.size = vertices_size
+	};
 
-    p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index = 0,
-        .vertex_buffer_index = 0,
-        .format = {
-        	.type  = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
+	p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index = 0,
+		.vertex_buffer_index = 0,
+		.format = {
+			.type  = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride = vertex_size
-        }
-    };
+		.layout = {
+			.stride = vertex_size
+		}
+	};
 
-    p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index = 1,
-        .vertex_buffer_index = 0,
-        .format = {
-        	.type  = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
+	p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index = 1,
+		.vertex_buffer_index = 0,
+		.format = {
+			.type  = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
+		.layout = {
 			.offset = sizeof(float) * 3,
-            .stride = vertex_size
-        }
-    };
+			.stride = vertex_size
+		}
+	};
 }
 
 void cx_mesh_gen_box(const float p_half_size[3], struct cx_mesh_data* p_out) {
-    const float vertices[] = {
-        -p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
-        -p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
-        -p_half_size[0],  p_half_size[1], -p_half_size[2], -1,  0,  0,
+	const float vertices[] = {
+		-p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
+		-p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
+		-p_half_size[0],  p_half_size[1], -p_half_size[2], -1,  0,  0,
 
-        -p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
-        -p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
-        -p_half_size[0], -p_half_size[1],  p_half_size[2], -1,  0,  0,
+		-p_half_size[0],  p_half_size[1],  p_half_size[2], -1,  0,  0,
+		-p_half_size[0], -p_half_size[1], -p_half_size[2], -1,  0,  0,
+		-p_half_size[0], -p_half_size[1],  p_half_size[2], -1,  0,  0,
 
-         p_half_size[0], -p_half_size[1],  p_half_size[2],  1,  0,  0,
-         p_half_size[0],  p_half_size[1], -p_half_size[2],  1,  0,  0,
-         p_half_size[0],  p_half_size[1],  p_half_size[2],  1,  0,  0,
+		 p_half_size[0], -p_half_size[1],  p_half_size[2],  1,  0,  0,
+		 p_half_size[0],  p_half_size[1], -p_half_size[2],  1,  0,  0,
+		 p_half_size[0],  p_half_size[1],  p_half_size[2],  1,  0,  0,
 
-         p_half_size[0],  p_half_size[1], -p_half_size[2],  1,  0,  0,
-         p_half_size[0], -p_half_size[1],  p_half_size[2],  1,  0,  0,
-         p_half_size[0], -p_half_size[1], -p_half_size[2],  1,  0,  0,
+		 p_half_size[0],  p_half_size[1], -p_half_size[2],  1,  0,  0,
+		 p_half_size[0], -p_half_size[1],  p_half_size[2],  1,  0,  0,
+		 p_half_size[0], -p_half_size[1], -p_half_size[2],  1,  0,  0,
 
-        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
-         p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
-        -p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
+		-p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
+		 p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
+		-p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
 
-         p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
-        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
-         p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
+		 p_half_size[0], -p_half_size[1],  p_half_size[2],  0, -1,  0,
+		-p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
+		 p_half_size[0], -p_half_size[1], -p_half_size[2],  0, -1,  0,
 
-         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
-        -p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
-         p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
+		 p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
+		-p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
+		 p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
 
-        -p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
-         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
-        -p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
+		-p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  1,  0,
+		 p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
+		-p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  1,  0,
 
-        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
-         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
-         p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
+		-p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
+		 p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
+		 p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
 
-         p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
-        -p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
-        -p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
+		 p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
+		-p_half_size[0], -p_half_size[1], -p_half_size[2],  0,  0, -1,
+		-p_half_size[0],  p_half_size[1], -p_half_size[2],  0,  0, -1,
 
-        -p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
-         p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
-        -p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
+		-p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
+		 p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
+		-p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
 
-         p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
-        -p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
-         p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
-    };
-    
-    const size_t num_vertices = 36;
-    const size_t vertex_size = sizeof(float) * 6;
-    const size_t vertices_size = num_vertices * vertex_size;
+		 p_half_size[0],  p_half_size[1],  p_half_size[2],  0,  0,  1,
+		-p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
+		 p_half_size[0], -p_half_size[1],  p_half_size[2],  0,  0,  1,
+	};
+	
+	const size_t num_vertices = 36;
+	const size_t vertex_size = sizeof(float) * 6;
+	const size_t vertices_size = num_vertices * vertex_size;
 
-    float* p_vertices = malloc(vertices_size);
-    memcpy(p_vertices, vertices, vertices_size);
+	float* p_vertices = malloc(vertices_size);
+	memcpy(p_vertices, vertices, vertices_size);
 
-    *p_out = (struct cx_mesh_data) {
+	*p_out = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-        	.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
+			.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
 			.num_attributes = 2,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 		},
-        .p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
-        .vertex_count = num_vertices,
-        .bounds_min = { -p_half_size[0], -p_half_size[1], -p_half_size[2] },
-        .bounds_max = {  p_half_size[0],  p_half_size[1],  p_half_size[2] }
-    };
+		.p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
+		.vertex_count = num_vertices,
+		.bounds_min = { -p_half_size[0], -p_half_size[1], -p_half_size[2] },
+		.bounds_max = {  p_half_size[0],  p_half_size[1],  p_half_size[2] }
+	};
 
-    *p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = p_vertices,
-        .size = vertices_size
-    };
+	*p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = p_vertices,
+		.size = vertices_size
+	};
 
-    p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index = 0,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index = 0,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride = vertex_size,
-        }
-    };
+		.layout = {
+			.stride = vertex_size,
+		}
+	};
 
-    p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index = 1,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index = 1,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .offset = sizeof(float) * 3,
-            .stride = vertex_size,
-        }
-    };
+		.layout = {
+			.offset = sizeof(float) * 3,
+			.stride = vertex_size,
+		}
+	};
 }
 
 void cx_mesh_gen_sphere(
@@ -207,23 +207,23 @@ void cx_mesh_gen_sphere(
 	const uint16_t rings,
 	const uint16_t segments,
 	struct cx_mesh_data* p_out) {
-    
+	
 	const uint16_t num_vertices = (uint16_t)((rings - 1) * segments + 2);
-    const size_t vertex_size = sizeof(float) * 6;
-    const size_t vertices_size = num_vertices * vertex_size;
-    float* const p_vertices = malloc(vertices_size);
-    float* p_v = p_vertices;
+	const size_t vertex_size = sizeof(float) * 6;
+	const size_t vertices_size = num_vertices * vertex_size;
+	float* const p_vertices = malloc(vertices_size);
+	float* p_v = p_vertices;
 
-    const float ring_theta = CX_MATH_TAU / rings;
-    const float sgmt_theta = CX_MATH_TAU / segments;
+	const float ring_theta = CX_MATH_TAU / rings;
+	const float sgmt_theta = CX_MATH_TAU / segments;
 
-    *p_v++ = 0;
-    *p_v++ = radius;
-    *p_v++ = 0;
+	*p_v++ = 0;
+	*p_v++ = radius;
+	*p_v++ = 0;
 
-    *p_v++ = 0;
-    *p_v++ = 1;
-    *p_v++ = 0;
+	*p_v++ = 0;
+	*p_v++ = 1;
+	*p_v++ = 0;
 
 	for (uint16_t i_ring = 1; i_ring < rings; ++i_ring) {
 		const float i_ring_half_theta = i_ring * ring_theta * 0.5f;
@@ -245,41 +245,41 @@ void cx_mesh_gen_sphere(
 		}
 	}
 
-    *p_v++ = 0;
-    *p_v++ = -radius;
-    *p_v++ = 0;
+	*p_v++ = 0;
+	*p_v++ = -radius;
+	*p_v++ = 0;
 
-    *p_v++ = 0;
-    *p_v++ = -1;
-    *p_v++ = 0;
+	*p_v++ = 0;
+	*p_v++ = -1;
+	*p_v++ = 0;
 
-    const uint16_t num_indices = (uint16_t)(segments * (rings - 1) * 6);
-    uint16_t* const p_indices = malloc(num_indices * sizeof(uint16_t));
-    uint16_t* p_i = p_indices;
+	const uint16_t num_indices = (uint16_t)(segments * (rings - 1) * 6);
+	uint16_t* const p_indices = malloc(num_indices * sizeof(uint16_t));
+	uint16_t* p_i = p_indices;
 
-    // top pole faces
-    for (uint16_t i = 0; i < segments - 1; ++i) {
-        *p_i++ = 0;
-        *p_i++ = i + 2;
-        *p_i++ = i + 1;
-    }
+	// top pole faces
+	for (uint16_t i = 0; i < segments - 1; ++i) {
+		*p_i++ = 0;
+		*p_i++ = i + 2;
+		*p_i++ = i + 1;
+	}
 	*p_i++ = 0;
 	*p_i++ = 1;
 	*p_i++ = segments;
 
-    // ring quad strip faces
-    for (uint16_t i_ring = 0; i_ring < rings - 2; ++i_ring) {
-        for (uint16_t i_sgmt = 0; i_sgmt < segments - 1; ++i_sgmt) {
+	// ring quad strip faces
+	for (uint16_t i_ring = 0; i_ring < rings - 2; ++i_ring) {
+		for (uint16_t i_sgmt = 0; i_sgmt < segments - 1; ++i_sgmt) {
 			const uint16_t i_vert = (uint16_t)((segments * i_ring) + i_sgmt + 1);
-            
+			
 			*p_i++ = i_vert;
-            *p_i++ = i_vert + 1;
-            *p_i++ = i_vert + segments;
-            
-            *p_i++ = i_vert + segments;
-            *p_i++ = i_vert + 1;
-            *p_i++ = (uint16_t)(i_vert + segments + 1);
-        }
+			*p_i++ = i_vert + 1;
+			*p_i++ = i_vert + segments;
+			
+			*p_i++ = i_vert + segments;
+			*p_i++ = i_vert + 1;
+			*p_i++ = (uint16_t)(i_vert + segments + 1);
+		}
 
 		*p_i++ = (uint16_t)(segments * (i_ring + 1));
 		*p_i++ = (uint16_t)(segments * i_ring + 1);
@@ -288,67 +288,67 @@ void cx_mesh_gen_sphere(
 		*p_i++ = (uint16_t)(segments * (i_ring + 2));
 		*p_i++ = (uint16_t)(segments * i_ring + 1);
 		*p_i++ = (uint16_t)(segments * (i_ring + 1) + 1);
-    }
+	}
 
-    // bottom pole faces
+	// bottom pole faces
 	const uint16_t last = num_vertices - 1;
-    for (uint16_t i = 0; i < segments - 1; ++i) {
-        *p_i++ = last;
-        *p_i++ = (uint16_t)(last - (i + 2));
-        *p_i++ = (uint16_t)(last - (i + 1));
-    }
+	for (uint16_t i = 0; i < segments - 1; ++i) {
+		*p_i++ = last;
+		*p_i++ = (uint16_t)(last - (i + 2));
+		*p_i++ = (uint16_t)(last - (i + 1));
+	}
 	*p_i++ = last;
 	*p_i++ = last - 1;
 	*p_i++ = last - segments;
 
-    *p_out = (struct cx_mesh_data) {
+	*p_out = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-        	.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
+			.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
 			.num_attributes = 2,
 			.index_type = CX_MESH_VERTEX_INDEX_TYPE_u16,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 
 		},
-        .p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
-        .vertex_count = num_vertices,
-        .index_buffer = {
-            .p_bytes = p_indices,
-            .count = num_indices,
-        },
-        .bounds_min = { -radius, -radius, -radius },
-        .bounds_max = {  radius,  radius,  radius }
-    };
+		.p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
+		.vertex_count = num_vertices,
+		.index_buffer = {
+			.p_bytes = p_indices,
+			.count = num_indices,
+		},
+		.bounds_min = { -radius, -radius, -radius },
+		.bounds_max = {  radius,  radius,  radius }
+	};
 
-    *p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = p_vertices,
-        .size = vertices_size
-    };
+	*p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = p_vertices,
+		.size = vertices_size
+	};
 
-    p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index = 0,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index = 0,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride = vertex_size,
-        }
-    };
+		.layout = {
+			.stride = vertex_size,
+		}
+	};
 
-    p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index = 1,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index = 1,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .offset = sizeof(float) * 3,
-            .stride = vertex_size,
-        }
-    };
+		.layout = {
+			.offset = sizeof(float) * 3,
+			.stride = vertex_size,
+		}
+	};
 }
 
 void cx_mesh_gen_hemisphere(
@@ -357,21 +357,21 @@ void cx_mesh_gen_hemisphere(
 	struct cx_mesh_data* p_out) {
 
 	const size_t num_vertices = (size_t)(segments * rings + 1);
-    const size_t vertex_size = sizeof(float) * 6;
-    const size_t vertices_size = num_vertices * vertex_size;
-    float* const p_vertices = malloc(vertices_size);
-    float* p_v = p_vertices;
+	const size_t vertex_size = sizeof(float) * 6;
+	const size_t vertices_size = num_vertices * vertex_size;
+	float* const p_vertices = malloc(vertices_size);
+	float* p_v = p_vertices;
 
-    const float ring_theta = CX_MATH_TAU / rings;
-    const float sgmt_theta = CX_MATH_TAU / segments;
+	const float ring_theta = CX_MATH_TAU / rings;
+	const float sgmt_theta = CX_MATH_TAU / segments;
 
-    *p_v++ = 0;
-    *p_v++ = radius;
-    *p_v++ = 0;
+	*p_v++ = 0;
+	*p_v++ = radius;
+	*p_v++ = 0;
 
-    *p_v++ = 0;
-    *p_v++ = 1;
-    *p_v++ = 0;
+	*p_v++ = 0;
+	*p_v++ = 1;
+	*p_v++ = 0;
 
 	for (uint16_t i_ring = 1; i_ring <= rings; ++i_ring) {
 		const float i_ring_half_theta = i_ring * ring_theta * 0.25f;
@@ -393,35 +393,35 @@ void cx_mesh_gen_hemisphere(
 		}
 	}
 
-    const size_t num_indices = (size_t)(segments * 3 + (rings - 1) * segments * 6);
+	const size_t num_indices = (size_t)(segments * 3 + (rings - 1) * segments * 6);
 	const size_t indices_size = num_indices * sizeof(uint16_t);
-    uint16_t* const p_indices = malloc(indices_size);
-    uint16_t* p_i = p_indices;
+	uint16_t* const p_indices = malloc(indices_size);
+	uint16_t* p_i = p_indices;
 
-    // cap faces
-    for (uint16_t i = 0; i < segments - 1; ++i) {
-        *p_i++ = 0;
-        *p_i++ = i + 2;
-        *p_i++ = i + 1;
-    }
+	// cap faces
+	for (uint16_t i = 0; i < segments - 1; ++i) {
+		*p_i++ = 0;
+		*p_i++ = i + 2;
+		*p_i++ = i + 1;
+	}
 
 	*p_i++ = 0;
 	*p_i++ = 1;
 	*p_i++ = segments;
 
-    // ring quad strip faces
-    for (uint16_t i_ring = 0; i_ring < rings - 1; ++i_ring) {
-        for (uint16_t i_sgmt = 0; i_sgmt < segments - 1; ++i_sgmt) {
+	// ring quad strip faces
+	for (uint16_t i_ring = 0; i_ring < rings - 1; ++i_ring) {
+		for (uint16_t i_sgmt = 0; i_sgmt < segments - 1; ++i_sgmt) {
 			const uint16_t i_vert = (uint16_t)((segments * i_ring) + i_sgmt + 1);
-            
+			
 			*p_i++ = i_vert;
-            *p_i++ = i_vert + 1;
-            *p_i++ = i_vert + segments;
-            
-            *p_i++ = i_vert + segments;
-            *p_i++ = i_vert + 1;
-            *p_i++ = (uint16_t)(i_vert + segments + 1);
-        }
+			*p_i++ = i_vert + 1;
+			*p_i++ = i_vert + segments;
+			
+			*p_i++ = i_vert + segments;
+			*p_i++ = i_vert + 1;
+			*p_i++ = (uint16_t)(i_vert + segments + 1);
+		}
 
 		*p_i++ = (uint16_t)(segments * (i_ring + 1));
 		*p_i++ = (uint16_t)(segments * i_ring + 1);
@@ -430,55 +430,55 @@ void cx_mesh_gen_hemisphere(
 		*p_i++ = (uint16_t)(segments * (i_ring + 2));
 		*p_i++ = (uint16_t)(segments * i_ring + 1);
 		*p_i++ = (uint16_t)(segments * (i_ring + 1) + 1);
-    }
-    
-    *p_out = (struct cx_mesh_data) {
+	}
+	
+	*p_out = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-        	.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
+			.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
 			.num_attributes = 2,
 			.index_type = CX_MESH_VERTEX_INDEX_TYPE_u16,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 		},
-        .p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
-        .vertex_count = num_vertices,
-        .index_buffer = {
-            .p_bytes = p_indices,
-            .count = num_indices,
-        },
-        .bounds_min = { -radius, -radius, -radius },
-        .bounds_max = {  radius,  radius,  radius }
-    };
+		.p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
+		.vertex_count = num_vertices,
+		.index_buffer = {
+			.p_bytes = p_indices,
+			.count = num_indices,
+		},
+		.bounds_min = { -radius, -radius, -radius },
+		.bounds_max = {  radius,  radius,  radius }
+	};
 
-    *p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = p_vertices,
-        .size = vertices_size
-    };
+	*p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = p_vertices,
+		.size = vertices_size
+	};
 
-    p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index               = 0,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index               = 0,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride          = vertex_size,
-        }
-    };
+		.layout = {
+			.stride          = vertex_size,
+		}
+	};
 
-    p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index               = 1,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index               = 1,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3,
 		},
-        .layout = {
-            .offset          = sizeof(float) * 3,
-            .stride          = vertex_size,
-        }
-    };
+		.layout = {
+			.offset          = sizeof(float) * 3,
+			.stride          = vertex_size,
+		}
+	};
 }
 
 void cx_mesh_gen_cylinder(
@@ -591,63 +591,63 @@ void cx_mesh_gen_cylinder(
 
 	const float radius_max = radius_a > radius_b ? radius_a : radius_b;
 
-    *p_out = (struct cx_mesh_data) {
+	*p_out = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-        	.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
+			.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
 			.num_attributes = 2,
 			.index_type = CX_MESH_VERTEX_INDEX_TYPE_u16,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 		},
-        .p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
-        .vertex_count = num_vertices,
-        .index_buffer = {
-            .p_bytes = p_indices,
-            .count = num_indices,
-        },
-        .bounds_min = { -radius_max, ymin, -radius_max },
-        .bounds_max = {  radius_max, ymax,  radius_max }
-    };
+		.p_vertex_buffers = malloc(sizeof(*p_out->p_vertex_buffers)),
+		.vertex_count = num_vertices,
+		.index_buffer = {
+			.p_bytes = p_indices,
+			.count = num_indices,
+		},
+		.bounds_min = { -radius_max, ymin, -radius_max },
+		.bounds_max = {  radius_max, ymax,  radius_max }
+	};
 
-    *p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = p_vertices,
-        .size = vertices_size
-    };
+	*p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = p_vertices,
+		.size = vertices_size
+	};
 
-    p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index               = 0,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index               = 0,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride          = vertex_size,
-        }
-    };
+		.layout = {
+			.stride          = vertex_size,
+		}
+	};
 
-    p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index               = 1,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index               = 1,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3,
 		},
-        .layout = {
-            .offset          = sizeof(float) * 3,
-            .stride          = vertex_size,
-        }
-    };
+		.layout = {
+			.offset          = sizeof(float) * 3,
+			.stride          = vertex_size,
+		}
+	};
 }
 
 void cx_mesh_gen_from_halfedge_mesh(
 	const struct he_mesh* p_he_mesh,
 	struct cx_mesh_data* p_out) {
-    
+	
 	struct darr vertices;
-    darr_init(&vertices, sizeof(float) * 6);
+	darr_init(&vertices, sizeof(float) * 6);
 
-    struct he_face* p_face = p_he_mesh->p_faces;
+	struct he_face* p_face = p_he_mesh->p_faces;
 
 	while (p_face) {
 		size_t num_vertices = 0;
@@ -686,54 +686,54 @@ void cx_mesh_gen_from_halfedge_mesh(
 		p_face = p_face->p_next;
 	};
 
-    darr_shrink(&vertices);
+	darr_shrink(&vertices);
 
-    *p_out = (struct cx_mesh_data) {
+	*p_out = (struct cx_mesh_data) {
 		.layout = {
 			.num_vertex_buffers = 1,
-       		.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
+			.p_attributes = malloc(sizeof(*p_out->layout.p_attributes) * 2),
 			.num_attributes = 2,
 			.draw_mode = CX_MESH_DRAW_MODE_triangles
 		},
-        .p_vertex_buffers   = malloc(sizeof(*p_out->p_vertex_buffers)),
-        .vertex_count       = vertices.length_,
-    };
+		.p_vertex_buffers   = malloc(sizeof(*p_out->p_vertex_buffers)),
+		.vertex_count       = vertices.length_,
+	};
 
-    *p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
-        .p_bytes = vertices.p_buffer_,
-        .size = vertices.capacity_ * vertices.element_size_
-    };
+	*p_out->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
+		.p_bytes = vertices.p_buffer_,
+		.size = vertices.capacity_ * vertices.element_size_
+	};
 
-    p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
-        .index               = 0,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+		.index               = 0,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .stride          = vertices.element_size_,
-        }
-    };
+		.layout = {
+			.stride          = vertices.element_size_,
+		}
+	};
 
-    p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
-        .index               = 1,
-        .vertex_buffer_index = 0,
+	p_out->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+		.index               = 1,
+		.vertex_buffer_index = 0,
 		.format = {
 			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
 			.count = 3
 		},
-        .layout = {
-            .offset          = sizeof(float) * 3,
-            .stride          = vertices.element_size_,
-        }
-    };
+		.layout = {
+			.offset          = sizeof(float) * 3,
+			.stride          = vertices.element_size_,
+		}
+	};
 }
 
 void cx_mesh_gen_free(struct cx_mesh_data* p_out) {
-    free(p_out->p_vertex_buffers[0].p_bytes);
-    free(p_out->p_vertex_buffers);
-    free(p_out->layout.p_attributes);
-    free(p_out->index_buffer.p_bytes);
-    *p_out = (struct cx_mesh_data) {0};
+	free(p_out->p_vertex_buffers[0].p_bytes);
+	free(p_out->p_vertex_buffers);
+	free(p_out->layout.p_attributes);
+	free(p_out->index_buffer.p_bytes);
+	*p_out = (struct cx_mesh_data) {0};
 }

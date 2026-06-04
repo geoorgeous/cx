@@ -101,16 +101,16 @@ static void cx_world_renderer_init(void) {
 		return;
 	}
 
-    uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
-    struct cx_image white_image = {
+	uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
+	struct cx_image white_image = {
 		.width = 1,
 		.height = 1,
 		.pixel_data_format = {
 			.pixel_format = CX_PIXEL_FORMAT_rgb,
 			.pixel_type = CX_PIXEL_TYPE_u8
 		},
-        .p_pixel_data = white_pixel
-    };
+		.p_pixel_data = white_pixel
+	};
 
 	cx_gfx_texture_create(&texture_white_1x1, white_image.width, white_image.height, CX_PIXEL_FORMAT_rgb);
 	cx_gfx_texture_set_data(&texture_white_1x1, white_image.p_pixel_data, &white_image.pixel_data_format);

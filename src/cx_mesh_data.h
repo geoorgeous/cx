@@ -7,24 +7,24 @@
 #include "cx_hash.h"
 
 enum cx_mesh_vertex_attribute_type {
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_i8,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_u8,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_i16,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_u16,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_i32,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_u32,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni8,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu8,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni16,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu16,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni32,
-    CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu32
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_i8,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_u8,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_i16,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_u16,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_i32,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_u32,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni8,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu8,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni16,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu16,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni32,
+	CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu32
 };
 
 struct cx_mesh_vertex_buffer {
-    void*  p_bytes;
-    size_t size;
+	void*  p_bytes;
+	size_t size;
 };
 
 struct cx_mesh_vertex_attribute_format {
@@ -33,37 +33,37 @@ struct cx_mesh_vertex_attribute_format {
 };
 
 struct cx_mesh_vertex_attribute_layout {
-    size_t offset;
-    size_t stride;
+	size_t offset;
+	size_t stride;
 };
 
 struct cx_mesh_vertex_attribute {
-    size_t index;
-    size_t vertex_buffer_index;
+	size_t index;
+	size_t vertex_buffer_index;
 	struct cx_mesh_vertex_attribute_format format;
-    struct cx_mesh_vertex_attribute_layout layout;
+	struct cx_mesh_vertex_attribute_layout layout;
 };
 
 enum cx_mesh_vertex_index_type {
 	CX_MESH_VERTEX_INDEX_TYPE_none,
-    CX_MESH_VERTEX_INDEX_TYPE_u8,
-    CX_MESH_VERTEX_INDEX_TYPE_u16,
-    CX_MESH_VERTEX_INDEX_TYPE_u32
+	CX_MESH_VERTEX_INDEX_TYPE_u8,
+	CX_MESH_VERTEX_INDEX_TYPE_u16,
+	CX_MESH_VERTEX_INDEX_TYPE_u32
 };
 
 struct cx_mesh_vertex_index_buffer {
-    void*  p_bytes;
-    size_t count;
+	void*  p_bytes;
+	size_t count;
 };
 
 enum cx_mesh_draw_mode {
-    CX_MESH_DRAW_MODE_points,
-    CX_MESH_DRAW_MODE_line_strip,
-    CX_MESH_DRAW_MODE_line_loop,
-    CX_MESH_DRAW_MODE_lines,
-    CX_MESH_DRAW_MODE_triangle_strip,
-    CX_MESH_DRAW_MODE_triangle_fan,
-    CX_MESH_DRAW_MODE_triangles
+	CX_MESH_DRAW_MODE_points,
+	CX_MESH_DRAW_MODE_line_strip,
+	CX_MESH_DRAW_MODE_line_loop,
+	CX_MESH_DRAW_MODE_lines,
+	CX_MESH_DRAW_MODE_triangle_strip,
+	CX_MESH_DRAW_MODE_triangle_fan,
+	CX_MESH_DRAW_MODE_triangles
 };
 
 struct cx_mesh_data_layout {
@@ -76,11 +76,11 @@ struct cx_mesh_data_layout {
 
 struct cx_mesh_data {
 	struct cx_mesh_data_layout layout;
-    struct cx_mesh_vertex_buffer* p_vertex_buffers;
-    size_t vertex_count;
-    struct cx_mesh_vertex_index_buffer index_buffer;
-    float bounds_min[3];
-    float bounds_max[3];
+	struct cx_mesh_vertex_buffer* p_vertex_buffers;
+	size_t vertex_count;
+	struct cx_mesh_vertex_index_buffer index_buffer;
+	float bounds_min[3];
+	float bounds_max[3];
 };
 
 size_t cx_mesh_vertex_attribute_type_size(enum cx_mesh_vertex_attribute_type type);
@@ -117,17 +117,17 @@ void cx_mesh_data_generate_tangents(
 	size_t tangents_attribute_index);
 
 static inline int is_vertex_attribute_type_normalized(enum cx_mesh_vertex_attribute_type vertex_attribute_type) {
-    if (vertex_attribute_type >= CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni8 &&
-        vertex_attribute_type <= CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu32) {
-        return 1;
-    }
-    return 0;
+	if (vertex_attribute_type >= CX_MESH_VERTEX_ATTRIBUTE_TYPE_ni8 &&
+		vertex_attribute_type <= CX_MESH_VERTEX_ATTRIBUTE_TYPE_nu32) {
+		return 1;
+	}
+	return 0;
 }
 
 static inline int is_vertex_attribute_type_float(enum cx_mesh_vertex_attribute_type vertex_attribute_type) {
-    return
-        vertex_attribute_type == CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32 ||
-        is_vertex_attribute_type_normalized(vertex_attribute_type);
+	return
+		vertex_attribute_type == CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32 ||
+		is_vertex_attribute_type_normalized(vertex_attribute_type);
 }
 
 #endif

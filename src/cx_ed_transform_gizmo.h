@@ -9,9 +9,9 @@
 #define CX_LOG_CAT_GIZMO "gizmo"
 
 enum cx_transform_gizmo_mode {
-    CX_TRANSFORM_GIZMO_MODE_translate,
-    CX_TRANSFORM_GIZMO_MODE_rotate,
-    CX_TRANSFORM_GIZMO_MODE_scale
+	CX_TRANSFORM_GIZMO_MODE_translate,
+	CX_TRANSFORM_GIZMO_MODE_rotate,
+	CX_TRANSFORM_GIZMO_MODE_scale
 };
 
 enum cx_transform_gizmo_interaction_state {
@@ -29,7 +29,7 @@ struct cx_transform_gizmo_control_render_data {
 	} object_data;
 	// for flat color rendering only
 	struct {
-    	float color_ka[4];
+		float color_ka[4];
 	} material_data;
 };
 

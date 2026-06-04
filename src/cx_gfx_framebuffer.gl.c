@@ -51,7 +51,7 @@ void cx_gfx_framebuffer_set_attachment(
 	const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->bytes_;
 
 	cx_gfx_framebuffer_bind(p_framebuffer);
-    
+	
 	glFramebufferTexture2D(
 		GL_FRAMEBUFFER,
 		gl_fb_attachment_point_table[attachment_point],
@@ -79,9 +79,9 @@ void cx_gfx_framebuffer_read(
 	void* p_out_read_buffer) {
 
 	cx_gfx_framebuffer_bind(p_framebuffer);
-    glReadBuffer(gl_fb_attachment_point_table[attachment]);
+	glReadBuffer(gl_fb_attachment_point_table[attachment]);
 
-    glReadPixels(
+	glReadPixels(
 		(GLint)p_read_position[0],
 		(GLint)p_read_position[1],
 		(GLsizei)p_read_size[0],

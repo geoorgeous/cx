@@ -76,9 +76,9 @@ void platform_window_on_created(struct platform_window* p_window, void* p_user_p
 	(void)p_user_ptr;
 
 	platform_window_set_on_close_callback(p_window, platform_window_on_close, CX_NULL);
-    platform_window_set_on_key_callback(p_window, platform_window_on_key, CX_NULL);
-    platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, CX_NULL);
-    platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, CX_NULL);
+	platform_window_set_on_key_callback(p_window, platform_window_on_key, CX_NULL);
+	platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, CX_NULL);
+	platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, CX_NULL);
 	platform_window_set_on_char_callback(p_window, platform_window_on_char, CX_NULL);
 }
 
@@ -93,36 +93,36 @@ void platform_window_on_key(struct platform_window* p_window, void* p_user_ptr, 
 	(void)p_window;
 	(void)p_user_ptr;
 
-    struct input_event_data_key event_data = {
-        .key = key,
-        .b_is_down = b_is_down,
+	struct input_event_data_key event_data = {
+		.key = key,
+		.b_is_down = b_is_down,
 		.mods = mods
 	};
-    input_event_broadcast(INPUT_EVENT_key, &event_data);
+	input_event_broadcast(INPUT_EVENT_key, &event_data);
 }
 
 void platform_window_on_mouse_button(struct platform_window* p_window, void* p_user_ptr, enum mouse_button button, int b_is_down, unsigned int mods) {
 	(void)p_user_ptr;
 
-    struct input_event_data_mouse_button event_data = {
-        .button = button,
-        .b_is_down = b_is_down,
+	struct input_event_data_mouse_button event_data = {
+		.button = button,
+		.b_is_down = b_is_down,
 		.mods = mods
-    };
-    platform_window_get_mouse_client_coords(p_window, &event_data.client_pos[0], &event_data.client_pos[1]);
-    input_event_broadcast(INPUT_EVENT_mouse_button, &event_data);
+	};
+	platform_window_get_mouse_client_coords(p_window, &event_data.client_pos[0], &event_data.client_pos[1]);
+	input_event_broadcast(INPUT_EVENT_mouse_button, &event_data);
 }
 
 void platform_window_on_mouse_move(struct platform_window* p_window, void* p_user_ptr, int delta_x, int delta_y, unsigned int mods) {
 	(void)p_window;
 	(void)p_user_ptr;
 
-    struct input_event_data_mouse_move event_data = {
-        .delta_x = delta_x,
-        .delta_y = delta_y,
+	struct input_event_data_mouse_move event_data = {
+		.delta_x = delta_x,
+		.delta_y = delta_y,
 		.mods = mods
-    };
-    input_event_broadcast(INPUT_EVENT_mouse_move, &event_data);
+	};
+	input_event_broadcast(INPUT_EVENT_mouse_move, &event_data);
 }
 
 void platform_window_on_char(struct platform_window* p_window, void* p_user_ptr, unsigned int code) {
@@ -159,7 +159,7 @@ int main(int argc, const char* argv[]) {
 	(void)argc;
 	(void)argv;
 
-    // printf("It's the 9th of September 2025 and I'm writing yet another game engine project.\n");
+	// printf("It's the 9th of September 2025 and I'm writing yet another game engine project.\n");
 
 	//cx_log_cat_set("platform", CX_LOG_LEVEL_TRACE);
 	//cx_log_cat_set(CX_LOG_CAT_PLATFORM_WINDOW, CX_LOG_LEVEL_TRACE);
@@ -175,9 +175,9 @@ int main(int argc, const char* argv[]) {
 
 	enum cx_error err;
 
-    uint32_t window_size[] = { 1200, 900 };
+	uint32_t window_size[] = { 1200, 900 };
 
-    err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &cx.window);
+	err = platform_window_create(window_size[0], window_size[1], "cx test demo", platform_window_on_created, 0, &cx.window);
 
 	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &cx.window, CX_COMMAND_NO_PARAMS);
 	CX_NEW_COMMAND_ALIAS("q", "quit");
@@ -186,7 +186,7 @@ int main(int argc, const char* argv[]) {
 		return (int)err;
 	}
 
-    err = cx_gfx_context_create(&cx.window, &cx.gfx_context);
+	err = cx_gfx_context_create(&cx.window, &cx.gfx_context);
 
 	cx_gfx_context_set_swap_interval(&cx.gfx_context, 0);
 
@@ -194,7 +194,7 @@ int main(int argc, const char* argv[]) {
 		return (int)err;
 	}
 
-    // create framebuffer
+	// create framebuffer
 
 	uint32_t fb_width = (uint32_t)((float)window_size[0] * 1.0f);
 	uint32_t fb_height = (uint32_t)((float)window_size[1] * 1.0f);
@@ -261,7 +261,7 @@ int main(int argc, const char* argv[]) {
 	cx_gfx_program_param_buffer_create(&program_text_pbuffer_camera, program_text_pblock_camera.size_);
 	cx_gfx_program_param_buffer_create(&program_text_pbuffer_object, program_text_pblock_object.size_);
 
-    // create screen shader program
+	// create screen shader program
 	
 	struct cx_gfx_program_source program_screen_source = {
 		.s_vertex_stage_source = "#version 330 core\n"
@@ -272,12 +272,12 @@ int main(int argc, const char* argv[]) {
 				"v_texcoords = 0.5 * gl_Position.xy + vec2(0.5);\n"
 			"}",
 		.s_fragment_stage_source = "#version 330 core\n"
-        "uniform sampler2D u_texture;\n"
-        "in vec2 v_texcoords;\n"
-        "out vec4 f_color;\n"
-        "void main() {\n"
-            "f_color = texture(u_texture, v_texcoords);\n"
-        "}"
+		"uniform sampler2D u_texture;\n"
+		"in vec2 v_texcoords;\n"
+		"out vec4 f_color;\n"
+		"void main() {\n"
+			"f_color = texture(u_texture, v_texcoords);\n"
+		"}"
 	};
 
 	struct cx_gfx_program program_screen;
@@ -289,17 +289,17 @@ int main(int argc, const char* argv[]) {
 
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
-    cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, cx_asset_free_image);
-    cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, cx_asset_free_texture);
-    cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
-    cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, cx_asset_free_static_mesh);
+	cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, cx_asset_free_image);
+	cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, cx_asset_free_texture);
+	cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
+	cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, cx_asset_free_static_mesh);
 	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, cx_asset_free_font);
 	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint), 0, 0, cx_asset_free_blueprint);
-    
+	
 	input_init();
 
-    struct cx_asset_package asset_package;
-    cx_asset_package_init(&asset_package);
+	struct cx_asset_package asset_package;
+	cx_asset_package_init(&asset_package);
 
 	struct cx_asset_package_record* p_imported_font;
 	cx_ed_import_bdf_file(&asset_package, "res/builtin/font_dbg_8x14.bdf", &p_imported_font);
@@ -328,19 +328,19 @@ int main(int argc, const char* argv[]) {
 
 	cx_ed_init(&cx.window);
 
-    uint64_t old_frame_start = cx_platform_time_now();
+	uint64_t old_frame_start = cx_platform_time_now();
 
-    while (platform_window_is_open(&cx.window)) {
-        const uint64_t frame_start = cx_platform_time_now();
-        const double frame_delta_seconds = cx_platform_time_delta_seconds(old_frame_start, frame_start);
+	while (platform_window_is_open(&cx.window)) {
+		const uint64_t frame_start = cx_platform_time_now();
+		const double frame_delta_seconds = cx_platform_time_delta_seconds(old_frame_start, frame_start);
 
 		//CX_DBG(CX_LOG_FMT(INFO, DONTCARE, "FRAME TIME = %fms\n",
 		//	cx_platform_time_delta_milliseconds(old_frame_start, frame_start)));
-        
+		
 		old_frame_start = frame_start;
 
-        input_frame_reset();
-        platform_window_poll_events(&cx.window);
+		input_frame_reset();
+		platform_window_poll_events(&cx.window);
 
 		if (!platform_window_is_open(&cx.window)) {
 			break;
@@ -348,10 +348,10 @@ int main(int argc, const char* argv[]) {
 
 		cx_ed_update(frame_delta_seconds);
 
-        // DRAW
-        {
-            glEnable(GL_CULL_FACE);
-            glEnable(GL_DEPTH_TEST); 
+		// DRAW
+		{
+			glEnable(GL_CULL_FACE);
+			glEnable(GL_DEPTH_TEST); 
 
 			cx_ed_draw(&framebuffer, fb_width, fb_height);			
 
@@ -378,15 +378,15 @@ int main(int argc, const char* argv[]) {
 					projection_matrix, view_matrix);
 			}
 
-            // SCREEN QUAD
-            {
-                platform_window_size(&cx.window, &window_size[0], &window_size[1]);
+			// SCREEN QUAD
+			{
+				platform_window_size(&cx.window, &window_size[0], &window_size[1]);
 
 				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&cx.gfx_context));
 
-                glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
+				glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
 				glClearColor(0, 0, 0, 0);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				cx_gfx_program_bind(&program_screen);
 		
@@ -395,16 +395,16 @@ int main(int argc, const char* argv[]) {
 					.p_resource = &texture_fb_color
 				}));
 
-                GLuint gl_empty_vao;
-                glGenVertexArrays(1, &gl_empty_vao);
-                glBindVertexArray(gl_empty_vao);
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-                glDeleteVertexArrays(1, &gl_empty_vao);
-            }
-        }
+				GLuint gl_empty_vao;
+				glGenVertexArrays(1, &gl_empty_vao);
+				glBindVertexArray(gl_empty_vao);
+				glDrawArrays(GL_TRIANGLES, 0, 3);
+				glDeleteVertexArrays(1, &gl_empty_vao);
+			}
+		}
 
 		cx_gfx_context_swap_buffers(&cx.gfx_context);
-    }
+	}
 
 	cx_ed_shutdown();
 
@@ -412,7 +412,7 @@ int main(int argc, const char* argv[]) {
 
 	CX_LOG(INFO, DONTCARE, "Exiting\n");
 
-    return 0;
+	return 0;
 }
 
 int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {

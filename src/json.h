@@ -2,13 +2,13 @@
 #define JSON_H
 
 enum json_type {
-    JSON_TYPE_null,
-    JSON_TYPE_true,
-    JSON_TYPE_false,
-    JSON_TYPE_object,
-    JSON_TYPE_array,
-    JSON_TYPE_string,
-    JSON_TYPE_number
+	JSON_TYPE_null,
+	JSON_TYPE_true,
+	JSON_TYPE_false,
+	JSON_TYPE_object,
+	JSON_TYPE_array,
+	JSON_TYPE_string,
+	JSON_TYPE_number
 };
 
 struct json_value;

@@ -11,7 +11,7 @@ struct cx_image {
 	uint32_t                      width;
 	uint32_t                      height;
 	struct cx_pixel_buffer_format pixel_data_format;
-    void*                         p_pixel_data;
+	void*                         p_pixel_data;
 };
 
 void cx_asset_free_image(void* p);

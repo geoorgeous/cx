@@ -10,68 +10,68 @@
 #define CX_LOG_CAT_PHYSICS_GJK "physics:gjk"
 
 struct physics_object {
-    struct physics_world*    p_world_;
-    struct transform*        p_transform_;
-    struct physics_collider* p_collider_;
-    int                      b_is_rigidbody_;
+	struct physics_world*    p_world_;
+	struct transform*        p_transform_;
+	struct physics_collider* p_collider_;
+	int                      b_is_rigidbody_;
 };
 
 struct physics_rigidbody {
-    struct physics_object    base;
-    float                    velocity[3];
-    float                    force[3];
-    float                    mass;
-    float                    k_restitution;
-    float                    k_static_friction;
-    float                    k_dynamic_friction;
+	struct physics_object    base;
+	float                    velocity[3];
+	float                    force[3];
+	float                    mass;
+	float                    k_restitution;
+	float                    k_static_friction;
+	float                    k_dynamic_friction;
 };
 
 struct physics_collision_result {
-    float a[3];         // Point on object A in world space
-    float b[3];         // Point on object B in world space
-    float ab_normal[3]; // Collision normal from A -> B
-    float depth;        // Penetration depth
+	float a[3];         // Point on object A in world space
+	float b[3];         // Point on object B in world space
+	float ab_normal[3]; // Collision normal from A -> B
+	float depth;        // Penetration depth
 };
 
 struct physics_collision {
-    struct physics_object*          p_a;
-    struct physics_object*          p_b;
-    int                             b_has_collision;
-    struct physics_collision_result result;
+	struct physics_object*          p_a;
+	struct physics_object*          p_b;
+	int                             b_has_collision;
+	struct physics_collision_result result;
 };
 
 enum physics_collider_type {
-    PHYSICS_COLLIDER_TYPE_sphere,
-    PHYSICS_COLLIDER_TYPE_capsule,
-    PHYSICS_COLLIDER_TYPE_hull,
-    PHYSICS_COLLIDER_TYPE_plane
+	PHYSICS_COLLIDER_TYPE_sphere,
+	PHYSICS_COLLIDER_TYPE_capsule,
+	PHYSICS_COLLIDER_TYPE_hull,
+	PHYSICS_COLLIDER_TYPE_plane
 };
 
 struct physics_sphere {
-    float center[3];
-    float radius;
+	float center[3];
+	float radius;
 };
 
 struct physics_capsule {
-    float p0[3];
-    float p1[3];
-    float radius;
+	float p0[3];
+	float p1[3];
+	float radius;
 };
 
 struct physics_hull {
-    struct darr verts;
+	struct darr verts;
 };
 
 struct physics_plane {
-    float normal[3];
-    float distance;
+	float normal[3];
+	float distance;
 };
 
 union physics_collider_shape {
-    struct physics_sphere  as_sphere;
-    struct physics_capsule as_capsule;
-    struct physics_hull    as_hull;
-    struct physics_plane   as_plane;
+	struct physics_sphere  as_sphere;
+	struct physics_capsule as_capsule;
+	struct physics_hull    as_hull;
+	struct physics_plane   as_plane;
 };
 
 void physics_collider_shape_transform(
@@ -80,7 +80,7 @@ void physics_collider_shape_transform(
 	const struct transform* p_t);
 
 struct physics_collider {
-    enum physics_collider_type   type;
+	enum physics_collider_type   type;
 	union physics_collider_shape shape;
 	union physics_collider_shape shape_cached_;
 };
@@ -94,11 +94,11 @@ void physics_collider_undo_transform(struct physics_collider* p_collider);
 typedef void(*physics_collision_solver_func)(const struct physics_collision* p_collisions, size_t n, float delta_time);
 
 struct physics_world {
-    struct darr        objects_;
-    struct darr        collisions_;
-    struct darr        solvers_;
-    struct object_pool collider_pool_;
-    struct object_pool physics_object_pools_[2];
+	struct darr        objects_;
+	struct darr        collisions_;
+	struct darr        solvers_;
+	struct object_pool collider_pool_;
+	struct object_pool physics_object_pools_[2];
 };
 
 void physics_world_init(struct physics_world* p_world);
@@ -126,55 +126,55 @@ void physics_world_remove_solver(struct physics_world* p_world, physics_collisio
 void physics_world_step(struct physics_world* p_world, float delta_time);
 
 int physics_test_collision(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_sphere(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_capsule(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_hull(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_sphere_plane(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_capsule_capsule(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_capsule_hull(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_capsule_plane(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_hull_hull(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
 
 int physics_test_collision_hull_plane(
-    const struct physics_collider* p_a,
-    const struct physics_collider* p_b,
-    struct physics_collision_result* p_result);
-    
+	const struct physics_collider* p_a,
+	const struct physics_collider* p_b,
+	struct physics_collision_result* p_result);
+	
 void physics_collision_solver_impulse(const struct physics_collision* p_collisions, size_t n, float delta_time);
 
 void physics_collision_solver_smooth_positions(

@@ -273,9 +273,9 @@ void cx_ed_init(struct platform_window* p_window) {
 
 	cx_world_init(&ed.world, world_component_pool_defs, CX_ARRAY_LEN(world_component_pool_defs));
 
-    physics_world_init(&ed.physics_world);
-    physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
-    physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
+	physics_world_init(&ed.physics_world);
+	physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
+	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
 	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
 	cx_ed_import_gltf_file(&ed.asset_package, "res/Industrial_exterior_v2.glb", &p_gltf_scene_blueprint_asset);
@@ -447,7 +447,7 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 		(float)fb_width / (float)fb_height,
 		0.01f, 1000.0f,
 		ed.camera.projection_matrix);
-           
+		   
 	// WORLD
 	
 	glEnable(GL_DEPTH_TEST);

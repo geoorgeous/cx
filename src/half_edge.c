@@ -32,60 +32,60 @@ static int vec3_sort_cmp(const float* p_a, const float* p_b) {
 }
 
 void half_edge_get_vertices(const struct he_mesh* p_mesh, float* p_vertices, size_t* p_num_vertices) {
-    struct darr vertices;
-    darr_init(&vertices, sizeof(float) * 3);
+	struct darr vertices;
+	darr_init(&vertices, sizeof(float) * 3);
 
-    struct he_face* p_face = p_mesh->p_faces;
-    while (p_face) {
-        struct he_edge* p_edge = p_face->p_edges;
-        do {
-            float* p_v = darr_push(&vertices);
-            vec3_copy(p_edge->p_tail->position, p_v);
-            p_edge = p_edge->p_next;
-        } while (p_edge != p_face->p_edges);
-        p_face = p_face->p_next;
-    }
+	struct he_face* p_face = p_mesh->p_faces;
+	while (p_face) {
+		struct he_edge* p_edge = p_face->p_edges;
+		do {
+			float* p_v = darr_push(&vertices);
+			vec3_copy(p_edge->p_tail->position, p_v);
+			p_edge = p_edge->p_next;
+		} while (p_edge != p_face->p_edges);
+		p_face = p_face->p_next;
+	}
 
-    if (vertices.length_ == 0) {
-        *p_num_vertices = 0;
-        return;
-    }
+	if (vertices.length_ == 0) {
+		*p_num_vertices = 0;
+		return;
+	}
 
-    qsort(
+	qsort(
 		vertices.p_buffer_,
 		vertices.length_,
 		vertices.element_size_,
 		(int(*)(const void*, const void*))vec3_sort_cmp);
 
-    size_t m = 1;
+	size_t m = 1;
 
-    if (p_vertices) {
-        vec3_copy(darr_get(&vertices, 0), &p_vertices[0]);
-        for (size_t i = 1; i < vertices.length_; ++i) {
-            float* p_a = darr_get(&vertices, i);
-            float* p_b = darr_get(&vertices, m - 1);
-            if (!vec3_cmp(p_a, p_b)) {
-                if (i != m) {
-                    vec3_copy(p_a, darr_get(&vertices, m));
-                    vec3_copy(p_a, &p_vertices[m * 3]);
-                }
-                ++m;
-            }
-        }
-    } else {
-        for (size_t i = 1; i < vertices.length_; ++i) {
-            const float* p_a = darr_get(&vertices, i);
-            const float* p_b = darr_get(&vertices, m - 1);
-            if (!vec3_cmp(p_a, p_b)) {
-                if (i != m) {
-                    vec3_copy(p_a, darr_get(&vertices, m));
-                }
-                ++m;
-            }
-        }
-    }
+	if (p_vertices) {
+		vec3_copy(darr_get(&vertices, 0), &p_vertices[0]);
+		for (size_t i = 1; i < vertices.length_; ++i) {
+			float* p_a = darr_get(&vertices, i);
+			float* p_b = darr_get(&vertices, m - 1);
+			if (!vec3_cmp(p_a, p_b)) {
+				if (i != m) {
+					vec3_copy(p_a, darr_get(&vertices, m));
+					vec3_copy(p_a, &p_vertices[m * 3]);
+				}
+				++m;
+			}
+		}
+	} else {
+		for (size_t i = 1; i < vertices.length_; ++i) {
+			const float* p_a = darr_get(&vertices, i);
+			const float* p_b = darr_get(&vertices, m - 1);
+			if (!vec3_cmp(p_a, p_b)) {
+				if (i != m) {
+					vec3_copy(p_a, darr_get(&vertices, m));
+				}
+				++m;
+			}
+		}
+	}
 
-    darr_free(&vertices);
+	darr_free(&vertices);
 
-    *p_num_vertices = m;
+	*p_num_vertices = m;
 }
