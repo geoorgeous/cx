@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #include "cx_color.h"
-#include "mesh.h"
+#include "cx_mesh_data.h"
 
 struct cx_font;
 struct cx_gfx_texture;
@@ -38,7 +38,7 @@ struct cx_text_mesher_input {
 };
 
 struct cx_text_mesher_output {
-	struct mesh_primitive primitive;
+	struct cx_mesh_data mesh_data;
 	const struct cx_gfx_texture* p_atlas_texture;
 };
 

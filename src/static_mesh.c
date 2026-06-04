@@ -1,18 +1,18 @@
 #include <stdlib.h>
 
 #include "cx_gfx_mesh.h"
-#include "mesh.h"
+#include "cx_mesh_data.h"
 #include "static_mesh.h"
 
 void static_mesh_free(struct static_mesh* p_static_mesh) {
 	for (size_t i = 0; i < p_static_mesh->num_primitives; ++i) {
-		for (size_t j = 0; j < p_static_mesh->p_primitives[i].num_vertex_buffers; ++j) {
+		for (size_t j = 0; j < p_static_mesh->p_primitives[i].layout.num_vertex_buffers; ++j) {
 			free(p_static_mesh->p_primitives[i].p_vertex_buffers[j].p_bytes);
 		}
 
 		free(p_static_mesh->p_primitives[i].p_vertex_buffers);
 		free(p_static_mesh->p_primitives[i].index_buffer.p_bytes);
-		free(p_static_mesh->p_primitives[i].p_attributes);
+		free(p_static_mesh->p_primitives[i].layout.p_attributes);
 	}
 
 	free(p_static_mesh->p_primitives);
@@ -26,8 +26,8 @@ void static_mesh_load_device_meshes(struct static_mesh* p_static_mesh) {
     p_static_mesh->p_gfx_meshes = malloc(sizeof(*p_static_mesh->p_gfx_meshes) * p_static_mesh->num_primitives);
 
     for (size_t i = 0; i < p_static_mesh->num_primitives; ++i) {
-        const struct mesh_primitive* p_primitive = &p_static_mesh->p_primitives[i];
-        cx_gfx_mesh_create(&p_static_mesh->p_gfx_meshes[i], p_primitive);
+        const struct cx_mesh_data* p_primitive = &p_static_mesh->p_primitives[i];
+        cx_gfx_mesh_create(p_primitive, CX_GFX_BUFFER_USAGE_static, &p_static_mesh->p_gfx_meshes[i]);
     }
 
     p_static_mesh->b_loaded_device_meshes = 1;

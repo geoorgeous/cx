@@ -7,12 +7,12 @@
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_import_image.h"
 #include "cx_image.h"
+#include "cx_mesh_data.h"
 #include "cx_texture_sampler_settings.h"
 #include "gltf.h"
 #include "cx_logging.h"
 #include "material.h"
 #include "matrix.h"
-#include "mesh.h"
 #include "skeleton.h"
 #include "skeletal_animation.h"
 #include "static_mesh.h"
@@ -73,14 +73,14 @@ static void cx_ed_import_gltf_copy_accessor(
 static void cx_ed_import_gtlf_copy_accessor_to_vertex_buffer(
 	const struct gltf* p_gltf,
 	const struct gltf_accessor* p_gltf_accessor,
-	const struct vertex_buffer* p_dst,
-	const struct vertex_attribute_layout* p_dst_layout);
+	const struct cx_mesh_vertex_buffer* p_dst,
+	const struct cx_mesh_vertex_attribute_layout* p_dst_layout);
 
 static enum cx_texture_min_filter_mode gltf_enum_to_texture_filter_min(enum gltf_sampler_min_filter en);
 static enum cx_texture_mag_filter_mode gltf_enum_to_texture_filter_mag(enum gltf_sampler_mag_filter en);
 static enum cx_texture_address_mode gltf_enum_to_texture_address_mode(enum gltf_sampler_wrap en);
-static enum vertex_index_type gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type type);
-static enum mesh_primitive_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode mode);
+static enum cx_mesh_vertex_index_type gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type type);
+static enum cx_mesh_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode mode);
 
 int cx_ed_import_gltf(
 	struct cx_asset_package* p_asset_package,
@@ -243,8 +243,6 @@ void cx_ed_import_gltf_mesh_primitive(
     const struct gltf_mesh_primitive* p_gltf_mesh_primitive = 
 		&p_context->p_gltf->p_meshes[gltf_mesh_index].p_primitives[mesh_primitive_index];
     
-	struct mesh_primitive* p_mesh_primitive = &p_mesh->p_primitives[mesh_primitive_index];
-
     const int b_generate_normals = 1;
     
     const struct gltf_accessor* p_gltf_positions_accessor =
@@ -273,7 +271,7 @@ void cx_ed_import_gltf_mesh_primitive(
 			p_context->p_gltf, p_gltf_mesh_primitive, GLTF_MESH_VERTEX_ATTRIBUTE_weights);
     
     const struct gltf_accessor* p_attribute_gltf_accessors[8] = {0};
-    struct vertex_attribute attributes[8] = {0};
+    struct cx_mesh_vertex_attribute attributes[8] = {0};
     size_t num_attributes = 0;
 
     size_t offset = 0;
@@ -283,9 +281,9 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[num_attributes].index = 0;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 3;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 3;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
     } else {
         CX_LOG(ERROR, IMPORT_GLTF, "Mesh import failed: missing position data\n");
@@ -297,9 +295,9 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[num_attributes].index = 1;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 3;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 3;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
 
         if (!!p_gltf_tangents_accessor) {
@@ -307,9 +305,9 @@ void cx_ed_import_gltf_mesh_primitive(
             attributes[num_attributes].index = 2;
             attributes[num_attributes].vertex_buffer_index = 0;
             attributes[num_attributes].layout.offset = offset;
-            attributes[num_attributes].layout.component_count = 3;
-            attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-            offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        	attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        	attributes[num_attributes].format.count = 3;
+        	offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
             ++num_attributes;
         }
     }
@@ -319,9 +317,9 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[num_attributes].index = 3;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 3;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 3;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
     }
 
@@ -330,9 +328,9 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[num_attributes].index = 4;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 3;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 3;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
     }
 
@@ -341,9 +339,9 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[num_attributes].index = 5;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 4;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 4;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
     }
 
@@ -352,18 +350,18 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[num_attributes].index = 6;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 4;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 4;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
 
         p_attribute_gltf_accessors[num_attributes] = p_gltf_weights_accessor;
         attributes[num_attributes].index = 7;
         attributes[num_attributes].vertex_buffer_index = 0;
         attributes[num_attributes].layout.offset = offset;
-        attributes[num_attributes].layout.component_count = 4;
-        attributes[num_attributes].layout.component_type = VERTEX_ATTRIBUTE_TYPE_f32;
-        offset += vertex_attribute_layout_element_size(&attributes[num_attributes].layout);
+        attributes[num_attributes].format.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32;
+        attributes[num_attributes].format.count = 4;
+        offset += cx_mesh_vertex_attribute_format_size(&attributes[num_attributes].format);
         ++num_attributes;
     } else if (!!p_gltf_joints_accessor || !!p_gltf_weights_accessor) {
         CX_LOG(ERROR, IMPORT_GLTF,
@@ -375,11 +373,14 @@ void cx_ed_import_gltf_mesh_primitive(
         attributes[i].layout.stride = offset;
     }
     
-    p_mesh_primitive->vertex_count = p_gltf_positions_accessor->count;
+	struct cx_mesh_data* p_mesh_data = &p_mesh->p_primitives[mesh_primitive_index];
+	*p_mesh_data = (struct cx_mesh_data) {0};
+
+    p_mesh_data->vertex_count = p_gltf_positions_accessor->count;
 
     // Allocate vertex buffer storage
 
-    struct vertex_buffer buffers[8] = {0};
+    struct cx_mesh_vertex_buffer buffers[8] = {0};
     size_t num_buffers = 0;
 
     for (size_t i = 0; i < num_attributes; ++i) {
@@ -387,8 +388,8 @@ void cx_ed_import_gltf_mesh_primitive(
             num_buffers = attributes[i].vertex_buffer_index + 1;
         }
 
-        const size_t attribute_size = vertex_attribute_layout_element_size(&attributes[i].layout);
-        buffers[attributes[i].vertex_buffer_index].size += attribute_size * p_mesh_primitive->vertex_count;
+        const size_t attribute_size = cx_mesh_vertex_attribute_format_size(&attributes[i].format);
+        buffers[attributes[i].vertex_buffer_index].size += attribute_size * p_mesh_data->vertex_count;
     }
 
     for (size_t i = 0; i < num_buffers; ++i) {
@@ -415,14 +416,14 @@ void cx_ed_import_gltf_mesh_primitive(
 
         const size_t element_size = cx_ed_import_gltf_compute_accessor_element_size(p_gltf_indices_accessor);
         
-        p_mesh_primitive->index_buffer.count = p_gltf_indices_accessor->count;
-        p_mesh_primitive->index_buffer.p_bytes = malloc(p_mesh_primitive->index_buffer.count * element_size);
-        p_mesh_primitive->index_buffer.type = gltf_enum_to_vertex_index_type(p_gltf_indices_accessor->component_type);
+		p_mesh_data->layout.index_type = gltf_enum_to_vertex_index_type(p_gltf_indices_accessor->component_type);
+        p_mesh_data->index_buffer.count = p_gltf_indices_accessor->count;
+        p_mesh_data->index_buffer.p_bytes = malloc(p_mesh_data->index_buffer.count * element_size);
 
         cx_ed_import_gltf_copy_accessor(
 			p_context->p_gltf,
 			p_gltf_indices_accessor,
-			p_mesh_primitive->index_buffer.p_bytes,
+			p_mesh_data->index_buffer.p_bytes,
 			0);
     }
 
@@ -430,28 +431,28 @@ void cx_ed_import_gltf_mesh_primitive(
         p_mesh->p_materials[mesh_primitive_index] = p_context->p_materials[p_gltf_mesh_primitive->material_index];
     }
 
-    p_mesh_primitive->draw_mode = gltf_enum_to_mesh_primitive_draw_mode(p_gltf_mesh_primitive->mode);
+    p_mesh_data->layout.draw_mode = gltf_enum_to_mesh_primitive_draw_mode(p_gltf_mesh_primitive->mode);
 
-    p_mesh_primitive->num_vertex_buffers = num_buffers;
+    p_mesh_data->layout.num_vertex_buffers = num_buffers;
 	const size_t vertex_buffers_size =
-		p_mesh_primitive->num_vertex_buffers * sizeof(*p_mesh_primitive->p_vertex_buffers);
-    p_mesh_primitive->p_vertex_buffers = malloc(vertex_buffers_size);
-    memcpy(p_mesh_primitive->p_vertex_buffers, buffers, vertex_buffers_size);
+		p_mesh_data->layout.num_vertex_buffers * sizeof(*p_mesh_data->p_vertex_buffers);
+    p_mesh_data->p_vertex_buffers = malloc(vertex_buffers_size);
+    memcpy(p_mesh_data->p_vertex_buffers, buffers, vertex_buffers_size);
 
-    p_mesh_primitive->num_attributes = num_attributes;
+    p_mesh_data->layout.num_attributes = num_attributes;
 	const size_t attributes_size =
-		p_mesh_primitive->num_attributes * sizeof(*p_mesh_primitive->p_attributes);
-    p_mesh_primitive->p_attributes = malloc(attributes_size);
-    memcpy(p_mesh_primitive->p_attributes, attributes, attributes_size);
+		p_mesh_data->layout.num_attributes * sizeof(*p_mesh_data->layout.p_attributes);
+    p_mesh_data->layout.p_attributes = malloc(attributes_size);
+    memcpy(p_mesh_data->layout.p_attributes, attributes, attributes_size);
     
     // Post-processing
 
     if (!p_gltf_normals_accessor && b_generate_normals) {
-        mesh_generate_normals(p_mesh_primitive, 0, 1);
+        cx_mesh_data_generate_normals(p_mesh_data, 0, 1);
     }
 
-    memcpy(p_mesh_primitive->bounds_min, p_gltf_positions_accessor->min, sizeof(p_mesh_primitive->bounds_min));
-    memcpy(p_mesh_primitive->bounds_max, p_gltf_positions_accessor->max, sizeof(p_mesh_primitive->bounds_max));
+    memcpy(p_mesh_data->bounds_min, p_gltf_positions_accessor->min, sizeof(p_mesh_data->bounds_min));
+    memcpy(p_mesh_data->bounds_max, p_gltf_positions_accessor->max, sizeof(p_mesh_data->bounds_max));
 }
 
 void cx_ed_import_gltf_skin(struct cx_ed_import_gltf_context* p_context, size_t gltf_skin_index) {
@@ -771,8 +772,8 @@ void cx_ed_import_gltf_copy_accessor(
 void cx_ed_import_gtlf_copy_accessor_to_vertex_buffer(
 	const struct gltf* p_gltf,
 	const struct gltf_accessor* p_gltf_accessor,
-	const struct vertex_buffer* p_dst,
-	const struct vertex_attribute_layout* p_dst_layout) {
+	const struct cx_mesh_vertex_buffer* p_dst,
+	const struct cx_mesh_vertex_attribute_layout* p_dst_layout) {
 
     void* p_dst_bytes = (unsigned char*)p_dst->p_bytes + p_dst_layout->offset;
     cx_ed_import_gltf_copy_accessor(p_gltf, p_gltf_accessor, p_dst_bytes, p_dst_layout->stride);
@@ -807,23 +808,23 @@ enum cx_texture_address_mode gltf_enum_to_texture_address_mode(enum gltf_sampler
     }
 }
 
-enum mesh_primitive_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode e) {
+enum cx_mesh_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode e) {
     switch (e) {
-        case GLTF_MESH_PRIMITIVE_MODE_points:         return MESH_PRIMITIVE_DRAW_MODE_points;
-        case GLTF_MESH_PRIMITIVE_MODE_lines:          return MESH_PRIMITIVE_DRAW_MODE_lines;
-        case GLTF_MESH_PRIMITIVE_MODE_line_loop:      return MESH_PRIMITIVE_DRAW_MODE_line_loop;
-        case GLTF_MESH_PRIMITIVE_MODE_line_strip:     return MESH_PRIMITIVE_DRAW_MODE_line_strip;
+        case GLTF_MESH_PRIMITIVE_MODE_points:         return CX_MESH_DRAW_MODE_points;
+        case GLTF_MESH_PRIMITIVE_MODE_lines:          return CX_MESH_DRAW_MODE_lines;
+        case GLTF_MESH_PRIMITIVE_MODE_line_loop:      return CX_MESH_DRAW_MODE_line_loop;
+        case GLTF_MESH_PRIMITIVE_MODE_line_strip:     return CX_MESH_DRAW_MODE_line_strip;
         default:
-        case GLTF_MESH_PRIMITIVE_MODE_triangles:      return MESH_PRIMITIVE_DRAW_MODE_triangles;
-        case GLTF_MESH_PRIMITIVE_MODE_triangle_strip: return MESH_PRIMITIVE_DRAW_MODE_triangle_strip;
-        case GLTF_MESH_PRIMITIVE_MODE_triangle_fan:   return MESH_PRIMITIVE_DRAW_MODE_triangle_fan;
+        case GLTF_MESH_PRIMITIVE_MODE_triangles:      return CX_MESH_DRAW_MODE_triangles;
+        case GLTF_MESH_PRIMITIVE_MODE_triangle_strip: return CX_MESH_DRAW_MODE_triangle_strip;
+        case GLTF_MESH_PRIMITIVE_MODE_triangle_fan:   return CX_MESH_DRAW_MODE_triangle_fan;
     }
 }
 
-enum vertex_index_type gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type e) {
+enum cx_mesh_vertex_index_type gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type e) {
     switch (e) {
-        case GLTF_ACCESSOR_COMPONENT_TYPE_unsigned_byte:  return VERTEX_INDEX_TYPE_u8;
-        case GLTF_ACCESSOR_COMPONENT_TYPE_unsigned_short: return VERTEX_INDEX_TYPE_u16;
-        default:                                          return VERTEX_INDEX_TYPE_u32;
+        case GLTF_ACCESSOR_COMPONENT_TYPE_unsigned_byte:  return CX_MESH_VERTEX_INDEX_TYPE_u8;
+        case GLTF_ACCESSOR_COMPONENT_TYPE_unsigned_short: return CX_MESH_VERTEX_INDEX_TYPE_u16;
+        default:                                          return CX_MESH_VERTEX_INDEX_TYPE_u32;
     }
 }

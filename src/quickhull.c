@@ -8,8 +8,8 @@
 
 #include "cx_dbg.h"
 #include "cx_logging.h"
+#include "cx_mesh_data.h"
 #include "math_utils.h"
-#include "mesh.h"
 #include "quickhull.h"
 #include "static_mesh.h"
 #include "vector.h"
@@ -991,19 +991,19 @@ void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_me
 	size_t num_vertices = 0;
 
 	for (size_t i = 0; i < p_static_mesh->num_primitives; ++i) {
-		const struct mesh_primitive* p_primitive = &p_static_mesh->p_primitives[i];
+		const struct cx_mesh_data* p_primitive = &p_static_mesh->p_primitives[i];
 		num_vertices += p_primitive->vertex_count;
 	}
 
 	float* point_cloud_points = malloc(num_vertices * sizeof(float) * 3);
 
 	for (size_t i = 0; i < p_static_mesh->num_primitives; ++i) {
-		const struct mesh_primitive* p_primitive = &p_static_mesh->p_primitives[i];
+		const struct cx_mesh_data* p_primitive = &p_static_mesh->p_primitives[i];
 
-		const struct vertex_attribute* p_position_attribute = 0;
+		const struct cx_mesh_vertex_attribute* p_position_attribute = 0;
 
-		for (size_t a = 0; a < p_primitive->num_attributes; ++a) {
-			const struct vertex_attribute* p_attribute = &p_primitive->p_attributes[a];
+		for (size_t a = 0; a < p_primitive->layout.num_attributes; ++a) {
+			const struct cx_mesh_vertex_attribute* p_attribute = &p_primitive->layout.p_attributes[a];
 			if (p_attribute->index == 0) {
 				p_position_attribute = p_attribute;
 				break;
@@ -1014,7 +1014,7 @@ void quickhull_static_mesh(const struct static_mesh* p_static_mesh, struct he_me
 			continue;
 		}
 
-		const struct vertex_buffer* p_position_buffer = &p_primitive->p_vertex_buffers[p_position_attribute->vertex_buffer_index];
+		const struct cx_mesh_vertex_buffer* p_position_buffer = &p_primitive->p_vertex_buffers[p_position_attribute->vertex_buffer_index];
 
 		for (size_t v = 0; v < p_primitive->vertex_count; ++v) {
 			const float* p_v = (float*)(void*)((char*)p_position_buffer->p_bytes + p_position_attribute->layout.offset + (p_position_attribute->layout.stride * v));

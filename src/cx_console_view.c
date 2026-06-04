@@ -5,10 +5,10 @@
 #include "cx_gfx_mesh.h"
 #include "cx_render_pass.h"
 #include "cx_io.h"
+#include "cx_mesh_data.h"
 #include "cx_mesh_gen.h"
 #include "cx_text_mesher.h"
 #include "matrix.h"
-#include "mesh.h"
 
 #define CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS 1024
 
@@ -216,10 +216,10 @@ int cx_console_view_init(void) {
 	cx_io_file_free(s_vert);
 	cx_io_file_free(s_frag);
 
-	struct mesh_primitive quad_mesh_prim;
-	cx_mesh_gen_quad(0.5f, 0.5f, (float[]){ 0, 0, 1 }, &quad_mesh_prim);
-	cx_gfx_mesh_create(&quad_mesh, &quad_mesh_prim);
-	cx_mesh_gen_free(&quad_mesh_prim);
+	struct cx_mesh_data quad_mesh_data;
+	cx_mesh_gen_quad(0.5f, 0.5f, (float[]){ 0, 0, 1 }, &quad_mesh_data);
+	cx_gfx_mesh_create(&quad_mesh_data, CX_GFX_BUFFER_USAGE_static, &quad_mesh);
+	cx_mesh_gen_free(&quad_mesh_data);
 
 	return (b_init = 1);
 }
@@ -242,7 +242,7 @@ void cx_console_view_generate_text_meshes(
 
 	cx_text_mesher_generate(&text_mesher_input, 1, &text_mesher_output, &num_text_meshes);
 
-	cx_gfx_mesh_create(&text_mesh, &text_mesher_output.primitive);
+	cx_gfx_mesh_create(&text_mesher_output.mesh_data, CX_GFX_BUFFER_USAGE_dynamic, &text_mesh);
 
 	cx_text_mesher_free(&text_mesher_output, 1);
 
@@ -264,7 +264,7 @@ void cx_console_view_generate_text_meshes(
 
 	cx_text_mesher_generate(&log_text_mesher_input, 1, &text_mesher_output, &num_text_meshes);
 
-	cx_gfx_mesh_create(&log_text_mesh, &text_mesher_output.primitive);
+	cx_gfx_mesh_create(&text_mesher_output.mesh_data, CX_GFX_BUFFER_USAGE_dynamic, &log_text_mesh);
 
 	cx_text_mesher_free(&text_mesher_output, 1);
 }

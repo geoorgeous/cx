@@ -6,7 +6,6 @@
 #include "cx_font.h"
 #include "cx_texture_atlas_layout.h"
 #include "matrix.h"
-#include "mesh.h"
 
 #define CX_TAB_SPACE_COUNT 4
 
@@ -96,8 +95,8 @@ void cx_text_mesher_generate(
 	float* p_vertices;
 	uint16_t* p_indices;
 
-	const size_t primitive_vertex_buffers_size = sizeof(*p_out_outputs->primitive.p_vertex_buffers);
-	const size_t primitive_vertex_attributes_size = sizeof(*p_out_outputs->primitive.p_attributes) * 3;
+	const size_t primitive_vertex_buffers_size = sizeof(*p_out_outputs->mesh_data.p_vertex_buffers);
+	const size_t primitive_vertex_attributes_size = sizeof(*p_out_outputs->mesh_data.layout.p_attributes) * 3;
 	const size_t primitive_data_size = primitive_vertex_buffers_size + primitive_vertex_attributes_size;
 
 	const size_t num_vertices = num_quads * 4;
@@ -249,58 +248,66 @@ void cx_text_mesher_generate(
 		vertex_index += 4;
 	}
 
-	struct mesh_primitive* p_prim = &p_out_outputs->primitive;
+	struct cx_mesh_data* p_mesh_data = &p_out_outputs->mesh_data;
 
-    *p_prim = (struct mesh_primitive) {
-        .p_vertex_buffers   = (void*)p_buffer,
-        .num_vertex_buffers = 1,
-        .p_attributes       = (void*)(p_buffer + primitive_vertex_buffers_size),
-        .num_attributes     = 3,
-        .vertex_count       = num_vertices,
+    *p_mesh_data = (struct cx_mesh_data) {
+		.layout = {
+			.num_vertex_buffers = 1,
+       		.p_attributes = (void*)(p_buffer + primitive_vertex_buffers_size),
+			.num_attributes = 3,
+			.index_type = CX_MESH_VERTEX_INDEX_TYPE_u16,
+			.draw_mode = CX_MESH_DRAW_MODE_triangles
+		},
+        .p_vertex_buffers = (void*)p_buffer,
+        .vertex_count = num_vertices,
         .index_buffer = {
             .p_bytes = p_indices,
-            .count   = num_indices,
-            .type    = VERTEX_INDEX_TYPE_u16
+            .count = num_indices,
         },
-        .draw_mode  = MESH_PRIMITIVE_DRAW_MODE_triangles,
         .bounds_min = { 0, 0, 0 },
         .bounds_max = { 0, 0, 0 }
     };
 
-    *p_prim->p_vertex_buffers = (struct vertex_buffer) {
+    *p_mesh_data->p_vertex_buffers = (struct cx_mesh_vertex_buffer) {
         .p_bytes = p_vertices,
-        .size    = vertices_size
+        .size = vertices_size
     };
 
-    p_prim->p_attributes[0] = (struct vertex_attribute) {
-        .index               = 0,
+    p_mesh_data->layout.p_attributes[0] = (struct cx_mesh_vertex_attribute) {
+        .index = 0,
         .vertex_buffer_index = 0,
+		.format = {
+			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
+			.count = 3
+		},
         .layout = {
-            .stride          = vertex_size,
-            .component_count = 3,
-            .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
+            .stride = vertex_size,
         }
     };
 
-    p_prim->p_attributes[1] = (struct vertex_attribute) {
-        .index               = 1,
+    p_mesh_data->layout.p_attributes[1] = (struct cx_mesh_vertex_attribute) {
+        .index = 1,
         .vertex_buffer_index = 0,
+		.format = {
+			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
+			.count = 2
+		},
         .layout = {
-            .offset          = sizeof(float) * 3,
-            .stride          = vertex_size,
-            .component_count = 2,
-            .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
+            .offset = sizeof(float) * 3,
+            .stride = vertex_size
         }
     };
 
-    p_prim->p_attributes[2] = (struct vertex_attribute) {
-        .index               = 2,
+    p_mesh_data->layout.p_attributes[2] = (struct cx_mesh_vertex_attribute) {
+        .index = 2,
         .vertex_buffer_index = 0,
+		.format = {
+			.type = CX_MESH_VERTEX_ATTRIBUTE_TYPE_f32,
+			.count = 4
+		},
         .layout = {
-            .offset          = sizeof(float) * 5,
-            .stride          = vertex_size,
-            .component_count = 4,
-            .component_type  = VERTEX_ATTRIBUTE_TYPE_f32
+            .offset = sizeof(float) * 5,
+            .stride = vertex_size
         }
     };
 
@@ -309,7 +316,7 @@ void cx_text_mesher_generate(
 
 void cx_text_mesher_free(struct cx_text_mesher_output* p_text_meshes, size_t n) {
 	for (size_t i = 0; i < n; ++i) {
-		free(p_text_meshes[i].primitive.p_vertex_buffers);
+		free(p_text_meshes[i].mesh_data.p_vertex_buffers);
 		p_text_meshes[i] = (struct cx_text_mesher_output){0};
 	}
 }

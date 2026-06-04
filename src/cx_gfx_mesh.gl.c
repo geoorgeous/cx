@@ -1,8 +1,10 @@
-#include <string.h>
-
+#include "cx_gfx_buffer.h"
+#include "cx_gfx_buffer.gl.h"
 #include "cx_gfx_mesh.h"
+#include "cx_logging.h"
+#include "cx_mesh_data.h"
 #include "gl.h"
-#include "mesh.h"
+#include "vector.h"
 
 static const GLenum gl_vertex_attr_type_table[] = {
 	GL_FLOAT,
@@ -21,6 +23,7 @@ static const GLenum gl_vertex_attr_type_table[] = {
 };
 
 static const GLenum gl_index_type_table[] = {
+	GL_NONE,
 	GL_UNSIGNED_BYTE,
 	GL_UNSIGNED_SHORT,
 	GL_UNSIGNED_INT
@@ -38,53 +41,57 @@ static const GLenum gl_draw_mode_table[] = {
 
 struct cx_gfx_mesh_gl_internals {
 	GLuint vao;
-	GLuint vbos[CX_GFX_MESH_MAX_ATTR_BUFFERS];
-	GLsizei vbos_len;
-	GLuint ibo;
 	GLenum ibo_type;
 	GLenum draw_mode;
+	struct cx_gfx_buffer vertex_buffers[CX_GFX_MESH_MAX_ATTR_BUFFERS];
+	struct cx_gfx_buffer index_buffer;
 };
 
-int    is_vertex_attribute_type_float(enum vertex_attribute_type vertex_attribute_type);
-int    is_vertex_attribute_type_normalized(enum vertex_attribute_type vertex_attribute_type);
+void cx_gfx_mesh_create(
+	const struct cx_mesh_data* p_mesh_data,
+	enum cx_gfx_buffer_usage usage,
+	struct cx_gfx_mesh* p_out) {
 
-void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive* p_mesh_primitive) {
-	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->bytes_;
+    *p_out = (struct cx_gfx_mesh){0};
 
-    *p_mesh = (struct cx_gfx_mesh){0};
+	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_out->internals_.bytes_;
 
     glGenVertexArrays(1, &p_internals->vao);
-
     glBindVertexArray(p_internals->vao);
 
-    p_internals->vbos_len = (GLsizei)p_mesh_primitive->num_vertex_buffers;
-    glGenBuffers(p_internals->vbos_len, p_internals->vbos);
+    for (size_t i = 0; i < p_mesh_data->layout.num_vertex_buffers; ++i) {
+        const struct cx_mesh_vertex_buffer* p_vertex_buffer = &p_mesh_data->p_vertex_buffers[i];
+		
+		struct cx_gfx_buffer* p_vbuf = &p_internals->vertex_buffers[i];
 
-    for (size_t i = 0; i < p_mesh_primitive->num_vertex_buffers; ++i) {
-        const struct vertex_buffer* p_vertex_buffer = &p_mesh_primitive->p_vertex_buffers[i];
+		cx_gfx_buffer_create(
+			CX_GFX_BUFFER_TYPE_vertex,
+			p_vertex_buffer->size,
+			usage,
+			p_vbuf);
 
-        glBindBuffer(GL_ARRAY_BUFFER, p_internals->vbos[i]);
-
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)p_vertex_buffer->size, p_vertex_buffer->p_bytes, GL_STATIC_DRAW);
+		cx_gfx_buffer_set(p_vbuf, p_vertex_buffer->size, p_vertex_buffer->p_bytes);
     }
 
-    for (size_t i = 0; i < p_mesh_primitive->num_attributes; ++i) {
-        const struct vertex_attribute* p_attribute = &p_mesh_primitive->p_attributes[i];
+    for (size_t i = 0; i < p_mesh_data->layout.num_attributes; ++i) {
+        const struct cx_mesh_vertex_attribute* p_attribute = &p_mesh_data->layout.p_attributes[i];
+		const struct cx_gfx_buffer* p_vbuf = &p_internals->vertex_buffers[p_attribute->vertex_buffer_index];
+		const struct cx_gfx_buffer_gl_internals* p_vbuf_internals = (const void*)p_vbuf->internals_.bytes_;
 
-        glBindBuffer(GL_ARRAY_BUFFER, p_internals->vbos[p_attribute->vertex_buffer_index]);
+        glBindBuffer(GL_ARRAY_BUFFER, p_vbuf_internals->id);
 
-        if (is_vertex_attribute_type_float(p_attribute->layout.component_type)) {
+        if (is_vertex_attribute_type_float(p_attribute->format.type)) {
             glVertexAttribPointer((GLuint)p_attribute->index,
-                (GLint)p_attribute->layout.component_count,
-                gl_vertex_attr_type_table[p_attribute->layout.component_type],
-                (GLboolean)is_vertex_attribute_type_normalized(p_attribute->layout.component_type),
+                (GLint)p_attribute->format.count,
+                gl_vertex_attr_type_table[p_attribute->format.type],
+                (GLboolean)is_vertex_attribute_type_normalized(p_attribute->format.type),
                 (GLsizei)p_attribute->layout.stride,
                 (void*)(GLsizeiptr)p_attribute->layout.offset
             );
         } else {
             glVertexAttribIPointer((GLuint)p_attribute->index,
-                (GLint)p_attribute->layout.component_count,
-                gl_vertex_attr_type_table[p_attribute->layout.component_type],
+                (GLint)p_attribute->format.count,
+                gl_vertex_attr_type_table[p_attribute->format.type],
                 (GLsizei)p_attribute->layout.stride,
                 (void*)(GLsizeiptr)p_attribute->layout.offset
             );
@@ -93,63 +100,73 @@ void cx_gfx_mesh_create(struct cx_gfx_mesh* p_mesh, const struct mesh_primitive*
         glEnableVertexAttribArray((GLuint)p_attribute->index);
     }
 
-    if (p_mesh_primitive->index_buffer.p_bytes) {
-        glGenBuffers(1, &p_internals->ibo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, p_internals->ibo);
+    if (p_mesh_data->layout.index_type != CX_MESH_VERTEX_INDEX_TYPE_none) {
+		const size_t index_buffer_size =
+			cx_mesh_vertex_index_type_size(p_mesh_data->layout.index_type) * p_mesh_data->index_buffer.count;
 
-        size_t index_size;
-        switch(p_mesh_primitive->index_buffer.type) {
-            case VERTEX_INDEX_TYPE_u8:  index_size = 1; break;
-            case VERTEX_INDEX_TYPE_u16: index_size = 2; break;
-            case VERTEX_INDEX_TYPE_u32: index_size = 4; break;
-        }
+		cx_gfx_buffer_create(CX_GFX_BUFFER_TYPE_index, index_buffer_size, usage, &p_internals->index_buffer);
+		cx_gfx_buffer_set(&p_internals->index_buffer, index_buffer_size, p_mesh_data->index_buffer.p_bytes);
 
-        const GLsizei ibo_size = (GLsizei)(index_size * p_mesh_primitive->index_buffer.count);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibo_size, p_mesh_primitive->index_buffer.p_bytes, GL_STATIC_DRAW);
-
-        p_internals->ibo_type = gl_index_type_table[p_mesh_primitive->index_buffer.type];
-        p_mesh->elements_count_ = p_mesh_primitive->index_buffer.count;
+        p_internals->ibo_type = gl_index_type_table[p_mesh_data->layout.index_type];
+        p_out->num_elements_ = p_mesh_data->index_buffer.count;
     } else {
-        p_mesh->elements_count_ = p_mesh_primitive->vertex_count;
+        p_out->num_elements_ = p_mesh_data->vertex_count;
     }
 
-	p_internals->draw_mode = gl_draw_mode_table[p_mesh_primitive->draw_mode];
+	p_out->layout_hash_ = cx_mesh_data_layout_hash(&p_mesh_data->layout);
 
-    memcpy(p_mesh->bounds_min_, p_mesh_primitive->bounds_min, sizeof(p_mesh->bounds_min_));
-    memcpy(p_mesh->bounds_max_, p_mesh_primitive->bounds_max, sizeof(p_mesh->bounds_max_));
+	p_internals->draw_mode = gl_draw_mode_table[p_mesh_data->layout.draw_mode];
+
+	vec3_copy(p_mesh_data->bounds_min, p_out->aabb_min_);
+	vec3_copy(p_mesh_data->bounds_max, p_out->aabb_max_);
 }
 
 void cx_gfx_mesh_destroy(struct cx_gfx_mesh* p_mesh) {
-	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->bytes_;
+	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->internals_.bytes_;
 
-    glDeleteBuffers(p_internals->vbos_len, p_internals->vbos);
-    glDeleteBuffers(1, &p_internals->ibo);
-    glDeleteVertexArrays(1, &p_internals->vao);
-    *p_mesh = (struct cx_gfx_mesh){0};
+	glDeleteVertexArrays(1, &p_internals->vao);
+
+	*p_mesh = (struct cx_gfx_mesh) {0};
+}
+
+void cx_gfx_mesh_update(struct cx_gfx_mesh *p_mesh, const struct cx_mesh_data *p_mesh_data) {
+	struct cx_gfx_mesh_gl_internals* p_internals = (void*)p_mesh->internals_.bytes_;
+
+	if (p_mesh->layout_hash_ != cx_mesh_data_layout_hash(&p_mesh_data->layout)) {
+		cx_gfx_mesh_destroy(p_mesh);
+		cx_gfx_mesh_create(p_mesh_data, p_internals->vertex_buffers->usage_, p_mesh);
+		return;
+	}
+
+	for (size_t i = 0; i < p_mesh_data->layout.num_vertex_buffers; ++i) {
+        const struct cx_mesh_vertex_buffer* p_vertex_buffer = &p_mesh_data->p_vertex_buffers[i];
+		
+		struct cx_gfx_buffer* p_vbuf = &p_internals->vertex_buffers[i];
+		
+		cx_gfx_buffer_set(p_vbuf, p_vertex_buffer->size, p_vertex_buffer->p_bytes);
+	}
+
+	if (p_mesh_data->layout.index_type == CX_MESH_VERTEX_INDEX_TYPE_none) {
+		const size_t index_buffer_size =
+			cx_mesh_vertex_index_type_size(p_mesh_data->layout.index_type) * p_mesh_data->index_buffer.count;
+		cx_gfx_buffer_set(&p_internals->index_buffer, index_buffer_size, p_mesh_data->index_buffer.p_bytes);
+		p_mesh->num_elements_ = p_mesh_data->index_buffer.count;
+	} else {
+		p_mesh->num_elements_ = p_mesh_data->vertex_count;
+	}
+
+	vec3_copy(p_mesh_data->bounds_min, p_mesh->aabb_min_);
+	vec3_copy(p_mesh_data->bounds_max, p_mesh->aabb_max_);
 }
 
 void cx_gfx_mesh_draw(const struct cx_gfx_mesh* p_mesh) {
-	const struct cx_gfx_mesh_gl_internals* p_internals = (const void*)p_mesh->bytes_;
+	const struct cx_gfx_mesh_gl_internals* p_internals = (const void*)p_mesh->internals_.bytes_;
 
     glBindVertexArray(p_internals->vao);
 
-    if (p_internals->ibo) {
-        glDrawElements(p_internals->draw_mode, (GLsizei)p_mesh->elements_count_, p_internals->ibo_type, 0);
+    if (p_internals->index_buffer.size_ == 0) {
+        glDrawArrays(p_internals->draw_mode, 0, (GLsizei)p_mesh->num_elements_);
     } else {
-        glDrawArrays(p_internals->draw_mode, 0, (GLsizei)p_mesh->elements_count_);
+        glDrawElements(p_internals->draw_mode, (GLsizei)p_mesh->num_elements_, p_internals->ibo_type, 0);
     }
-}
-
-int is_vertex_attribute_type_float(enum vertex_attribute_type vertex_attribute_type) {
-    return
-        vertex_attribute_type == VERTEX_ATTRIBUTE_TYPE_f32 ||
-        is_vertex_attribute_type_normalized(vertex_attribute_type);
-}
-
-int is_vertex_attribute_type_normalized(enum vertex_attribute_type vertex_attribute_type) {
-    if (vertex_attribute_type >= VERTEX_ATTRIBUTE_TYPE_ni8 &&
-        vertex_attribute_type <= VERTEX_ATTRIBUTE_TYPE_nu32) {
-        return 1;
-    }
-    return 0;
 }
