@@ -9,7 +9,7 @@
 #define CX_COLOR_U32_R8G8B8A8_G(U32) (((U32) >> 16) & 0xff)
 #define CX_COLOR_U32_R8G8B8A8_B(U32) (((U32) >>  8) & 0xff)
 #define CX_COLOR_U32_R8G8B8A8_A(U32) ( (U32)        & 0xff)
-#define CX_COLOR_U32_R8G8B8A8(R8, G8, B8, A8) ((u32_r8g8b8a8)(((R8) << 24) | ((G8) << 16) | ((B8) << 8) | (A8)))
+#define CX_COLOR_U32_R8G8B8A8(R8, G8, B8, A8) ((uint32_t)(((R8) << 24) | ((G8) << 16) | ((B8) << 8) | (A8)))
 
 #define CX_U8_FROM_F32_PERCENT(F32) ((uint8_t)((F32) * 0xff))
 #define CX_F32_PERCENT_FROM_U8(U8) (((float)(U8)) / 0xff)
@@ -84,6 +84,14 @@ static inline int cx_color_f32_cmp(const struct cx_color* p_a, const struct cx_c
 		FLT_CMP(CX_COLOR_G(*p_a), CX_COLOR_G(*p_b)) &&
 		FLT_CMP(CX_COLOR_B(*p_a), CX_COLOR_B(*p_b)) &&
 		FLT_CMP(CX_COLOR_A(*p_a), CX_COLOR_A(*p_b));
+}
+
+static inline uint32_t cx_color_packed_u32_from_f32(const struct cx_color* p_color) {
+	return CX_COLOR_U32_R8G8B8A8(
+		CX_U8_FROM_F32_PERCENT(CX_COLOR_R(*p_color)),
+		CX_U8_FROM_F32_PERCENT(CX_COLOR_G(*p_color)),
+		CX_U8_FROM_F32_PERCENT(CX_COLOR_B(*p_color)),
+		CX_U8_FROM_F32_PERCENT(CX_COLOR_A(*p_color)));
 }
 
 #endif
