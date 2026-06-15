@@ -23,7 +23,7 @@
 #define CX_ASSERT(X, LOG_CAT) \
 	do { \
 		if (!(X)) {\
-			CX_LOG_FMT(ERROR, LOG_CAT, "ASSERTION FAILED | " CX_STRINGIFY(X) " | " CX_FILE_LINE " (%s)\n", \
+			CX_LOG_FMT(ERROR, LOG_CAT, "Assertion failed: \"" CX_STRINGIFY(X) "\": " CX_FILE_LINE " (%s)\n", \
 				__func__); \
 			abort(); \
 		} \
@@ -32,7 +32,7 @@
 #define CX_ASSERT_MSG(X, LOG_CAT, MSG) \
 	do { \
 		if (!(X)) { \
-			CX_LOG_FMT(ERROR, LOG_CAT, "ASSERTION FAILED | " CX_STRINGIFY(X) " | " MSG " | " CX_FILE_LINE " (%s)\n", \
+			CX_LOG_FMT(ERROR, LOG_CAT, "Assertion failed: \"" CX_STRINGIFY(X) "\": " MSG ": " CX_FILE_LINE " (%s)\n", \
 				__func__); \
 		abort(); \
 		} \
@@ -42,7 +42,7 @@
 	do { \
 		if (!(X)) { \
 			CX_LOG_FMT(ERROR, LOG_CAT, \
-				"ASSERTION FAILED | " CX_STRINGIFY(X) " | " MSG " | " CX_FILE_LINE " (%s)\n", \
+				"Assertion failed: \"" CX_STRINGIFY(X) "\": " MSG ": " CX_FILE_LINE " (%s)\n", \
 				__VA_ARGS__, __func__); \
 			abort(); \
 		} \
