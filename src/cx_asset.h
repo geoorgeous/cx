@@ -16,6 +16,9 @@
 #define CX_ASSET_GET_TYPE_ID(ID) ((uint8_t)((ID) >> 24))
 #define CX_ASSET_GET_IDN(ID) (((uint32_t)(ID)) & CX_ASSET_IDN_MASK)
 
+struct cx_stream_writer;
+struct cx_stream_reader;
+
 typedef uint32_t cx_asset_id;
 
 struct cx_asset {
@@ -23,8 +26,8 @@ struct cx_asset {
 	cx_asset_id id_;
 };
 
-typedef int(*cx_asset_serialize_fn)(FILE*, const void*);
-typedef int(*cx_asset_deserialize_fn)(FILE*, void*);
+typedef int(*cx_asset_serialize_fn)(struct cx_stream_writer*, const void*);
+typedef int(*cx_asset_deserialize_fn)(struct cx_stream_reader*, void*);
 typedef void(*cx_asset_free_fn)(void*);
 
 void cx_asset_register_type(
@@ -79,8 +82,8 @@ int cx_asset_directory_find(cx_asset_id id, struct cx_asset_package_record** pp_
 
 const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_packages);
 
-void cx_asset_serialize_handle(FILE* p_file, const cx_asset_handle p_asset_handle);
+void cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle);
 
-void cx_asset_deserialize_handle(FILE* p_file, cx_asset_handle* p_result);
+void cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, cx_asset_handle* p_result);
 
 #endif

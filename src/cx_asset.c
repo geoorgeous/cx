@@ -4,8 +4,9 @@
 
 #include "cx_asset.h"
 #include "cx_logging.h"
+#include "cx_stream_file.h"
+#include "cx_stream_serialization.h"
 #include "hashtable.h"
-#include "serialization.h"
 
 #define CX_ASSET_TYPE_NAME_MAX_LEN 63
 
@@ -73,13 +74,16 @@ int cx_asset_load(struct cx_asset_package_record* p_record) {
 		return 0;
 	}
 
+	struct cx_stream_reader_file stream_reader;
+	cx_stream_reader_init_file(p_file, &stream_reader);
+
 	fseek(p_file, p_record->file_location_, SEEK_CUR);
 	
 	const struct asset_type_table* p_type_table = &asset_type_tables[CX_ASSET_GET_TYPE_ID(p_record->asset_.id_)];
 
 	p_record->asset_.p_data_ = calloc(1, p_type_table->asset_size);
 
-	const int b_result = p_type_table->f_deserialize(p_file, p_record->asset_.p_data_);
+	const int b_result = p_type_table->f_deserialize(&stream_reader.base, p_record->asset_.p_data_);
 
 	fclose(p_file);
 
@@ -139,10 +143,13 @@ int cx_asset_package_load_records(struct cx_asset_package* p_result, const char*
 		return 0;
 	}
 
+	struct cx_stream_reader_file stream_reader;
+	cx_stream_reader_init_file(p_file, &stream_reader);
+
 	strcpy(p_result->s_filename_, s_filename);
 
 	uint32_t num_records = 0;
-	deserialize_uint32(p_file, &num_records);
+	cx_stream_deserialize_uint32(&stream_reader.base, &num_records);
 	
 	if (num_records == 0) {
 		return 0;
@@ -153,12 +160,12 @@ int cx_asset_package_load_records(struct cx_asset_package* p_result, const char*
 
 	for (size_t i = 0; i < num_records; ++i) {
 		cx_asset_id id;
-		deserialize_uint32(p_file, &id);
+		cx_stream_deserialize_uint32(&stream_reader.base, &id);
 
 		struct cx_asset_package_record* p_new_record;
 		cx_asset_package_new_record_internal(p_result, id, &p_new_record);
 
-		deserialize_uint32(p_file, &p_new_record->file_location_);
+		cx_stream_deserialize_uint32(&stream_reader.base, &p_new_record->file_location_);
 	}
 	
 	return (int)num_records;
@@ -166,14 +173,17 @@ int cx_asset_package_load_records(struct cx_asset_package* p_result, const char*
 
 void cx_asset_package_save(struct cx_asset_package* p_package) {
 	FILE* p_file = fopen(p_package->s_filename_, "wb");
-	
+
 	if (!p_file) {
 		CX_LOG_FMT(ERROR, ASSET, "Failed to save asset package: unable to open file '%s'\n",
 			p_package->s_filename_);
 		return;
 	}
 
-	serialize_uint32(p_file, (uint32_t)p_package->asset_type_record_tables_.n_elements_);
+	struct cx_stream_writer_file stream_writer;
+	cx_stream_writer_init_file(p_file, &stream_writer);
+
+	cx_stream_serialize_uint32(&stream_writer.base, (uint32_t)p_package->asset_type_record_tables_.n_elements_);
 
 	CX_LOG_FMT(TRACE, ASSET, "Saving assets to package file '%s'...\n", p_package->s_filename_);
 
@@ -193,9 +203,9 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
 		while(hashtable_itr_is_valid(&asset_type_records_itr)) {
 			struct cx_asset_package_record* p_record = asset_type_records_itr.p_value;
 
-			serialize_uint32(p_file, p_record->asset_.id_);
+			cx_stream_serialize_uint32(&stream_writer.base, p_record->asset_.id_);
 
-			serialize_uint32(p_file, 0);
+			cx_stream_serialize_uint32(&stream_writer.base, 0);
 			
 			hashtable_itr_next(&asset_type_records_itr);
 		}
@@ -221,7 +231,7 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
 			p_record->file_location_ = (uint32_t)asset_data_file_location;
 			
 			// DATA
-			const int b_result = p_asset_type_table->f_serialize(p_file, p_record->asset_.p_data_);
+			const int b_result = p_asset_type_table->f_serialize(&stream_writer.base, p_record->asset_.p_data_);
 			CX_LOG_FMT(TRACE, ASSET, "  Asset saved %x...\n", p_record->asset_.id_);
 			
 			if (!b_result) {
@@ -234,7 +244,7 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
 			
 			// write the asset's records' file location now that we know it
 			fseek(p_file, (long)sizeof(uint32_t) + (long)(asset_record_size * i) + (long)sizeof(cx_asset_id), SEEK_SET);
-			serialize_uint32(p_file, p_record->file_location_);
+			cx_stream_serialize_uint32(&stream_writer.base, p_record->file_location_);
 			fseek(p_file, asset_data_file_location, SEEK_SET);
 				
 			hashtable_itr_next(&asset_type_records_itr);
@@ -329,13 +339,13 @@ const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_pa
 	return directory.pp_packages;
 }
 
-void cx_asset_serialize_handle(FILE* p_file, const cx_asset_handle p_asset_handle) {
-	serialize_uint32(p_file, p_asset_handle ? p_asset_handle->asset_.id_ : 0);
+void cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle) {
+	cx_stream_serialize_uint32(p_writer, p_asset_handle ? p_asset_handle->asset_.id_ : 0);
 }
 
-void cx_asset_deserialize_handle(FILE* p_file, struct cx_asset_package_record** pp_result) {
+void cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, struct cx_asset_package_record** pp_result) {
 	cx_asset_id id;
-	deserialize_uint32(p_file, &id);
+	cx_stream_deserialize_uint32(p_reader, &id);
 	if (cx_asset_directory_find(id, pp_result)) {
 		CX_LOG_FMT(ERROR, ASSET, "Failed to deserialize asset handle: asset %x not found in asset directory\n", id);
 	}
