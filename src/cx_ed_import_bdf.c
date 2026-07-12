@@ -23,7 +23,7 @@ int cx_ed_import_bdf(
 	const size_t buf_size = (p_bdf->max_glyph_width_ * p_bdf->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
 	p_font->p_glyph_bitmap_buf = CX_MALLOC(buf_size);
 
-	uint8_t* p_bitmap_pos = p_font->p_glyph_bitmap_buf;
+	size_t bitmap_offset = 0;
 	uint8_t bitmap_bit_offset = 0;
 
 	int num_glyphs_read = 0;
@@ -48,7 +48,7 @@ int cx_ed_import_bdf(
 				.adv_x = p_bdf_glyph->adv_x_
 			},
 			.bitmap_ = {
-				.p_pos = p_bitmap_pos,
+				.offset = bitmap_offset,
 				.bit_offset = bitmap_bit_offset
 			}
 		};
@@ -56,13 +56,13 @@ int cx_ed_import_bdf(
 		const size_t num_bits = p_glyph->metrics_.width * p_glyph->metrics_.height;
 
 		cx_bits_copy(
-			p_glyph->bitmap_.p_pos,
+			(uint8_t*)p_font->p_glyph_bitmap_buf + p_glyph->bitmap_.offset,
 			p_glyph->bitmap_.bit_offset,
 			p_bdf_glyph->p_bitmap_,
 			p_bdf_glyph->bitmap_bit_offset_,
 			num_bits);
 
-		p_bitmap_pos += (bitmap_bit_offset + num_bits) / 8;
+		bitmap_offset += (bitmap_bit_offset + num_bits) / 8;
 		bitmap_bit_offset = (bitmap_bit_offset + num_bits) % 8;;
 	}
 
@@ -80,7 +80,7 @@ int cx_ed_import_bdf(
 	cx_asset_package_new_record(p_package, CX_ASSET_TYPE_FONT, pp_out);
 	(*pp_out)->asset_.p_data_ = p_font;
 
-	return 1;
+	return CX_TRUE;
 }
 
 int cx_ed_import_bdf_file(
@@ -91,7 +91,7 @@ int cx_ed_import_bdf_file(
 	void* p_bdf_buf;
 	size_t bdf_buf_size;
 	if (cx_io_file_read_all(s_filepath, &p_bdf_buf, &bdf_buf_size) != CX_ERROR_none) {
-		return 0;
+		return CX_FALSE;
 	}
 
 	struct cx_bdf bdf;

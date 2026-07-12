@@ -25,7 +25,7 @@ void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font) {
 	p_font->p_glyph_bitmap_buf = 0;
 
 	for (size_t i = 0; i < CX_FONT_NUM_GLYPHS; ++i) {
-		p_font->glyphs_[i].bitmap_.p_pos = 0;
+		p_font->glyphs_[i].bitmap_.offset = 0;
 		p_font->glyphs_[i].bitmap_.bit_offset = 0;
 	}
 }
@@ -124,14 +124,15 @@ void cx_font_create_atlas(
 		};
 
 		for (size_t y = 0; y < p_glyph->metrics_.height; ++y) {
+			const uint8_t* p_glyph_bitmap = (uint8_t*)p_font->p_glyph_bitmap_buf + p_glyph->bitmap_.offset;
 			uint8_t* p = p_pixels + width * (height - 1 - (p_dst->y + y)) + p_dst->x;
-			
+
 			for (size_t x = 0; x < p_glyph->metrics_.width; ++x) {
 				const size_t bit = y * p_glyph->metrics_.width + x;
 				
 				const size_t src_bit_n = p_glyph->bitmap_.bit_offset + bit;
 				
-				const uint8_t src_byte = ((uint8_t*)p_glyph->bitmap_.p_pos)[src_bit_n / 8];
+				const uint8_t src_byte = p_glyph_bitmap[src_bit_n / 8];
 				
 				*p = 0xFF * CX_BIT_GET(src_byte, src_bit_n % 8);
 				

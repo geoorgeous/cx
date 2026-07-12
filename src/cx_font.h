@@ -20,7 +20,7 @@ struct cx_font_glyph {
 		int32_t  adv_x;
 	} metrics_;
 	struct {
-		void*   p_pos;
+		size_t  offset;
 		uint8_t bit_offset;
 	} bitmap_;
 };
