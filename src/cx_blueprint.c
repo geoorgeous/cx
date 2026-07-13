@@ -202,7 +202,8 @@ int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_str
 		for (uint16_t j = 0; j < p_node->components_count; ++j) {
 			const struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
 			cx_stream_serialize_uint64(p_writer, p_node_component->data_off);
-			cx_component_serialize(p_writer, p_node_component->p_type, p_node->p_component_data + p_node_component->data_off);
+			cx_component_serialize(
+				p_node->p_component_data + p_node_component->data_off, p_node_component->p_type, p_writer);
 		}
 	}
 
@@ -240,7 +241,8 @@ int cx_blueprint_deserialize(struct cx_blueprint* p_blueprint, struct cx_stream_
 		for (uint16_t j = 0; j < p_node->components_count; ++j) {
 			struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
 			cx_stream_deserialize_uint64(p_reader, &p_node_component->data_off);
-			cx_component_deserialize(p_reader, p_node->p_component_data + p_node_component->data_off, &p_node_component->p_type);
+			cx_component_deserialize(
+				p_node->p_component_data + p_node_component->data_off, p_reader, &p_node_component->p_type);
 		}
 	}
 
