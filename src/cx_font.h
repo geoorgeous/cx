@@ -47,6 +47,20 @@ void cx_font_create_atlas(
 	struct cx_image* p_out_atlas,
 	struct cx_texture_atlas_layout* p_out_layout);
 
-void cx_asset_free_font(void* p);
+struct cx_stream_writer;
+struct cx_stream_reader;
+
+int cx_font_serialize(const struct cx_font* p_font, struct cx_stream_writer* p_writer);
+int cx_font_deserialize(struct cx_font* p_font, struct cx_stream_reader* p_reader);
+
+void cx_font_asset_destroy(void* p);
+
+static inline int cx_font_asset_serialize(struct cx_stream_writer* p_writer, const void* p) {
+	return cx_font_serialize(p, p_writer);
+}
+
+static inline int cx_font_asset_deserialize(struct cx_stream_reader* p_reader, void* p) {
+	return cx_font_deserialize(p, p_reader);
+}
 
 #endif

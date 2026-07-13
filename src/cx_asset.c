@@ -339,16 +339,20 @@ const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_pa
 	return directory.pp_packages;
 }
 
-void cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle) {
-	cx_stream_serialize_uint32(p_writer, p_asset_handle ? p_asset_handle->asset_.id_ : 0);
+int cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle) {
+	return cx_stream_serialize_uint32(p_writer, p_asset_handle ? p_asset_handle->asset_.id_ : 0);
 }
 
-void cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, struct cx_asset_package_record** pp_result) {
+int cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, struct cx_asset_package_record** pp_result) {
 	cx_asset_id id;
-	cx_stream_deserialize_uint32(p_reader, &id);
-	if (cx_asset_directory_find(id, pp_result)) {
+	if (!cx_stream_deserialize_uint32(p_reader, &id)) {
+		return CX_FALSE;
+	}
+	int b = cx_asset_directory_find(id, pp_result);
+	if (!b) {
 		CX_LOG_FMT(ERROR, ASSET, "Failed to deserialize asset handle: asset %x not found in asset directory\n", id);
 	}
+	return b;
 }
 
 void cx_asset_package_new_record_internal(

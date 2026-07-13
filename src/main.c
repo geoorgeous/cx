@@ -289,12 +289,23 @@ int main(int argc, const char* argv[]) {
 
 	cx_gfx_program_refl_opaque_param(&program_screen, "u_texture", &program_screen_texture_param);
 
-	cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image), 0, 0, cx_asset_free_image);
-	cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture), 0, 0, cx_asset_free_texture);
-	cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material), 0, 0, 0);
-	cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh), 0, 0, cx_asset_free_static_mesh);
-	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font), 0, 0, cx_asset_free_font);
-	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint), 0, 0, cx_asset_free_blueprint);
+	cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image),
+		cx_image_asset_serialize, cx_image_asset_deserialize, cx_image_asset_destroy);
+
+	cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture),
+		cx_texture_asset_serialize, cx_texture_asset_deserialize, cx_texture_asset_destroy);
+
+	cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material),
+		material_asset_serialize, material_asset_deserialize, CX_NULL);
+	
+	cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh),
+		static_mesh_asset_serialize, static_mesh_asset_deserialize, static_mesh_asset_destroy);
+	
+	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font),
+		cx_font_asset_serialize, cx_font_asset_deserialize, cx_font_asset_destroy);
+	
+	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint),
+		cx_blueprint_asset_serialize, cx_blueprint_asset_deserialize, cx_blueprint_asset_destroy);
 	
 	input_init();
 

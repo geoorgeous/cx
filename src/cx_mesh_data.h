@@ -29,7 +29,7 @@ struct cx_mesh_vertex_buffer {
 
 struct cx_mesh_vertex_attribute_format {
 	enum cx_mesh_vertex_attribute_type type;
-	size_t count;
+	uint16_t count;
 };
 
 struct cx_mesh_vertex_attribute_layout {
@@ -38,8 +38,8 @@ struct cx_mesh_vertex_attribute_layout {
 };
 
 struct cx_mesh_vertex_attribute {
-	size_t index;
-	size_t vertex_buffer_index;
+	uint16_t index;
+	uint16_t vertex_buffer_index;
 	struct cx_mesh_vertex_attribute_format format;
 	struct cx_mesh_vertex_attribute_layout layout;
 };
@@ -52,8 +52,8 @@ enum cx_mesh_vertex_index_type {
 };
 
 struct cx_mesh_vertex_index_buffer {
-	void*  p_bytes;
-	size_t count;
+	void*    p_bytes;
+	uint32_t count;
 };
 
 enum cx_mesh_draw_mode {
@@ -67,9 +67,9 @@ enum cx_mesh_draw_mode {
 };
 
 struct cx_mesh_data_layout {
-	size_t num_vertex_buffers;
+	uint16_t num_vertex_buffers;
 	struct cx_mesh_vertex_attribute* p_attributes;
-	size_t num_attributes;
+	uint16_t num_attributes;
 	enum cx_mesh_vertex_index_type index_type;
 	enum cx_mesh_draw_mode draw_mode;
 };
@@ -77,7 +77,7 @@ struct cx_mesh_data_layout {
 struct cx_mesh_data {
 	struct cx_mesh_data_layout layout;
 	struct cx_mesh_vertex_buffer* p_vertex_buffers;
-	size_t vertex_count;
+	uint32_t vertex_count;
 	struct cx_mesh_vertex_index_buffer index_buffer;
 	float bounds_min[3];
 	float bounds_max[3];

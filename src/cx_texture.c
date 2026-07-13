@@ -1,6 +1,12 @@
-#include "cx_image.h"
-#include "cx_texture.h"
 #include "cx_gfx_texture.h"
+#include "cx_image.h"
+#include "cx_macro.h"
+#include "cx_stream_serialization.h"
+#include "cx_texture.h"
+
+void cx_texture_destroy(struct cx_texture* p_texture) {
+	cx_texture_unload_gfx_texture(p_texture);
+}
 
 void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_reload) {
 	if (p_texture->b_gfx_texture_loaded_) {
@@ -24,6 +30,37 @@ void cx_texture_unload_gfx_texture(struct cx_texture* p_texture) {
 	p_texture->b_gfx_texture_loaded_ = 0;
 }
 
-void cx_asset_free_texture(void* p) {
-	cx_texture_unload_gfx_texture((struct cx_texture*)p);
+int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream_writer* p_writer) {
+	cx_asset_serialize_handle(p_writer, p_texture->p_source_image);
+	
+	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.mag_filter_mode);
+	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.min_filter_mode);
+	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.address_mode_u);
+	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.address_mode_v);
+	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->gfx_texture_format);
+
+	return CX_TRUE;
+}
+
+int cx_texture_deserialize(struct cx_texture* p_texture, struct cx_stream_reader* p_reader) {
+	cx_asset_deserialize_handle(p_reader, &p_texture->p_source_image);
+	
+	uint8_t temp;
+
+	cx_stream_deserialize_uint8(p_reader, &temp);
+	p_texture->sampler_settings.mag_filter_mode = (enum cx_texture_mag_filter_mode)temp;
+
+	cx_stream_deserialize_uint8(p_reader, &temp);
+	p_texture->sampler_settings.min_filter_mode = (enum cx_texture_min_filter_mode)temp;
+
+	cx_stream_deserialize_uint8(p_reader, &temp);
+	p_texture->sampler_settings.address_mode_u = (enum cx_texture_address_mode)temp;
+
+	cx_stream_deserialize_uint8(p_reader, &temp);
+	p_texture->sampler_settings.address_mode_v = (enum cx_texture_address_mode)temp;
+
+	cx_stream_deserialize_uint8(p_reader, &temp);
+	p_texture->gfx_texture_format = (enum cx_pixel_format)temp;
+
+	return CX_TRUE;
 }

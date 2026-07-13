@@ -16,9 +16,25 @@ struct cx_texture {
 	struct cx_gfx_texture gfx_texture_;
 };
 
+struct cx_stream_writer;
+struct cx_stream_reader;
+
+void cx_texture_destroy(struct cx_texture* p_texture);
 void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_load);
 void cx_texture_unload_gfx_texture(struct cx_texture* p_texture);
+int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream_writer* p_writer);
+int cx_texture_deserialize(struct cx_texture* p_texture, struct cx_stream_reader* p_reader);
 
-void cx_asset_free_texture(void* p);
+static inline void cx_texture_asset_destroy(void* p) {
+	cx_texture_destroy(p);
+}
+
+static inline int cx_texture_asset_serialize(struct cx_stream_writer* p_writer, const void* p) {
+	return cx_texture_serialize(p, p_writer);
+}
+
+static inline int cx_texture_asset_deserialize(struct cx_stream_reader* p_reader, void* p) {
+	return cx_texture_deserialize(p, p_reader);
+}
 
 #endif

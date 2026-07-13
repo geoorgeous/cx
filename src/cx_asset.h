@@ -82,8 +82,8 @@ int cx_asset_directory_find(cx_asset_id id, struct cx_asset_package_record** pp_
 
 const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_packages);
 
-void cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle);
+int cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle);
 
-void cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, cx_asset_handle* p_result);
+int cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, cx_asset_handle* p_result);
 
 #endif
