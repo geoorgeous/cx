@@ -450,6 +450,7 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 		   
 	// WORLD
 	
+	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 

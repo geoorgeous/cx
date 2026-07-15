@@ -1,13 +1,21 @@
 CC          := clang
 LDLIBS      := m 
-TARGET_NAME := cx
 SRC_DIR     := src
+TARGET      ?= runtime
 MODE        ?= debug
-BUILD_DIR   := build/$(MODE)
+BUILD_DIR   := build/$(TARGET)/$(MODE)
 OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
 JOBS        ?= 8
 MAKEFLAGS   += --no-print-directory -j$(JOBS)
+
+ifeq ($(TARGET),runtime)
+	TARGET_NAME ?= cx
+else ifeq ($(TARGET),editor)
+	TARGET_NAME ?= cx-ed
+endif
+
+TARGET_OUTPUT := $(BIN_DIR)/$(TARGET_NAME)
 
 # Platform specific configuration
 ifeq ($(OS),Windows_NT)
@@ -21,8 +29,6 @@ else
 	CMD_RMDIR    := rm -rf
 	LDLIBS       += GL X11
 endif
-
-TARGET := $(BIN_DIR)/$(TARGET_NAME)
 
 CFLAGS += \
 	-ffp-contract=off \
@@ -90,7 +96,7 @@ LDFLAGS_release += \
 	-flto \
 	-s \
 	-Wl,--gc-sections \
-	-Wl,-Map=$(TARGET).map
+	-Wl,-Map=$(TARGET_OUTPUT).map
 
 LDFLAGS_debug += \
 	-fsanitize=address,undefined,alignment,leak,nonnull-attribute,pointer-overflow,return \
@@ -109,6 +115,12 @@ SRC_ALL        := $(wildcard $(SRC_DIR)/*.c)
 SRC_FILTER_OUT := $(foreach x, $(SRC_IGNORE_WILDCARDS), $(wildcard $(SRC_DIR)/$(x)))
 SRC            := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
 
+ifeq ($(TARGET),runtime)
+	SRC        := $(filter-out $(SRC_DIR)/cx_editor.c, $(SRC))
+else ifeq ($(TARGET),editor)
+	SRC        := $(filter-out $(SRC_DIR)/cx_runtime.c, $(SRC))
+endif
+
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 LDLIBS := $(addprefix -l,$(LDLIBS))
@@ -118,7 +130,7 @@ default: all
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	@$(CC) $(CFLAGS) $(CFLAGS_$(MODE)) -c $< -o $@
 
-$(TARGET): $(OBJ) | $(BIN_DIR)
+$(TARGET_OUTPUT): $(OBJ) | $(BIN_DIR)
 	@$(CC) $^ $(LDFLAGS) $(LDFLAGS_$(MODE)) $(LDLIBS) -o $@
 
 $(OBJ_DIR):
@@ -129,13 +141,13 @@ $(BIN_DIR):
 
 .PHONY: all clean run release release-run debug-run gdb compile_commands
 
-all: $(TARGET)
+all: $(TARGET_OUTPUT)
 
 clean:
 	@$(CMD_RMDIR) build
 
-run: $(TARGET)
-	@./$(TARGET)
+run: $(TARGET_OUTPUT)
+	@./$(TARGET_OUTPUT)
 
 release:
 	@$(MAKE) MODE=release all
@@ -153,7 +165,7 @@ debug-run:
 
 debug-gdb:
 	@$(MAKE) debug
-	gdb -ex run -ex bt --args ./$(TARGET)
+	gdb -ex run -ex bt --args ./$(TARGET_OUTPUT)
 
 # generate compile_commands.json compilation database for clangd lsp tooling
 
