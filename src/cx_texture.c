@@ -30,37 +30,37 @@ void cx_texture_unload_gfx_texture(struct cx_texture* p_texture) {
 	p_texture->b_gfx_texture_loaded_ = 0;
 }
 
-int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream_writer* p_writer) {
-	cx_asset_serialize_handle(p_writer, p_texture->p_source_image);
+int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream* p_stream) {
+	cx_asset_handle_serialize(p_texture->p_source_image, p_stream);
 	
-	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.mag_filter_mode);
-	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.min_filter_mode);
-	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.address_mode_u);
-	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->sampler_settings.address_mode_v);
-	cx_stream_serialize_uint8(p_writer, (uint8_t)p_texture->gfx_texture_format);
+	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->sampler_settings.mag_filter_mode);
+	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->sampler_settings.min_filter_mode);
+	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->sampler_settings.address_mode_u);
+	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->sampler_settings.address_mode_v);
+	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->gfx_texture_format);
 
 	return CX_TRUE;
 }
 
-int cx_texture_deserialize(struct cx_texture* p_texture, struct cx_stream_reader* p_reader) {
-	cx_asset_deserialize_handle(p_reader, &p_texture->p_source_image);
+int cx_texture_deserialize(struct cx_stream* p_stream, struct cx_texture* p_out_texture) {
+	cx_asset_handle_deserialize(p_stream, &p_out_texture->p_source_image);
 	
 	uint8_t temp;
 
-	cx_stream_deserialize_uint8(p_reader, &temp);
-	p_texture->sampler_settings.mag_filter_mode = (enum cx_texture_mag_filter_mode)temp;
+	cx_stream_deserialize_uint8(p_stream, &temp);
+	p_out_texture->sampler_settings.mag_filter_mode = (enum cx_texture_mag_filter_mode)temp;
 
-	cx_stream_deserialize_uint8(p_reader, &temp);
-	p_texture->sampler_settings.min_filter_mode = (enum cx_texture_min_filter_mode)temp;
+	cx_stream_deserialize_uint8(p_stream, &temp);
+	p_out_texture->sampler_settings.min_filter_mode = (enum cx_texture_min_filter_mode)temp;
 
-	cx_stream_deserialize_uint8(p_reader, &temp);
-	p_texture->sampler_settings.address_mode_u = (enum cx_texture_address_mode)temp;
+	cx_stream_deserialize_uint8(p_stream, &temp);
+	p_out_texture->sampler_settings.address_mode_u = (enum cx_texture_address_mode)temp;
 
-	cx_stream_deserialize_uint8(p_reader, &temp);
-	p_texture->sampler_settings.address_mode_v = (enum cx_texture_address_mode)temp;
+	cx_stream_deserialize_uint8(p_stream, &temp);
+	p_out_texture->sampler_settings.address_mode_v = (enum cx_texture_address_mode)temp;
 
-	cx_stream_deserialize_uint8(p_reader, &temp);
-	p_texture->gfx_texture_format = (enum cx_pixel_format)temp;
+	cx_stream_deserialize_uint8(p_stream, &temp);
+	p_out_texture->gfx_texture_format = (enum cx_pixel_format)temp;
 
 	return CX_TRUE;
 }

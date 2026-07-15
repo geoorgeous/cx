@@ -164,37 +164,37 @@ int cx_font_glyph_atlas_dst_cmp(
 		p_a->p_glyph->metrics_.width * p_a->p_glyph->metrics_.height);
 }
 
-int cx_font_serialize(const struct cx_font* p_font, struct cx_stream_writer* p_writer) {
-	cx_stream_serialize_uint32(p_writer, p_font->max_glyph_width_);
-	cx_stream_serialize_uint32(p_writer, p_font->max_glyph_height_);
-	cx_stream_serialize_uint32(p_writer, p_font->line_height_);
-	cx_stream_serialize_int32(p_writer, p_font->descent_);
-	cx_stream_serialize_int32(p_writer, p_font->space_adv_);
-	cx_stream_serialize_bytes(p_writer, sizeof(p_font->glyphs_), p_font->glyphs_);
+int cx_font_serialize(const struct cx_font* p_font, struct cx_stream* p_stream) {
+	cx_stream_serialize_uint32(p_stream, p_font->max_glyph_width_);
+	cx_stream_serialize_uint32(p_stream, p_font->max_glyph_height_);
+	cx_stream_serialize_uint32(p_stream, p_font->line_height_);
+	cx_stream_serialize_int32(p_stream, p_font->descent_);
+	cx_stream_serialize_int32(p_stream, p_font->space_adv_);
+	cx_stream_serialize_bytes(p_stream, sizeof(p_font->glyphs_), p_font->glyphs_);
 
 	const size_t buf_size = (p_font->max_glyph_width_ * p_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
 
-	cx_stream_serialize_bytes(p_writer, buf_size, p_font->p_glyph_bitmap_buf);
+	cx_stream_serialize_bytes(p_stream, buf_size, p_font->p_glyph_bitmap_buf);
 
 	return CX_TRUE;
 }
 
-int cx_font_deserialize(struct cx_font* p_font, struct cx_stream_reader* p_reader) {
+int cx_font_deserialize(struct cx_stream* p_stream, struct cx_font* p_out_font) {
 
-	cx_stream_deserialize_uint32(p_reader, &p_font->max_glyph_width_);
-	cx_stream_deserialize_uint32(p_reader, &p_font->max_glyph_height_);
-	cx_stream_deserialize_uint32(p_reader, &p_font->line_height_);
-	cx_stream_deserialize_int32(p_reader, &p_font->descent_);
-	cx_stream_deserialize_int32(p_reader, &p_font->space_adv_);
-	cx_stream_deserialize_bytes(p_reader, sizeof(p_font->glyphs_), p_font->glyphs_);
+	cx_stream_deserialize_uint32(p_stream, &p_out_font->max_glyph_width_);
+	cx_stream_deserialize_uint32(p_stream, &p_out_font->max_glyph_height_);
+	cx_stream_deserialize_uint32(p_stream, &p_out_font->line_height_);
+	cx_stream_deserialize_int32(p_stream, &p_out_font->descent_);
+	cx_stream_deserialize_int32(p_stream, &p_out_font->space_adv_);
+	cx_stream_deserialize_bytes(p_stream, sizeof(p_out_font->glyphs_), p_out_font->glyphs_);
 
-	const size_t buf_size = (p_font->max_glyph_width_ * p_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
+	const size_t buf_size = (p_out_font->max_glyph_width_ * p_out_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
 
-	cx_stream_deserialize_bytes(p_reader, buf_size, p_font->p_glyph_bitmap_buf);
+	cx_stream_deserialize_bytes(p_stream, buf_size, p_out_font->p_glyph_bitmap_buf);
 
 	return CX_TRUE;
 }
 
-void cx_font_asset_destroy(void* p) {
-	cx_font_free_glyph_bitmap_buffer((struct cx_font*)p);
+void cx_font_asset_destroy(void* p_asset) {
+	cx_font_free_glyph_bitmap_buffer((struct cx_font*)p_asset);
 }

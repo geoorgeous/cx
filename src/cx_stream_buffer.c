@@ -3,37 +3,47 @@
 #include "cx_macro.h"
 #include "cx_stream_buffer.h"
 
-static int cx_stream_write_buffer(struct cx_stream_writer* p_writer, size_t size, const void* p_bytes);
-static int cx_stream_read_buffer(struct cx_stream_reader* p_reader, size_t size, void* p_bytes);
+static int cx_stream_buffer_read(struct cx_stream* p_stream, size_t size, void* p_bytes);
+static int cx_stream_buffer_write(struct cx_stream* p_stream, size_t size, const void* p_bytes);
+static size_t cx_stream_buffer_tell(const struct cx_stream* p_stream);
+static int cx_stream_buffer_seek(struct cx_stream* p_stream, ptrdiff_t offset, enum cx_stream_seek_origin origin);
 
-void cx_stream_writer_init_buffer(void* p_buffer, size_t capacity, struct cx_stream_writer_buffer* p_out) {
-	*p_out = (struct cx_stream_writer_buffer) {
+void cx_stream_buffer_init(void* p_buffer, size_t capacity, struct cx_stream_buffer* p_out) {
+	*p_out = (struct cx_stream_buffer) {
 		.base = {
-			.f_write = cx_stream_write_buffer
+			.f_read_ = cx_stream_buffer_read,
+			.f_write_ = cx_stream_buffer_write,
+			.f_tell_ = cx_stream_buffer_tell,
+			.f_seek_ = cx_stream_buffer_seek
 		},
 		.p_buffer = p_buffer,
 		.capacity = capacity
 	};
 }
 
-void cx_stream_reader_init_buffer(const void* p_buffer, size_t capacity, struct cx_stream_reader_buffer* p_out) {
-	*p_out = (struct cx_stream_reader_buffer) {
-		.base = {
-			.f_read = cx_stream_read_buffer
-		},
-		.p_buffer = p_buffer,
-		.capacity = capacity
-	};
-}
+int cx_stream_buffer_read(struct cx_stream* p_stream, size_t size, void* p_bytes) {
+	struct cx_stream_buffer* p_stream_buffer = (void*)p_stream;
 
-int cx_stream_write_buffer(struct cx_stream_writer* p_writer, size_t size, const void* p_bytes) {
-	struct cx_stream_writer_buffer* p_writer_buffer = (void*)p_writer;
+	const void* p_src = (const char*)p_stream_buffer->p_buffer + p_stream_buffer->position;
+
+	p_stream_buffer->position += size;
+
+	if (p_stream_buffer->position > p_stream_buffer->capacity) {
+		return CX_FALSE;
+	}
 	
-	void* p_dst = (char*)p_writer_buffer->p_buffer + p_writer_buffer->position;
+	memcpy(p_bytes, p_src, size);
+	return CX_TRUE;
+}
 
-	p_writer_buffer->position += size;
+int cx_stream_buffer_write(struct cx_stream* p_stream, size_t size, const void* p_bytes) {
+	struct cx_stream_buffer* p_stream_buffer = (void*)p_stream;
+	
+	void* p_dst = (char*)p_stream_buffer->p_buffer + p_stream_buffer->position;
 
-	if (p_writer_buffer->position > p_writer_buffer->capacity) {
+	p_stream_buffer->position += size;
+
+	if (p_stream_buffer->position > p_stream_buffer->capacity) {
 		return CX_FALSE;
 	}
 
@@ -41,17 +51,29 @@ int cx_stream_write_buffer(struct cx_stream_writer* p_writer, size_t size, const
 	return CX_TRUE;
 }
 
-int cx_stream_read_buffer(struct cx_stream_reader* p_reader, size_t size, void* p_bytes) {
-	struct cx_stream_reader_buffer* p_reader_buffer = (void*)p_reader;
+size_t cx_stream_buffer_tell(const struct cx_stream* p_stream) {
+	return ((const struct cx_stream_buffer*)p_stream)->position;
+}
 
-	const void* p_src = (const char*)p_reader_buffer->p_buffer + p_reader_buffer->position;
+int cx_stream_buffer_seek(struct cx_stream* p_stream, ptrdiff_t offset, enum cx_stream_seek_origin origin) {
+	struct cx_stream_buffer* p_stream_buffer = (void*)p_stream;
+	
+	size_t new_position;
 
-	p_reader_buffer->position += size;
+	if (origin == CX_STREAM_SEEK_ORIGIN_current) {
+		new_position = (size_t)((ptrdiff_t)p_stream_buffer->position + offset);
+	} else if (origin == CX_STREAM_SEEK_ORIGIN_end) {
+		new_position = (size_t)((ptrdiff_t)p_stream_buffer->capacity + offset);
+	} else {
+		CX_ASSERT_MSG(offset >= 0, STREAM, "Attempted to seek before the beginning of the stream\n");
+		new_position = (size_t)offset;
+	}
 
-	if (p_reader_buffer->position > p_reader_buffer->capacity) {
+	if (new_position > p_stream_buffer->capacity) {
 		return CX_FALSE;
 	}
+
+	p_stream_buffer->position = new_position;
 	
-	memcpy(p_bytes, p_src, size);
 	return CX_TRUE;
 }

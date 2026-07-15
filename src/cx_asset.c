@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -6,7 +5,6 @@
 #include "cx_logging.h"
 #include "cx_stream_file.h"
 #include "cx_stream_serialization.h"
-#include "hashtable.h"
 
 #define CX_ASSET_TYPE_NAME_MAX_LEN 63
 
@@ -57,35 +55,29 @@ int cx_asset_load(struct cx_asset_package_record* p_record) {
 	if (!p_record->p_package_) {
 		CX_LOG_FMT(ERROR, ASSET, "Failed to load asset %x: asset is no not associated with a package\n",
 			p_record->asset_.id_);
-		return 0;
+		return CX_FALSE;
 	}
 
 	if (p_record->p_package_->s_filename_[0] == '\0') {
 		CX_LOG_FMT(ERROR, ASSET, "Failed to load asset %x: package has no filename\n",
 			p_record->asset_.id_);
-		return 0;
+		return CX_FALSE;
 	}
 
-	FILE* p_file = fopen(p_record->p_package_->s_filename_, "rb");
-
-	if (!p_file) {
-		CX_LOG_FMT(ERROR, ASSET, "Failed to load asset %x: unable to open package file '%s'\n",
-			p_record->asset_.id_, p_record->p_package_->s_filename_);
-		return 0;
+	struct cx_stream_file stream;
+	if (!cx_stream_file_open(p_record->p_package_->s_filename_, "rb", &stream)) {
+		return CX_FALSE;
 	}
-
-	struct cx_stream_reader_file stream_reader;
-	cx_stream_reader_init_file(p_file, &stream_reader);
-
-	fseek(p_file, p_record->file_location_, SEEK_CUR);
 	
+	cx_stream_seek(&stream.base, p_record->file_location_, CX_STREAM_SEEK_ORIGIN_current);
+
 	const struct asset_type_table* p_type_table = &asset_type_tables[CX_ASSET_GET_TYPE_ID(p_record->asset_.id_)];
 
 	p_record->asset_.p_data_ = calloc(1, p_type_table->asset_size);
 
-	const int b_result = p_type_table->f_deserialize(&stream_reader.base, p_record->asset_.p_data_);
+	const int b_result = p_type_table->f_deserialize(&stream.base, p_record->asset_.p_data_);
 
-	fclose(p_file);
+	cx_stream_file_close(&stream);
 
 	return b_result;
 }
@@ -108,131 +100,75 @@ void cx_asset_free(struct cx_asset_package_record* p_record) {
 	p_record->asset_.p_data_ = 0;
 }
 
-void cx_asset_package_init(struct cx_asset_package* p_package) {
-	*p_package = (struct cx_asset_package) {0};
-	hashtable_init(&p_package->asset_type_record_tables_, sizeof(struct hashtable));
-}
-
 void cx_asset_package_free(struct cx_asset_package* p_package) {
-	struct hashtable_itr asset_type_record_tables_itr;
-	struct hashtable_itr asset_type_records_itr;
+	struct hashtable_itr itr;
 
-	hashtable_itr(&p_package->asset_type_record_tables_, &asset_type_record_tables_itr);
-	while (hashtable_itr_is_valid(&asset_type_record_tables_itr)) {
-		hashtable_itr(asset_type_record_tables_itr.p_value, &asset_type_records_itr);
-
-		while(hashtable_itr_is_valid(&asset_type_records_itr)) {
-			struct cx_asset_package_record* p_record = asset_type_records_itr.p_value;
-			cx_asset_free(p_record);
-			hashtable_itr_next(&asset_type_records_itr);
+	for (uint8_t i = 0; i < CX_ASSET_TYPE_ID_MAX; ++i) {
+		if (p_package->asset_type_record_tables_[i].n_elements_ == 0) {
+			continue;
 		}
 
-		hashtable_free(asset_type_record_tables_itr.p_value);
+		CX_LOG_FMT(TRACE, ASSET, "Freeing %d assets from asset package %s table...\n",
+			p_package->asset_type_record_tables_[i].n_elements_,
+			asset_type_tables[i].s_display_name);
 
-		hashtable_itr_next(&asset_type_record_tables_itr);
+		hashtable_itr(&p_package->asset_type_record_tables_[i], &itr);
+		while(hashtable_itr_is_valid(&itr)) {
+			struct cx_asset_package_record* p_record = itr.p_value;
+			cx_asset_free(p_record);
+			hashtable_itr_next(&itr);
+		}
+
+		hashtable_free(&p_package->asset_type_record_tables_[i]);
 	}
-
-	hashtable_free(&p_package->asset_type_record_tables_);
 }
 
-int cx_asset_package_load_records(struct cx_asset_package* p_result, const char* s_filename) {
-	FILE* p_file = fopen(s_filename, "rb");
-
-	if (!p_file) {
-	   CX_LOG_FMT(ERROR, ASSET, "Failed to load asset package records: unable to open file '%s\n", s_filename);
-		return 0;
-	}
-
-	struct cx_stream_reader_file stream_reader;
-	cx_stream_reader_init_file(p_file, &stream_reader);
-
-	strcpy(p_result->s_filename_, s_filename);
-
-	uint32_t num_records = 0;
-	cx_stream_deserialize_uint32(&stream_reader.base, &num_records);
+int cx_asset_package_serialize(const struct cx_asset_package* p_package, struct cx_stream* p_stream) {
+	struct hashtable_itr itr;
 	
-	if (num_records == 0) {
-		return 0;
-	}
+	for (uint8_t i = 0; i < CX_ASSET_TYPE_ID_MAX; ++i) {
+		if (p_package->asset_type_record_tables_->n_elements_ == 0) {
+			continue;
+		}
 
-	CX_LOG_FMT(INFO, ASSET, "Loading %d asset records from package file '%s'...\n",
-		num_records, p_result->s_filename_);
-
-	for (size_t i = 0; i < num_records; ++i) {
-		cx_asset_id id;
-		cx_stream_deserialize_uint32(&stream_reader.base, &id);
-
-		struct cx_asset_package_record* p_new_record;
-		cx_asset_package_new_record_internal(p_result, id, &p_new_record);
-
-		cx_stream_deserialize_uint32(&stream_reader.base, &p_new_record->file_location_);
-	}
-	
-	return (int)num_records;
-}
-
-void cx_asset_package_save(struct cx_asset_package* p_package) {
-	FILE* p_file = fopen(p_package->s_filename_, "wb");
-
-	if (!p_file) {
-		CX_LOG_FMT(ERROR, ASSET, "Failed to save asset package: unable to open file '%s'\n",
-			p_package->s_filename_);
-		return;
-	}
-
-	struct cx_stream_writer_file stream_writer;
-	cx_stream_writer_init_file(p_file, &stream_writer);
-
-	cx_stream_serialize_uint32(&stream_writer.base, (uint32_t)p_package->asset_type_record_tables_.n_elements_);
-
-	CX_LOG_FMT(TRACE, ASSET, "Saving assets to package file '%s'...\n", p_package->s_filename_);
-
-	struct hashtable_itr asset_type_record_tables_itr;
-	struct hashtable_itr asset_type_records_itr;
-	
-	hashtable_itr(&p_package->asset_type_record_tables_, &asset_type_record_tables_itr);
-	while (hashtable_itr_is_valid(&asset_type_record_tables_itr)) {
-		const struct hashtable* p_asset_type_record_table = asset_type_record_tables_itr.p_value;
-		const uint8_t asset_type_id = (uint8_t)*(const uint32_t*)asset_type_record_tables_itr.p_key;
+		cx_stream_serialize_uint8(p_stream, i);
 
 		CX_LOG_FMT(TRACE, ASSET, "Saving %d %s assets...\n",
-			asset_type_tables[asset_type_id].s_display_name,
-			p_asset_type_record_table->n_elements_);
+			asset_type_tables[i].s_display_name,
+			p_package->asset_type_record_tables_[i].n_elements_);
 
-		hashtable_itr(p_asset_type_record_table, &asset_type_records_itr);
-		while(hashtable_itr_is_valid(&asset_type_records_itr)) {
-			struct cx_asset_package_record* p_record = asset_type_records_itr.p_value;
+		hashtable_itr(&p_package->asset_type_record_tables_[i], &itr);
+		while(hashtable_itr_is_valid(&itr)) {
+			struct cx_asset_package_record* p_record = itr.p_value;
 
-			cx_stream_serialize_uint32(&stream_writer.base, p_record->asset_.id_);
+			cx_stream_serialize_uint32(p_stream, p_record->asset_.id_);
 
-			cx_stream_serialize_uint32(&stream_writer.base, 0);
+			cx_stream_serialize_uint32(p_stream, 0);
 			
-			hashtable_itr_next(&asset_type_records_itr);
+			hashtable_itr_next(&itr);
 		}
-
-		hashtable_itr_next(&asset_type_record_tables_itr);
 	}
 	
 	const size_t asset_record_size = sizeof(cx_asset_id) + sizeof(uint32_t); // ID + FILE_LOCATION
 
-	long asset_data_file_location = ftell(p_file);
-	size_t i = 0;
+	size_t asset_data_location = cx_stream_tell(p_stream);
+
+	uint32_t counter = 0;
 	
-	hashtable_itr(&p_package->asset_type_record_tables_, &asset_type_record_tables_itr);
-	while (hashtable_itr_is_valid(&asset_type_record_tables_itr)) {
-		const struct hashtable* p_asset_type_record_table = asset_type_record_tables_itr.p_value;
-		const uint8_t asset_type_id = (uint8_t)*(const uint32_t*)asset_type_record_tables_itr.p_key;
-		const struct asset_type_table* p_asset_type_table = &asset_type_tables[asset_type_id];
+	for (uint8_t i = 0; i < CX_ASSET_TYPE_ID_MAX; ++i) {
+		if (p_package->asset_type_record_tables_[i].n_elements_ == 0) {
+			continue;
+		}
 
-		hashtable_itr(p_asset_type_record_table, &asset_type_records_itr);
-		while(hashtable_itr_is_valid(&asset_type_records_itr)) {
-			struct cx_asset_package_record* p_record = asset_type_records_itr.p_value;
+		hashtable_itr(&p_package->asset_type_record_tables_[i], &itr);
+		while(hashtable_itr_is_valid(&itr)) {
+			struct cx_asset_package_record* p_record = itr.p_value;
 
-			p_record->file_location_ = (uint32_t)asset_data_file_location;
+			p_record->file_location_ = (uint32_t)asset_data_location;
 			
 			// DATA
-			const int b_result = p_asset_type_table->f_serialize(&stream_writer.base, p_record->asset_.p_data_);
-			CX_LOG_FMT(TRACE, ASSET, "  Asset saved %x...\n", p_record->asset_.id_);
+			CX_LOG_FMT(TRACE, ASSET, "  Saving asset %x...\n", p_record->asset_.id_);
+			const int b_result = asset_type_tables[i].f_serialize(p_record->asset_.p_data_, p_stream);
 			
 			if (!b_result) {
 				// todo: handle serialization error
@@ -240,26 +176,82 @@ void cx_asset_package_save(struct cx_asset_package* p_package) {
 			}
 
 			// Cache the next record's data location
-			asset_data_file_location = ftell(p_file);
+			asset_data_location = cx_stream_tell(p_stream);
 			
 			// write the asset's records' file location now that we know it
-			fseek(p_file, (long)sizeof(uint32_t) + (long)(asset_record_size * i) + (long)sizeof(cx_asset_id), SEEK_SET);
-			cx_stream_serialize_uint32(&stream_writer.base, p_record->file_location_);
-			fseek(p_file, asset_data_file_location, SEEK_SET);
-				
-			hashtable_itr_next(&asset_type_records_itr);
-			++i;
-		}
+			cx_stream_seek(
+				p_stream,
+				(long)sizeof(uint32_t) + (long)(asset_record_size * counter) + (long)sizeof(cx_asset_id),
+				CX_STREAM_SEEK_ORIGIN_begin);
 
-		hashtable_itr_next(&asset_type_record_tables_itr);
+			cx_stream_serialize_uint32(p_stream, p_record->file_location_);
+
+			cx_stream_seek(p_stream, (ptrdiff_t)asset_data_location, CX_STREAM_SEEK_ORIGIN_begin);
+				
+			hashtable_itr_next(&itr);
+
+			++counter;
+		}
 	}
 
-	fclose(p_file);
+	return CX_TRUE;
 }
 
-void cx_asset_package_save_as(struct cx_asset_package* p_package, const char* s_filename) {
+int cx_asset_package_deserialize_records(struct cx_asset_package* p_package, struct cx_stream* p_stream) {
+	uint32_t num_records = 0;
+	cx_stream_deserialize_uint32(p_stream, &num_records);
+	
+	CX_LOG_FMT(INFO, ASSET, "Deserializing %u asset records from asset package stream...\n", num_records);
+
+	if (num_records == 0) {
+		return CX_TRUE;
+	}
+
+	for (size_t i = 0; i < num_records; ++i) {
+		cx_asset_id id;
+		cx_stream_deserialize_uint32(p_stream, &id);
+
+		struct cx_asset_package_record* p_new_record;
+		cx_asset_package_new_record_internal(p_package, id, &p_new_record);
+
+		cx_stream_deserialize_uint32(p_stream, &p_new_record->file_location_);
+	}
+
+	return CX_TRUE;
+}
+
+void cx_asset_package_load_records_from_file(struct cx_asset_package* p_package, const char* s_filename) {
+	struct cx_stream_file stream;
+	
+	if (!cx_stream_file_open(s_filename, "rb", &stream)) {
+		return;
+	}
+
 	strcpy(p_package->s_filename_, s_filename);
-	cx_asset_package_save(p_package);
+
+	CX_LOG_FMT(INFO, ASSET, "Reading asset package records from file '%s'...\n", p_package->s_filename_);
+
+	cx_asset_package_deserialize_records(p_package, &stream.base);
+
+	cx_stream_file_close(&stream);
+}
+
+void cx_asset_package_save_to_file(struct cx_asset_package* p_package) {
+	struct cx_stream_file stream;
+	if (!cx_stream_file_open(p_package->s_filename_, "wb", &stream)) {
+		return;
+	}
+
+	CX_LOG_FMT(TRACE, ASSET, "Saving assets to package file '%s'...\n", p_package->s_filename_);
+
+	cx_asset_package_serialize(p_package, &stream.base);
+
+	cx_stream_file_close(&stream);
+}
+
+void cx_asset_package_save_to_file_as(struct cx_asset_package* p_package, const char* s_filename) {
+	strcpy(p_package->s_filename_, s_filename);
+	cx_asset_package_save_to_file(p_package);
 }
 
 int cx_asset_package_find_record(
@@ -271,7 +263,7 @@ int cx_asset_package_find_record(
 
 	struct hashtable_itr itr;
 	
-	if (!hashtable_i_find(&p_package->asset_type_record_tables_, (uint32_t)asset_type, &itr)) {
+	if (!hashtable_i_find(&p_package->asset_type_record_tables_[asset_type], (uint32_t)asset_type, &itr)) {
 		return 0;
 	}
 
@@ -292,15 +284,7 @@ void cx_asset_package_new_record(
 
 void cx_asset_package_delete_record(struct cx_asset_package* p_package, cx_asset_id id) {
 	const uint8_t asset_type = CX_ASSET_GET_TYPE_ID(id);
-
-	struct hashtable_itr itr;
-
-	if (!hashtable_i_find(&p_package->asset_type_record_tables_, (uint32_t)asset_type, &itr)) {
-		return;
-	}
-
-	struct hashtable* p_records = itr.p_value;
-	hashtable_i_remove(p_records, id);
+	hashtable_i_remove(&p_package->asset_type_record_tables_[asset_type], id);
 }
 
 void cx_asset_directory_register_package(const struct cx_asset_package* p_package) {
@@ -317,21 +301,19 @@ int cx_asset_directory_find(cx_asset_id id, struct cx_asset_package_record** pp_
 	for (size_t i = directory.n_packages; i-- > 0;) {
 		const struct cx_asset_package* p_package = directory.pp_packages[i];
 
-		if (!hashtable_i_find(&p_package->asset_type_record_tables_, (uint32_t)asset_type, &itr)) {
+		if (p_package->asset_type_record_tables_[asset_type].n_elements_ == 0) {
 			continue;
 		}
 		
-		const struct hashtable* p_asset_records = itr.p_value;
-
-		if (!hashtable_find(p_asset_records, &id, sizeof(id), &itr)) {
+		if (!hashtable_i_find(&p_package->asset_type_record_tables_[i], id, &itr)) {
 			continue;
 		}
 
 		*pp_out = itr.p_value;
-		return 1;
+		return CX_TRUE;
 	}
 
-	return 0;
+	return CX_FALSE;
 }
 
 const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_packages) {
@@ -339,16 +321,16 @@ const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_pa
 	return directory.pp_packages;
 }
 
-int cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle) {
-	return cx_stream_serialize_uint32(p_writer, p_asset_handle ? p_asset_handle->asset_.id_ : 0);
+int cx_asset_handle_serialize(const cx_asset_handle p_asset_handle, struct cx_stream* p_stream) {
+	return cx_stream_serialize_uint32(p_stream, p_asset_handle ? p_asset_handle->asset_.id_ : 0);
 }
 
-int cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, struct cx_asset_package_record** pp_result) {
+int cx_asset_handle_deserialize(struct cx_stream* p_stream, struct cx_asset_package_record** pp_out_asset_handle) {
 	cx_asset_id id;
-	if (!cx_stream_deserialize_uint32(p_reader, &id)) {
+	if (!cx_stream_deserialize_uint32(p_stream, &id)) {
 		return CX_FALSE;
 	}
-	int b = cx_asset_directory_find(id, pp_result);
+	int b = cx_asset_directory_find(id, pp_out_asset_handle);
 	if (!b) {
 		CX_LOG_FMT(ERROR, ASSET, "Failed to deserialize asset handle: asset %x not found in asset directory\n", id);
 	}
@@ -360,27 +342,22 @@ void cx_asset_package_new_record_internal(
 	cx_asset_id id,
 	struct cx_asset_package_record** pp_out) {
 
-	const uint8_t type = CX_ASSET_GET_TYPE_ID(id);
+	const uint8_t asset_type = CX_ASSET_GET_TYPE_ID(id);
 
-	struct hashtable_itr itr;
+	struct hashtable* p_asset_records = &p_package->asset_type_record_tables_[asset_type];
 
-	struct hashtable* p_records;
-
-	if (hashtable_find(&p_package->asset_type_record_tables_, &type, sizeof(type), &itr)) {
-		p_records = itr.p_value;
-	} else {
-		p_records = hashtable_add(&p_package->asset_type_record_tables_, &type, sizeof(type));
-		hashtable_init(p_records, sizeof(struct cx_asset_package_record));
+	if (p_asset_records->element_size_ == 0) {
+		hashtable_init(p_asset_records, sizeof(struct cx_asset_package_record));
 	}
 	
-	*pp_out = hashtable_add(p_records, &id, sizeof(id));
+	*pp_out = hashtable_i_add(p_asset_records, id);
+
 	**pp_out = (struct cx_asset_package_record) {
 		.asset_ = { .id_ = id },
 		.p_package_ = p_package
 	};
 	
-	CX_LOG_FMT(INFO, ASSET, "New asset created: (%s) %x\n",
-		asset_type_tables[type].s_display_name, (*pp_out)->asset_.id_);
+	CX_LOG_FMT(INFO, ASSET, "New asset created: (%s) %x\n", asset_type_tables[asset_type].s_display_name, id);
 }
 
 uint32_t cx_asset_generate_random_idn(void) {

@@ -10,18 +10,17 @@ struct material {
 	float        color[4];
 };
 
-struct cx_stream_writer;
-struct cx_stream_reader;
+struct cx_stream;
 
-int material_serialize(const struct material* p_material, struct cx_stream_writer* p_writer);
-int material_deserialize(struct material* p_material, struct cx_stream_reader* p_reader);
+int material_serialize(const struct material* p_material, struct cx_stream* p_stream);
+int material_deserialize(struct cx_stream* p_stream, struct material* p_material);
 
-static inline int material_asset_serialize(struct cx_stream_writer* p_writer, const void* p) {
-	return material_serialize(p, p_writer);
+static inline int material_asset_serialize(const void* p_asset, struct cx_stream* p_stream) {
+	return material_serialize(p_asset, p_stream);
 }
 
-static inline int material_asset_deserialize(struct cx_stream_reader* p_reader, void* p) {
-	return material_deserialize(p, p_reader);
+static inline int material_asset_deserialize(struct cx_stream* p_stream, void* p_out_asset) {
+	return material_deserialize(p_stream, p_out_asset);
 }
 
 #endif

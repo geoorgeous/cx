@@ -16,25 +16,24 @@ struct cx_texture {
 	struct cx_gfx_texture gfx_texture_;
 };
 
-struct cx_stream_writer;
-struct cx_stream_reader;
+struct cx_stream;
 
 void cx_texture_destroy(struct cx_texture* p_texture);
 void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_load);
 void cx_texture_unload_gfx_texture(struct cx_texture* p_texture);
-int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream_writer* p_writer);
-int cx_texture_deserialize(struct cx_texture* p_texture, struct cx_stream_reader* p_reader);
+int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream* p_stream);
+int cx_texture_deserialize(struct cx_stream* p_stream, struct cx_texture* p_out_texture);
 
-static inline void cx_texture_asset_destroy(void* p) {
-	cx_texture_destroy(p);
+static inline void cx_texture_asset_destroy(void* p_asset) {
+	cx_texture_destroy(p_asset);
 }
 
-static inline int cx_texture_asset_serialize(struct cx_stream_writer* p_writer, const void* p) {
-	return cx_texture_serialize(p, p_writer);
+static inline int cx_texture_asset_serialize(const void* p_asset, struct cx_stream* p_stream) {
+	return cx_texture_serialize(p_asset, p_stream);
 }
 
-static inline int cx_texture_asset_deserialize(struct cx_stream_reader* p_reader, void* p) {
-	return cx_texture_deserialize(p, p_reader);
+static inline int cx_texture_asset_deserialize(struct cx_stream* p_stream, void* p_out_asset) {
+	return cx_texture_deserialize(p_stream, p_out_asset);
 }
 
 #endif

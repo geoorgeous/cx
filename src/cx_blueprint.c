@@ -175,74 +175,74 @@ struct cx_blueprint_node* cx_blueprint_find_node(const struct cx_blueprint* p_bl
 	return 0;
 }
 
-int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream_writer* p_writer) {
-	cx_stream_serialize_uint16(p_writer, p_blueprint->nodes_count);
+int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream* p_stream) {
+	cx_stream_serialize_uint16(p_stream, p_blueprint->nodes_count);
 
 	for (uint16_t i = 0; i < p_blueprint->nodes_count; ++i) {
 		const struct cx_blueprint_node* p_node = &p_blueprint->p_nodes[i];
 
-		cx_stream_serialize_uint16(p_writer, p_node->id);
-		cx_stream_serialize_uint16(p_writer, p_node->parent_id);
+		cx_stream_serialize_uint16(p_stream, p_node->id);
+		cx_stream_serialize_uint16(p_stream, p_node->parent_id);
 
-		cx_stream_serialize_bytes(p_writer,
+		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.position), p_node->transform.position);
-		cx_stream_serialize_bytes(p_writer,
+		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.rotation), p_node->transform.rotation);
-		cx_stream_serialize_bytes(p_writer,
+		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.scale), p_node->transform.scale);
-		cx_stream_serialize_bytes(p_writer,
+		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.world_position), p_node->transform.world_position);
-		cx_stream_serialize_bytes(p_writer,
+		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.world_rotation), p_node->transform.world_rotation);
-		cx_stream_serialize_bytes(p_writer,
+		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.world_scale), p_node->transform.world_scale);
 
-		cx_stream_serialize_uint16(p_writer, p_node->components_count);
+		cx_stream_serialize_uint16(p_stream, p_node->components_count);
 
 		for (uint16_t j = 0; j < p_node->components_count; ++j) {
 			const struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
-			cx_stream_serialize_uint64(p_writer, p_node_component->data_off);
+			cx_stream_serialize_uint64(p_stream, p_node_component->data_off);
 			cx_component_serialize(
-				p_node->p_component_data + p_node_component->data_off, p_node_component->p_type, p_writer);
+				p_node->p_component_data + p_node_component->data_off, p_node_component->p_type, p_stream);
 		}
 	}
 
 	return CX_TRUE;
 }
 
-int cx_blueprint_deserialize(struct cx_blueprint* p_blueprint, struct cx_stream_reader* p_reader) {
-	cx_stream_deserialize_uint16(p_reader, &p_blueprint->nodes_count);
+int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_out_blueprint) {
+	cx_stream_deserialize_uint16(p_stream, &p_out_blueprint->nodes_count);
 
 	// alloc nodes
 
-	for (uint16_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		struct cx_blueprint_node* p_node = &p_blueprint->p_nodes[i];
+	for (uint16_t i = 0; i < p_out_blueprint->nodes_count; ++i) {
+		struct cx_blueprint_node* p_node = &p_out_blueprint->p_nodes[i];
 
-		cx_stream_deserialize_uint16(p_reader, &p_node->id);
-		cx_stream_deserialize_uint16(p_reader, &p_node->parent_id);
+		cx_stream_deserialize_uint16(p_stream, &p_node->id);
+		cx_stream_deserialize_uint16(p_stream, &p_node->parent_id);
 
-		cx_stream_deserialize_bytes(p_reader,
+		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.position), p_node->transform.position);
-		cx_stream_deserialize_bytes(p_reader,
+		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.rotation), p_node->transform.rotation);
-		cx_stream_deserialize_bytes(p_reader,
+		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.scale), p_node->transform.scale);
-		cx_stream_deserialize_bytes(p_reader,
+		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.world_position), p_node->transform.world_position);
-		cx_stream_deserialize_bytes(p_reader,
+		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.world_rotation), p_node->transform.world_rotation);
-		cx_stream_deserialize_bytes(p_reader,
+		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.world_scale), p_node->transform.world_scale);
 
-		cx_stream_deserialize_uint16(p_reader, &p_node->components_count);
+		cx_stream_deserialize_uint16(p_stream, &p_node->components_count);
 
 		// alloc components and component data
 
 		for (uint16_t j = 0; j < p_node->components_count; ++j) {
 			struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
-			cx_stream_deserialize_uint64(p_reader, &p_node_component->data_off);
+			cx_stream_deserialize_uint64(p_stream, &p_node_component->data_off);
 			cx_component_deserialize(
-				p_node->p_component_data + p_node_component->data_off, p_reader, &p_node_component->p_type);
+				p_stream, &p_node_component->p_type, p_node->p_component_data + p_node_component->data_off);
 		}
 	}
 

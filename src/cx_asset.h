@@ -1,7 +1,7 @@
 #ifndef ASSET_H
 #define ASSET_H
 
-#include <stdio.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "hashtable.h"
@@ -16,8 +16,7 @@
 #define CX_ASSET_GET_TYPE_ID(ID) ((uint8_t)((ID) >> 24))
 #define CX_ASSET_GET_IDN(ID) (((uint32_t)(ID)) & CX_ASSET_IDN_MASK)
 
-struct cx_stream_writer;
-struct cx_stream_reader;
+struct cx_stream;
 
 typedef uint32_t cx_asset_id;
 
@@ -26,8 +25,8 @@ struct cx_asset {
 	cx_asset_id id_;
 };
 
-typedef int(*cx_asset_serialize_fn)(struct cx_stream_writer*, const void*);
-typedef int(*cx_asset_deserialize_fn)(struct cx_stream_reader*, void*);
+typedef int(*cx_asset_serialize_fn)(const void*, struct cx_stream*);
+typedef int(*cx_asset_deserialize_fn)(struct cx_stream*, void*);
 typedef void(*cx_asset_free_fn)(void*);
 
 void cx_asset_register_type(
@@ -51,18 +50,20 @@ void cx_asset_free(cx_asset_handle p_record);
 
 struct cx_asset_package {
 	char s_filename_[CX_ASSET_PACKAGE_FILENAME_MAX_LEN];
-	struct hashtable asset_type_record_tables_;
+	struct hashtable asset_type_record_tables_[CX_ASSET_TYPE_ID_MAX];
 };
-
-void cx_asset_package_init(struct cx_asset_package* p_package);
 
 void cx_asset_package_free(struct cx_asset_package* p_package);
 
-int  cx_asset_package_load_records(struct cx_asset_package* p_result, const char* s_filename);
+int cx_asset_package_serialize(const struct cx_asset_package* p_package, struct cx_stream* p_stream);
 
-void cx_asset_package_save(struct cx_asset_package* p_package);
+int cx_asset_package_deserialize_records(struct cx_asset_package* p_package, struct cx_stream* p_stream);
 
-void cx_asset_package_save_as(struct cx_asset_package* p_package, const char* s_filename);
+void cx_asset_package_load_records_from_file(struct cx_asset_package* p_package, const char* s_filename);
+
+void cx_asset_package_save_to_file(struct cx_asset_package* p_package);
+
+void cx_asset_package_save_to_file_as(struct cx_asset_package* p_package, const char* s_filename);
 
 int cx_asset_package_find_record(
 	const struct cx_asset_package* p_package,
@@ -82,8 +83,8 @@ int cx_asset_directory_find(cx_asset_id id, struct cx_asset_package_record** pp_
 
 const struct cx_asset_package** cx_asset_directory_get_packages(size_t* p_num_packages);
 
-int cx_asset_serialize_handle(struct cx_stream_writer* p_writer, const cx_asset_handle p_asset_handle);
+int cx_asset_handle_serialize(const cx_asset_handle p_asset_handle, struct cx_stream* p_stream);
 
-int cx_asset_deserialize_handle(struct cx_stream_reader* p_reader, cx_asset_handle* p_result);
+int cx_asset_handle_deserialize(struct cx_stream* p_stream, cx_asset_handle* p_out_asset_handle);
 
 #endif

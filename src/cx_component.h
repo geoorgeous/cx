@@ -11,8 +11,6 @@
 
 #define CX_COMPONENT_MAX_TYPES 512
 
-#define CX_COMPONENT_TYPE_ID_INVALID UINT16_MAX
-
 #define CX_COMPONENT_TYPE_NAME_MAX_LEN 64
 
 #define CX_COMPONENT_TYPE_DECL(NAME) extern struct cx_component_type cmp_type_##NAME
@@ -20,11 +18,12 @@
 	.s_name = #NAME,\
 	.size = sizeof(TYPE),\
 	.alignment = CX_ALIGNOF(TYPE),\
-	.runtime_id = CX_COMPONENT_TYPE_ID_INVALID\
+	.f_serialize = cx_cmp_##NAME##_serialize\
+	.f_deserialize = cx_cmp_##NAME##_deserialize\
 }
 
-typedef int(*cx_component_serialize_fn)(const void*, struct cx_stream_writer*);
-typedef int(*cx_component_deserialize_fn)(void*, struct cx_stream_reader*);
+typedef int(*cx_component_serialize_fn)(const void*, struct cx_stream*);
+typedef int(*cx_component_deserialize_fn)(struct cx_stream*, void*);
 
 struct cx_component_type {
 	const char* s_name;
@@ -36,10 +35,13 @@ struct cx_component_type {
 };
 
 void cx_component_register(struct cx_component_type* p_type);
+
 int cx_component_find_type(const char* s_name, const struct cx_component_type** pp_out);
+
 int cx_component_serialize(
-	const void* p_component, const struct cx_component_type* p_type, struct cx_stream_writer* p_writer);
+	const void* p_component, const struct cx_component_type* p_type, struct cx_stream* p_stream);
+
 int cx_component_deserialize(
-	void* p_component, struct cx_stream_reader* p_reader, const struct cx_component_type** pp_out_type);
+	struct cx_stream* p_stream, const struct cx_component_type** pp_out_type, void* p_out_component);
 
 #endif

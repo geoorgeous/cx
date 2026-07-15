@@ -67,22 +67,21 @@ int cx_blueprint_node_has_component(
 	uint16_t node_id,
 	const struct cx_component_type* p_type);
 
-struct cx_stream_writer;
-struct cx_stream_reader;
+struct cx_stream;
 
-int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream_writer* p_writer);
-int cx_blueprint_deserialize(struct cx_blueprint* p_blueprint, struct cx_stream_reader* p_reader);
+int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream* p_stream);
+int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_out_blueprint);
 
 static inline void cx_blueprint_asset_destroy(void* p) {
 	cx_blueprint_destroy(p);
 }
 
-static inline int cx_blueprint_asset_serialize(struct cx_stream_writer* p_writer, const void* p) {
-	return cx_blueprint_serialize(p, p_writer);
+static inline int cx_blueprint_asset_serialize(const void* p_asset, struct cx_stream* p_stream) {
+	return cx_blueprint_serialize(p_asset, p_stream);
 }
 
-static inline int cx_blueprint_asset_deserialize(struct cx_stream_reader* p_reader, void* p) {
-	return cx_blueprint_deserialize(p, p_reader);
+static inline int cx_blueprint_asset_deserialize(struct cx_stream* p_stream, void* p_out_asset) {
+	return cx_blueprint_deserialize(p_stream, p_out_asset);
 }
 
 #endif

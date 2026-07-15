@@ -5,18 +5,13 @@
 
 #include "cx_stream.h"
 
-struct cx_stream_writer_file {
-	struct cx_stream_writer base;
+struct cx_stream_file {
+	struct cx_stream base;
 	FILE* p_file;
 };
 
-void cx_stream_writer_init_file(FILE* p_file, struct cx_stream_writer_file* p_out);
-
-struct cx_stream_reader_file {
-	struct cx_stream_reader base;
-	FILE* p_file;
-};
-
-void cx_stream_reader_init_file(FILE* p_file, struct cx_stream_reader_file* p_out);
+void cx_stream_file_init(FILE* p_file, struct cx_stream_file* p_out);
+int cx_stream_file_open(const char* s_filename, const char* s_mode, struct cx_stream_file* p_out);
+void cx_stream_file_close(struct cx_stream_file* p_stream);
 
 #endif

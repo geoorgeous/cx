@@ -161,15 +161,12 @@ int main(int argc, const char* argv[]) {
 
 	// printf("It's the 9th of September 2025 and I'm writing yet another game engine project.\n");
 
-	//cx_log_cat_set("platform", CX_LOG_LEVEL_TRACE);
-	//cx_log_cat_set(CX_LOG_CAT_PLATFORM_WINDOW, CX_LOG_LEVEL_TRACE);
-	//cx_log_cat_set(CX_LOG_CAT_HASHTABLE, CX_LOG_LEVEL_TRACE);
-	//cx_log_cat_set(CX_LOG_CAT_ALL,         CX_LOG_LEVEL_WARNING);
-	cx_log_cat_set(CX_LOG_CAT_ASSET,       CX_LOG_LEVEL_WARNING);
-	cx_log_cat_set(CX_LOG_CAT_GFX_PROGRAM, CX_LOG_LEVEL_WARNING);
-	cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE, CX_LOG_LEVEL_WARNING);
-	//cx_log_cat_set(CX_LOG_CAT_GLTF,        CX_LOG_LEVEL_WARNING);
-	//cx_log_cat_set(CX_LOG_CAT_SCENE,       CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_PLATFORM_WINDOW, CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_HASHTABLE,       CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_ASSET,           CX_LOG_LEVEL_TRACE);
+	cx_log_cat_set(CX_LOG_CAT_GFX_PROGRAM,     CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_GFX_TEXTURE,     CX_LOG_LEVEL_WARNING);
+	cx_log_cat_set(CX_LOG_CAT_WORLD,           CX_LOG_LEVEL_WARNING);
 	
 	cx_console_init(cx_console_get());
 
@@ -309,8 +306,7 @@ int main(int argc, const char* argv[]) {
 	
 	input_init();
 
-	struct cx_asset_package asset_package;
-	cx_asset_package_init(&asset_package);
+	struct cx_asset_package asset_package = {0};
 
 	struct cx_asset_package_record* p_imported_font;
 	cx_ed_import_bdf_file(&asset_package, "res/builtin/font_dbg_8x14.bdf", &p_imported_font);

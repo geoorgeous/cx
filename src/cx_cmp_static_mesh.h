@@ -3,12 +3,15 @@
 
 #include "cx_component.h"
 
-CX_COMPONENT_TYPE_DECL(static_mesh);
+extern struct cx_component_type cmp_type_static_mesh;
 
 struct cx_asset_package_record;
 
 struct cx_cmp_static_mesh {
 	struct cx_asset_package_record* p_asset_package_record;
 };
+
+int cx_cmp_static_mesh_serialize(const void* p_cmp, struct cx_stream* p_stream);
+int cx_cmp_static_mesh_deserialize(struct cx_stream* p_stream, void* p_out_cmp);
 
 #endif

@@ -174,8 +174,6 @@ static void cx_ed_on_key(const void* p_e, void* p_user_ptr);
 void cx_ed_init(struct platform_window* p_window) {
 	ed.p_window = p_window;
 
-	cx_asset_package_init(&ed.asset_package);
-
 	ed.flog_builder = (struct cx_flog_builder) {
 		.p_buf = ed.flog_builder_str_buf,
 		.p_styles = ed.flog_builder_style_buf,
@@ -284,6 +282,8 @@ void cx_ed_init(struct platform_window* p_window) {
 	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
 
 	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
+
+	cx_asset_package_save_to_file_as(&ed.asset_package, "asset_package_test");
 }
 
 void cx_ed_shutdown(void) {
