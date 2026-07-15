@@ -24,18 +24,18 @@ struct cx_gfx_framebuffer {
 
 enum cx_error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer);
 
-void       cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer);
+void cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer);
 
 struct cx_gfx_texture;
 
-void       cx_gfx_framebuffer_set_attachment(
+void cx_gfx_framebuffer_set_attachment(
 	const struct cx_gfx_framebuffer* p_framebuffer,
 	enum cx_gfx_framebuffer_attachment attachment_point,
 	const struct cx_gfx_texture* p_texture);
 
-void       cx_gfx_framebuffer_bind(const struct cx_gfx_framebuffer* p_framebuffer);
+void cx_gfx_framebuffer_bind(const struct cx_gfx_framebuffer* p_framebuffer);
 
-void       cx_gfx_framebuffer_read(
+void cx_gfx_framebuffer_read(
 	const struct cx_gfx_framebuffer* p_framebuffer,
 	enum cx_gfx_framebuffer_attachment attachment,
 	const uint32_t* p_read_position,
