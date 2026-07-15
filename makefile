@@ -171,6 +171,7 @@ debug-gdb:
 
 compile_commands:
 	@bear -- make clean debug
+	@bear --append -- make TARGET=editor debug
 
 # dependency includes
 
