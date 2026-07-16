@@ -26,6 +26,7 @@
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
+#include "cx_world_blueprint.h"
 #include "gl.h"
 #include "input.h"
 #include "keys.h"
@@ -155,6 +156,9 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 	
 	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint),
 		cx_blueprint_asset_serialize, cx_blueprint_asset_deserialize, cx_blueprint_asset_destroy);
+
+	cx_asset_register_type(CX_ASSET_TYPE_WORLD_BLUEPRINT, "world_blueprint", sizeof(struct cx_world_blueprint),
+		cx_world_blueprint_asset_serialize, cx_world_blueprint_asset_deserialize, CX_NULL);
 	
 	cx_component_register(&cmp_type_static_mesh);
 	cx_component_register(&cmp_type_collider);
