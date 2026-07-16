@@ -49,6 +49,7 @@ struct {
 	struct cx_asset_package core_asset_package;
 	struct cx_asset_package_record* p_console_font;
 	struct cx_texture_atlas_layout console_font_glyph_atlas_layout;
+	struct cx_texture_atlas_entry console_font_glyph_atlas_layout_entries[CX_FONT_NUM_GLYPHS];
 	struct cx_gfx_texture console_font_glyph_atlas_texture;
 } cx_app;
 
@@ -64,8 +65,6 @@ static void on_key(const void* p_e, void* p_user_ptr);
 static int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_height, cx_app_init_callback_fn f_init) {
-	cx_console_init(cx_console_get());
-
 	enum cx_error err;
 
 	err = platform_window_create(
@@ -169,11 +168,9 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 
 	struct cx_font* p_font = cx_app.p_console_font->asset_.p_data_;
 
+	cx_app.console_font_glyph_atlas_layout.p_entries = cx_app.console_font_glyph_atlas_layout_entries;
+
 	struct cx_image font_atlas_image;
-	struct cx_texture_atlas_entry font_atlas_layout_entries[CX_FONT_NUM_GLYPHS] = {0};
-
-	cx_app.console_font_glyph_atlas_layout.p_entries = font_atlas_layout_entries;
-
 	cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
 
 	cx_font_free_glyph_bitmap_buffer(p_font);
@@ -189,6 +186,8 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 		&font_atlas_image.pixel_data_format);
 
 	free(font_atlas_image.p_pixel_data);
+
+	cx_console_init(cx_console_get());
 
 	f_init();
 
@@ -242,7 +241,7 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 
 				cx_console_view_draw(cx_console_get(),
 					&font_render_data,
-					0,
+					&cx_app.primary_framebuffer,
 					cx_app.primary_framebuffer_texture_color.width_,
 					cx_app.primary_framebuffer_texture_color.height_,
 					projection_matrix, view_matrix);
@@ -250,7 +249,6 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 
 			// SCREEN QUAD
 			{
-				
 				uint32_t window_size[2];
 				platform_window_size(&cx_app.window, &window_size[0], &window_size[1]);
 
