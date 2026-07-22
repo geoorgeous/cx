@@ -7,6 +7,7 @@
 #include "cx_console.h"
 #include "cx_ed.h"
 #include "cx_ed_action.h"
+#include "cx_ed_asset_database.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_transform_gizmo.h"
 #include "cx_io.h"
@@ -44,8 +45,6 @@
 
 static struct {
 	struct platform_window* p_window;
-
-	struct cx_asset_package asset_package;
 
 	struct cx_ed_action_history action_history;
 
@@ -275,19 +274,17 @@ void cx_ed_init(struct platform_window* p_window) {
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
-	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
-	cx_ed_import_gltf_file(&ed.asset_package, "res/Industrial_exterior_v2.glb", &p_gltf_scene_blueprint_asset);
-	struct cx_blueprint* p_gltf_scene_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
+	cx_asset_handle gltf_scene_blueprint_asset;
+	cx_ed_import_gltf_file("res/Industrial_exterior_v2.glb", &gltf_scene_blueprint_asset);
+	struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_get(gltf_scene_blueprint_asset);
 
 	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
 
 	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
-
-	cx_asset_package_save_to_file_as(&ed.asset_package, "asset_package_test");
 }
 
 void cx_ed_shutdown(void) {
-	cx_asset_package_free(&ed.asset_package);
+	cx_ed_asset_database_unload_all();
 	cx_world_free(&ed.world);
 }
 

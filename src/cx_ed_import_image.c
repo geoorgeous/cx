@@ -1,15 +1,55 @@
-#include "cx_asset.h"
+#include "cx_ed_asset_database.h"
 #include "cx_ed_import_image.h"
 #include "cx_image.h"
 #include "cx_logging.h"
 #include "stb_image.h"
 
 static void cx_ed_import_image_from_stbi_retval(
-	struct cx_asset_package* p_package,
 	int x, int y,
 	int comp,
 	uint8_t* p_pixel_data,
-	struct cx_asset_package_record** pp_out) {
+	cx_asset_handle* p_out_handle);
+
+int cx_ed_import_image(
+	const uint8_t* p_bytes,
+	size_t size,
+	cx_asset_handle* p_out_handle) {
+	
+	int x, y, comp;
+	uint8_t* p_pixel_data = stbi_load_from_memory(p_bytes, (int)size, &x, &y, &comp, 0);
+
+	if (!p_pixel_data) {
+		CX_LOG_FMT(ERROR, IMPORT_IMAGE, "Failed to import image from %d bytes\n", size);
+		return 0;
+	}
+
+	cx_ed_import_image_from_stbi_retval(x, y, comp, p_pixel_data, p_out_handle);
+
+	return 1;
+}
+
+int cx_ed_import_image_file(
+	const char* s_filepath,
+	cx_asset_handle* p_out_handle) {
+
+	int x, y, comp;
+	uint8_t* p_pixel_data = stbi_load(s_filepath, &x, &y, &comp, 0);
+
+	if (!p_pixel_data) {
+		CX_LOG_FMT(ERROR, IMPORT_IMAGE, "Failed to import image from file '%s'\n", s_filepath);
+		return 0;
+	}
+
+	cx_ed_import_image_from_stbi_retval(x, y, comp, p_pixel_data, p_out_handle);
+
+	return 1;
+}
+
+void cx_ed_import_image_from_stbi_retval(
+	int x, int y,
+	int comp,
+	uint8_t* p_pixel_data,
+	cx_asset_handle* p_out_handle) {
 
 	struct cx_image* p_image = malloc(sizeof(struct cx_image));
 
@@ -25,43 +65,5 @@ static void cx_ed_import_image_from_stbi_retval(
 		case 4: p_image->pixel_data_format.pixel_format = CX_PIXEL_FORMAT_rgba; break;
 	}
 	
-	cx_asset_package_new_record(p_package, ASSET_TYPE_IMAGE, pp_out);
-	(*pp_out)->asset_.p_data_ = p_image;
-}
-
-int cx_ed_import_image(
-	struct cx_asset_package* p_package,
-	const uint8_t* p_bytes,
-	size_t size,
-	struct cx_asset_package_record** pp_out) {
-	
-	int x, y, comp;
-	uint8_t* p_pixel_data = stbi_load_from_memory(p_bytes, (int)size, &x, &y, &comp, 0);
-
-	if (!p_pixel_data) {
-		CX_LOG_FMT(ERROR, IMPORT_IMAGE, "Failed to import image from %d bytes\n", size);
-		return 0;
-	}
-
-	cx_ed_import_image_from_stbi_retval(p_package, x, y, comp, p_pixel_data, pp_out);
-
-	return 1;
-}
-
-int cx_ed_import_image_file(
-	struct cx_asset_package* p_package,
-	const char* s_filepath,
-	struct cx_asset_package_record** pp_out) {
-
-	int x, y, comp;
-	uint8_t* p_pixel_data = stbi_load(s_filepath, &x, &y, &comp, 0);
-
-	if (!p_pixel_data) {
-		CX_LOG_FMT(ERROR, IMPORT_IMAGE, "Failed to import image from file '%s'\n", s_filepath);
-		return 0;
-	}
-
-	cx_ed_import_image_from_stbi_retval(p_package, x, y, comp, p_pixel_data, pp_out);
-
-	return 1;
+	cx_ed_asset_database_new(CX_ASSET_TYPE_IMAGE, p_image, p_out_handle);
 }

@@ -1,4 +1,5 @@
 #include "cx_asset.h"
+#include "cx_asset_package_registry.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_static_mesh.h"
 #include "cx_ed_import_gltf.h"
@@ -149,6 +150,8 @@ static void cx_transform_gizmo_apply_scale_uniformly(
 void cx_transform_gizmo_init_shared_resources(struct cx_asset_package* p_package) {
 	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
 	struct cx_blueprint* p_blueprint;
+
+	
 
 	cx_ed_import_gltf_file(p_package, "res/builtin/gizmo_translate.glb", &p_gltf_scene_blueprint_asset);
 	p_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;

@@ -1,16 +1,15 @@
 #include "cx_alloc.h"
-#include "cx_asset.h"
 #include "cx_bdf.h"
 #include "cx_bits.h"
+#include "cx_ed_asset_database.h"
 #include "cx_ed_import_bdf.h"
 #include "cx_font.h"
 #include "cx_io.h"
 #include "cx_logging.h"
 
 int cx_ed_import_bdf(
-	struct cx_asset_package* p_package,
 	const struct cx_bdf* p_bdf,
-	struct cx_asset_package_record** pp_out) {
+	cx_asset_handle* p_out_handle) {
 
 	struct cx_font* p_font = CX_MALLOC(sizeof(struct cx_font));
 	*p_font = (struct cx_font) {
@@ -77,16 +76,14 @@ int cx_ed_import_bdf(
 		p_font->space_adv_ = (int32_t)p_font->max_glyph_width_;
 	}
 
-	cx_asset_package_new_record(p_package, CX_ASSET_TYPE_FONT, pp_out);
-	(*pp_out)->asset_.p_data_ = p_font;
+	cx_ed_asset_database_new(CX_ASSET_TYPE_FONT, p_font, p_out_handle);
 
 	return CX_TRUE;
 }
 
 int cx_ed_import_bdf_file(
-	struct cx_asset_package* p_package,
 	const char* s_filepath,
-	struct cx_asset_package_record** pp_out) {
+	cx_asset_handle* p_out_handle) {
 
 	void* p_bdf_buf;
 	size_t bdf_buf_size;
@@ -98,7 +95,7 @@ int cx_ed_import_bdf_file(
 	cx_bdf_parse(p_bdf_buf, &bdf);
 	cx_io_file_free(p_bdf_buf);
 
-	const int result = cx_ed_import_bdf(p_package, &bdf, pp_out);
+	const int result = cx_ed_import_bdf(&bdf, p_out_handle);
 
 	cx_bdf_free(&bdf);
 

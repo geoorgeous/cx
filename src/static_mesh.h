@@ -5,7 +5,7 @@
 
 #include "cx_asset.h"
 
-#define ASSET_TYPE_STATIC_MESH 4
+#define CX_ASSET_TYPE_STATIC_MESH 4
 
 struct cx_gfx_mesh;
 struct cx_mesh_data;

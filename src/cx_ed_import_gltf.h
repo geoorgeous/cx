@@ -3,18 +3,15 @@
 
 #define CX_LOG_CAT_IMPORT_GLTF "import:gltf"
 
-struct cx_asset_package;
-struct cx_asset_package_record;
+#include "cx_asset_types.h"
+
 struct gltf;
 
 int cx_ed_import_gltf(
-	struct cx_asset_package* p_package,
 	const struct gltf* p_gltf,
-	struct cx_asset_package_record** pp_out);
-
+	cx_asset_handle* p_out_handle);
 int cx_ed_import_gltf_file(
-	struct cx_asset_package* p_package,
 	const char* s_filepath,
-	struct cx_asset_package_record** pp_out);
+	cx_asset_handle* p_out_handle);
 
 #endif

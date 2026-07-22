@@ -4,21 +4,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct cx_asset_package;
-struct cx_asset_package_record;
-struct cx_image;
+#include "cx_asset_types.h"
 
 #define CX_LOG_CAT_IMPORT_IMAGE "import:image"
 
 int cx_ed_import_image(
-	struct cx_asset_package* p_package,
 	const uint8_t* p_bytes,
 	size_t size,
-	struct cx_asset_package_record** pp_out);
-
+	cx_asset_handle* p_out_handle);
 int cx_ed_import_image_file(
-	struct cx_asset_package* p_package,
 	const char* s_filepath,
-	struct cx_asset_package_record** pp_out);
+	cx_asset_handle* p_out_handle);
 
 #endif

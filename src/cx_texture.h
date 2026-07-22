@@ -6,10 +6,10 @@
 #include "cx_pixel_format.h"
 #include "cx_texture_sampler_settings.h"
 
-#define ASSET_TYPE_TEXTURE 2
+#define CX_ASSET_TYPE_TEXTURE 2
 
 struct cx_texture {
-	cx_asset_handle p_source_image;
+	cx_asset_handle source_image_asset;
 	struct cx_texture_sampler_settings sampler_settings;
 	int b_gfx_texture_loaded_;
 	enum cx_pixel_format gfx_texture_format;

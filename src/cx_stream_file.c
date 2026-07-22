@@ -5,6 +5,7 @@ static int cx_stream_file_read(struct cx_stream* p_stream, size_t size, void* p_
 static int cx_stream_file_write(struct cx_stream* p_stream, size_t size, const void* p_bytes);
 static size_t cx_stream_file_tell(const struct cx_stream* p_stream);
 static int cx_stream_file_seek(struct cx_stream* p_stream, ptrdiff_t offset, enum cx_stream_seek_origin origin);
+static void cx_stream_file_close(struct cx_stream* p_stream);
 
 void cx_stream_file_init(FILE* p_file, struct cx_stream_file* p_out) {
 	*p_out = (struct cx_stream_file) {
@@ -12,7 +13,8 @@ void cx_stream_file_init(FILE* p_file, struct cx_stream_file* p_out) {
 			.f_read_ = cx_stream_file_read,
 			.f_write_ = cx_stream_file_write,
 			.f_tell_ = cx_stream_file_tell,
-			.f_seek_ = cx_stream_file_seek
+			.f_seek_ = cx_stream_file_seek,
+			.f_close_ = cx_stream_file_close
 		},
 		.p_file = p_file
 	};
@@ -28,11 +30,6 @@ int cx_stream_file_open(const char* s_filename, const char* s_mode, struct cx_st
 	
 	cx_stream_file_init(p_file, p_out);
 	return CX_TRUE;
-}
-
-void cx_stream_file_close(struct cx_stream_file* p_stream) {
-	fclose(p_stream->p_file);
-	p_stream->p_file = CX_NULL;
 }
 
 int cx_stream_file_read(struct cx_stream* p_stream, size_t size, void* p_bytes) {
@@ -55,4 +52,10 @@ int cx_stream_file_seek(struct cx_stream* p_stream, ptrdiff_t offset, enum cx_st
 		SEEK_END;
 	const long retval = fseek(((struct cx_stream_file*)p_stream)->p_file, offset, whence);
 	return retval == 0;
+}
+
+void cx_stream_file_close(struct cx_stream* p_stream) {
+	struct cx_stream_file* p_stream_file = (void*)p_stream;
+	fclose(p_stream_file->p_file);
+	p_stream_file->p_file = CX_NULL;
 }

@@ -17,7 +17,7 @@ void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_reloa
 		cx_texture_unload_gfx_texture(p_texture);
 	}
 
-	const struct cx_image* p_image = p_texture->p_source_image->asset_.p_data_;
+	const struct cx_image* p_image = p_texture->source_image_asset->asset_.p_data_;
 	cx_gfx_texture_create(&p_texture->gfx_texture_, p_image->width, p_image->height, p_texture->gfx_texture_format);
 	cx_gfx_texture_set_sampler_settings(&p_texture->gfx_texture_, &p_texture->sampler_settings);
 	cx_gfx_texture_set_data(&p_texture->gfx_texture_, p_image->p_pixel_data, &p_image->pixel_data_format);
@@ -31,7 +31,7 @@ void cx_texture_unload_gfx_texture(struct cx_texture* p_texture) {
 }
 
 int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream* p_stream) {
-	cx_asset_handle_serialize(p_texture->p_source_image, p_stream);
+	cx_asset_handle_serialize(p_texture->source_image_asset, p_stream);
 	
 	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->sampler_settings.mag_filter_mode);
 	cx_stream_serialize_uint8(p_stream, (uint8_t)p_texture->sampler_settings.min_filter_mode);
@@ -43,7 +43,7 @@ int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream* p
 }
 
 int cx_texture_deserialize(struct cx_stream* p_stream, struct cx_texture* p_out_texture) {
-	cx_asset_handle_deserialize(p_stream, &p_out_texture->p_source_image);
+	cx_asset_handle_deserialize(p_stream, &p_out_texture->source_image_asset);
 	
 	uint8_t temp;
 

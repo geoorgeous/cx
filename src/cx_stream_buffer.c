@@ -7,6 +7,7 @@ static int cx_stream_buffer_read(struct cx_stream* p_stream, size_t size, void* 
 static int cx_stream_buffer_write(struct cx_stream* p_stream, size_t size, const void* p_bytes);
 static size_t cx_stream_buffer_tell(const struct cx_stream* p_stream);
 static int cx_stream_buffer_seek(struct cx_stream* p_stream, ptrdiff_t offset, enum cx_stream_seek_origin origin);
+static void cx_stream_buffer_close(struct cx_stream* p_stream) { (void)p_stream; }
 
 void cx_stream_buffer_init(void* p_buffer, size_t capacity, struct cx_stream_buffer* p_out) {
 	*p_out = (struct cx_stream_buffer) {
@@ -14,7 +15,8 @@ void cx_stream_buffer_init(void* p_buffer, size_t capacity, struct cx_stream_buf
 			.f_read_ = cx_stream_buffer_read,
 			.f_write_ = cx_stream_buffer_write,
 			.f_tell_ = cx_stream_buffer_tell,
-			.f_seek_ = cx_stream_buffer_seek
+			.f_seek_ = cx_stream_buffer_seek,
+			.f_close_ = cx_stream_buffer_close
 		},
 		.p_buffer = p_buffer,
 		.capacity = capacity

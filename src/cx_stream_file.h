@@ -12,6 +12,5 @@ struct cx_stream_file {
 
 void cx_stream_file_init(FILE* p_file, struct cx_stream_file* p_out);
 int cx_stream_file_open(const char* s_filename, const char* s_mode, struct cx_stream_file* p_out);
-void cx_stream_file_close(struct cx_stream_file* p_stream);
 
 #endif

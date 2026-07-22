@@ -1,7 +1,7 @@
 #ifndef CX_IMAGE_H
 #define CX_IMAGE_H
 
-#define ASSET_TYPE_IMAGE 1
+#define CX_ASSET_TYPE_IMAGE 1
 
 #include <stdint.h>
 

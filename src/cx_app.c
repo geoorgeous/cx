@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "cx_app.h"
-#include "cx_asset.h"
+#include "cx_asset_types.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_collider.h"
 #include "cx_cmp_rigidbody.h"
@@ -36,7 +36,7 @@
 #include "platform_window.h"
 #include "static_mesh.h"
 
-struct {
+static struct {
 	struct platform_window window;
 	struct cx_gfx_context  gfx_context;
 
@@ -47,8 +47,7 @@ struct {
 	struct cx_gfx_program screen_quad_program;
 	struct cx_gfx_program_opaque_param screen_quad_program_opaque_param_texture;
 
-	struct cx_asset_package core_asset_package;
-	struct cx_asset_package_record* p_console_font;
+	cx_asset_handle console_font;
 	struct cx_texture_atlas_layout console_font_glyph_atlas_layout;
 	struct cx_texture_atlas_entry console_font_glyph_atlas_layout_entries[CX_FONT_NUM_GLYPHS];
 	struct cx_gfx_texture console_font_glyph_atlas_texture;
@@ -139,16 +138,16 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 		"u_texture",
 		&cx_app.screen_quad_program_opaque_param_texture);
 
-	cx_asset_register_type(ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image),
+	cx_asset_register_type(CX_ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image),
 		cx_image_asset_serialize, cx_image_asset_deserialize, cx_image_asset_destroy);
 
-	cx_asset_register_type(ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture),
+	cx_asset_register_type(CX_ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture),
 		cx_texture_asset_serialize, cx_texture_asset_deserialize, cx_texture_asset_destroy);
 
-	cx_asset_register_type(ASSET_TYPE_MATERIAL, "material", sizeof(struct material),
+	cx_asset_register_type(CX_ASSET_TYPE_MATERIAL, "material", sizeof(struct material),
 		material_asset_serialize, material_asset_deserialize, CX_NULL);
 	
-	cx_asset_register_type(ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh),
+	cx_asset_register_type(CX_ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh),
 		static_mesh_asset_serialize, static_mesh_asset_deserialize, static_mesh_asset_destroy);
 	
 	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font),
@@ -168,30 +167,30 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 
 	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
 
-	cx_ed_import_bdf_file(&cx_app.core_asset_package, "res/builtin/font_dbg_8x14.bdf", &cx_app.p_console_font);
+	//cx_ed_import_bdf_file(&cx_app.core_asset_package, "res/builtin/font_dbg_8x14.bdf", &cx_app.p_console_font);
 
-	struct cx_font* p_font = cx_app.p_console_font->asset_.p_data_;
+	//struct cx_font* p_font = cx_app.p_console_font->asset_.p_data_;
 
 	cx_app.console_font_glyph_atlas_layout.p_entries = cx_app.console_font_glyph_atlas_layout_entries;
 
-	struct cx_image font_atlas_image;
-	cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
+	//struct cx_image font_atlas_image;
+	//cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
 
-	cx_font_free_glyph_bitmap_buffer(p_font);
+	//cx_font_free_glyph_bitmap_buffer(p_font);
 
-	cx_gfx_texture_create(
-		&cx_app.console_font_glyph_atlas_texture,
-		font_atlas_image.width, font_atlas_image.height,
-		CX_PIXEL_FORMAT_red);
+	//cx_gfx_texture_create(
+	//	&cx_app.console_font_glyph_atlas_texture,
+	//	font_atlas_image.width, font_atlas_image.height,
+	//	CX_PIXEL_FORMAT_red);
 
-	cx_gfx_texture_set_data(
-		&cx_app.console_font_glyph_atlas_texture,
-		font_atlas_image.p_pixel_data,
-		&font_atlas_image.pixel_data_format);
+	//cx_gfx_texture_set_data(
+	//	&cx_app.console_font_glyph_atlas_texture,
+	//	font_atlas_image.p_pixel_data,
+	//	&font_atlas_image.pixel_data_format);
 
-	free(font_atlas_image.p_pixel_data);
+	//free(font_atlas_image.p_pixel_data);
 
-	cx_console_init(cx_console_get());
+	//cx_console_init(cx_console_get());
 
 	f_init();
 
@@ -220,36 +219,36 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 		{
 			f_draw(&cx_app.primary_framebuffer);
 
-			if (cx_console_get()->b_is_input_enabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			//if (cx_console_get()->b_is_input_enabled) {
+			//	glEnable(GL_BLEND);
+			//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-				struct cx_font_render_data font_render_data = {
-					.p_font = cx_app.p_console_font->asset_.p_data_,
-					.p_glyph_texture = &cx_app.console_font_glyph_atlas_texture,
-					.p_glyph_atlas_layout = &cx_app.console_font_glyph_atlas_layout
-				};
+			//	struct cx_font_render_data font_render_data = {
+			//		.p_font = cx_app.p_console_font->asset_.p_data_,
+			//		.p_glyph_texture = &cx_app.console_font_glyph_atlas_texture,
+			//		.p_glyph_atlas_layout = &cx_app.console_font_glyph_atlas_layout
+			//	};
 
-				float projection_matrix[16];
-				float view_matrix[16];
+			//	float projection_matrix[16];
+			//	float view_matrix[16];
 
-				matrix_make_orthographic_projection(
-					 0,
-					(float)cx_app.primary_framebuffer_texture_color.width_,
-					(float)cx_app.primary_framebuffer_texture_color.height_,
-					 0,
-					-1,
-					 1,
-					projection_matrix);
-				matrix_make_identity(view_matrix);
+			//	matrix_make_orthographic_projection(
+			//		 0,
+			//		(float)cx_app.primary_framebuffer_texture_color.width_,
+			//		(float)cx_app.primary_framebuffer_texture_color.height_,
+			//		 0,
+			//		-1,
+			//		 1,
+			//		projection_matrix);
+			//	matrix_make_identity(view_matrix);
 
-				cx_console_view_draw(cx_console_get(),
-					&font_render_data,
-					&cx_app.primary_framebuffer,
-					cx_app.primary_framebuffer_texture_color.width_,
-					cx_app.primary_framebuffer_texture_color.height_,
-					projection_matrix, view_matrix);
-			}
+			//	cx_console_view_draw(cx_console_get(),
+			//		&font_render_data,
+			//		&cx_app.primary_framebuffer,
+			//		cx_app.primary_framebuffer_texture_color.width_,
+			//		cx_app.primary_framebuffer_texture_color.height_,
+			//		projection_matrix, view_matrix);
+			//}
 
 			// SCREEN QUAD
 			{
@@ -283,8 +282,6 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 
 void cx_app_shutdown(cx_app_shutdown_callback_fn f_shutdown) {
 	f_shutdown();
-
-	cx_asset_package_free(&cx_app.core_asset_package);
 
 	CX_LOG(INFO, DONTCARE, "Exiting\n");
 }
