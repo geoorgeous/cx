@@ -1,13 +1,13 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "cx_asset.h"
+#include "cx_asset_types.h"
 
 #define CX_ASSET_TYPE_MATERIAL 3
 
 struct material {
-	cx_asset_handle p_texture;
-	float        color[4];
+	struct cx_asset_ref texture_asset_ref;
+	float color[4];
 };
 
 struct cx_stream;

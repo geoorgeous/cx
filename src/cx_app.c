@@ -1,8 +1,7 @@
 #include <stdint.h>
-#include <stdlib.h>
 
 #include "cx_app.h"
-#include "cx_asset_types.h"
+#include "cx_asset_cache.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_collider.h"
 #include "cx_cmp_rigidbody.h"
@@ -11,7 +10,6 @@
 #include "cx_component.h"
 #include "cx_console.h"
 #include "cx_console_view.h"
-#include "cx_ed_import_bdf.h"
 #include "cx_error.h"
 #include "cx_font.h"
 #include "cx_gfx_context.h"
@@ -24,14 +22,12 @@
 #include "cx_platform_time.h"
 #include "cx_text_mesher.h"
 #include "cx_texture.h"
-#include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
 #include "gl.h"
 #include "input.h"
 #include "keys.h"
 #include "material.h"
-#include "matrix.h"
 #include "mouse_buttons.h"
 #include "platform_window.h"
 #include "static_mesh.h"
@@ -47,10 +43,10 @@ static struct {
 	struct cx_gfx_program screen_quad_program;
 	struct cx_gfx_program_opaque_param screen_quad_program_opaque_param_texture;
 
-	cx_asset_handle console_font;
-	struct cx_texture_atlas_layout console_font_glyph_atlas_layout;
-	struct cx_texture_atlas_entry console_font_glyph_atlas_layout_entries[CX_FONT_NUM_GLYPHS];
-	struct cx_gfx_texture console_font_glyph_atlas_texture;
+	//cx_asset_handle console_font;
+	//struct cx_texture_atlas_layout console_font_glyph_atlas_layout;
+	//struct cx_texture_atlas_entry console_font_glyph_atlas_layout_entries[CX_FONT_NUM_GLYPHS];
+	//struct cx_gfx_texture console_font_glyph_atlas_texture;
 } cx_app;
 
 static void platform_window_on_created(struct platform_window*, void*);
@@ -74,7 +70,7 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 		0,
 		&cx_app.window);
 
-	CX_NEW_COMMAND("quit", "Close application", console_command_quit, &cx_app.window, CX_COMMAND_NO_PARAMS);
+	CX_NEW_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_COMMAND_NO_PARAMS);
 	CX_NEW_COMMAND_ALIAS("q", "quit");
 
 	if (err != CX_ERROR_none) {
@@ -171,7 +167,7 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 
 	//struct cx_font* p_font = cx_app.p_console_font->asset_.p_data_;
 
-	cx_app.console_font_glyph_atlas_layout.p_entries = cx_app.console_font_glyph_atlas_layout_entries;
+	//cx_app.console_font_glyph_atlas_layout.p_entries = cx_app.console_font_glyph_atlas_layout_entries;
 
 	//struct cx_image font_atlas_image;
 	//cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
@@ -283,6 +279,8 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 void cx_app_shutdown(cx_app_shutdown_callback_fn f_shutdown) {
 	f_shutdown();
 
+	cx_asset_cache_free();
+
 	CX_LOG(INFO, DONTCARE, "Exiting\n");
 }
 
@@ -393,6 +391,7 @@ void on_key(const void* p_e, void* p_user_ptr) {
 
 int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	(void)p_args;
-	platform_window_destroy(p_context->p_command->p_user_ptr);
+	(void)p_context;
+	platform_window_destroy(&cx_app.window);
 	return 0;
 }

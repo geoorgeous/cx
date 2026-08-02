@@ -16,8 +16,9 @@ typedef uint8_t cx_asset_type;
 
 typedef uint32_t cx_asset_id;
 
-struct cx_asset_store_record;
-
-typedef struct cx_asset_store_record* cx_asset_handle;
+struct cx_asset_ref {
+	cx_asset_id asset_id;
+	void** pp_asset;
+};
 
 #endif

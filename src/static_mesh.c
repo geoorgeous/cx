@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "cx_alloc.h"
 #include "cx_gfx_mesh.h"
 #include "cx_mesh_data.h"
 #include "cx_stream_serialization.h"
@@ -17,14 +18,14 @@ void static_mesh_free(struct static_mesh* p_static_mesh) {
 	}
 
 	free(p_static_mesh->p_primitives);
-	free(p_static_mesh->p_materials);
+	free(p_static_mesh->p_primitives_material_asset_refs);
 
 	static_mesh_unload_device_meshes(p_static_mesh);
 	*p_static_mesh = (struct static_mesh){0};
 }
 
 void static_mesh_load_device_meshes(struct static_mesh* p_static_mesh) {
-	p_static_mesh->p_gfx_meshes = malloc(sizeof(*p_static_mesh->p_gfx_meshes) * p_static_mesh->num_primitives);
+	p_static_mesh->p_gfx_meshes = CX_MALLOC(sizeof(*p_static_mesh->p_gfx_meshes) * p_static_mesh->num_primitives);
 
 	for (size_t i = 0; i < p_static_mesh->num_primitives; ++i) {
 		const struct cx_mesh_data* p_primitive = &p_static_mesh->p_primitives[i];
@@ -69,7 +70,7 @@ int static_mesh_serialize(const struct static_mesh* p_static_mesh, struct cx_str
 		cx_stream_serialize_bytes(p_stream, sizeof(p_mesh_data->bounds_min), p_mesh_data->bounds_min);
 		cx_stream_serialize_bytes(p_stream, sizeof(p_mesh_data->bounds_max), p_mesh_data->bounds_max);
 
-		cx_asset_handle_serialize(p_static_mesh->p_materials[i], p_stream);
+		cx_asset_ref_serialize(&p_static_mesh->p_primitives_material_asset_refs[i], p_stream);
 
 		for (uint16_t j = 0; j < p_mesh_data->layout.num_vertex_buffers; ++j) {
 			const struct cx_mesh_vertex_buffer* p_vertex_buffer = &p_mesh_data->p_vertex_buffers[j];
@@ -123,7 +124,7 @@ int static_mesh_deserialize(struct cx_stream* p_stream, struct static_mesh* p_ou
 		cx_stream_deserialize_bytes(p_stream, sizeof(p_mesh_data->bounds_min), p_mesh_data->bounds_min);
 		cx_stream_deserialize_bytes(p_stream, sizeof(p_mesh_data->bounds_max), p_mesh_data->bounds_max);
 
-		cx_asset_handle_deserialize(p_stream, &p_out_static_mesh->p_materials[i]);
+		cx_asset_ref_deserialize(p_stream, &p_out_static_mesh->p_primitives_material_asset_refs[i]);
 
 		for (uint16_t j = 0; j < p_mesh_data->layout.num_vertex_buffers; ++j) {
 			struct cx_mesh_vertex_buffer* p_vertex_buffer = &p_mesh_data->p_vertex_buffers[j];

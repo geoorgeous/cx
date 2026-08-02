@@ -1,13 +1,9 @@
-#include "cx_asset.h"
-#include "cx_asset_package_registry.h"
+#include "cx_asset_cache.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_static_mesh.h"
-#include "cx_ed_import_gltf.h"
 #include "cx_ed_transform_gizmo.h"
 #include "cx_gfx_mesh.h"
-#include "cx_logging.h"
 #include "cx_object_id_capturer.h"
-#include "cx_str.h"
 #include "input.h"
 #include "matrix.h"
 #include "mouse_buttons.h"
@@ -147,43 +143,41 @@ static void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-void cx_transform_gizmo_init_shared_resources(struct cx_asset_package* p_package) {
-	struct cx_asset_package_record* p_gltf_scene_blueprint_asset;
-	struct cx_blueprint* p_blueprint;
+void cx_transform_gizmo_init_shared_resources(void) {
+	//cx_asset_handle handle;
+	//struct cx_blueprint* p_blueprint;
 
-	
+	//cx_asset_package_registry_find_asset(0, &handle);
+	//p_blueprint = cx_asset_get(handle);
 
-	cx_ed_import_gltf_file(p_package, "res/builtin/gizmo_translate.glb", &p_gltf_scene_blueprint_asset);
-	p_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 5, &shared_resources.t_meshes[0]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 6, &shared_resources.t_meshes[1]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 4, &shared_resources.t_meshes[2]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 2, &shared_resources.t_meshes[3]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 3, &shared_resources.t_meshes[4]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.t_meshes[5]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 1, &shared_resources.t_meshes[6]);
 
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 5, &shared_resources.t_meshes[0]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 6, &shared_resources.t_meshes[1]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 4, &shared_resources.t_meshes[2]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 2, &shared_resources.t_meshes[3]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 3, &shared_resources.t_meshes[4]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.t_meshes[5]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 1, &shared_resources.t_meshes[6]);
+	//cx_asset_package_registry_find_asset(0, &handle);
+	//p_blueprint = cx_asset_get(handle);
 
-	cx_ed_import_gltf_file(p_package, "res/builtin/gizmo_rotate.glb", &p_gltf_scene_blueprint_asset);
-	p_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 1, &shared_resources.r_meshes[0]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 2, &shared_resources.r_meshes[1]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.r_meshes[2]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 3, &shared_resources.r_meshes[3]);
 
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 1, &shared_resources.r_meshes[0]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 2, &shared_resources.r_meshes[1]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.r_meshes[2]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 3, &shared_resources.r_meshes[3]);
+	//cx_asset_package_registry_find_asset(0, &handle);
+	//p_blueprint = cx_asset_get(handle);
 
-	cx_ed_import_gltf_file(p_package, "res/builtin/gizmo_scale.glb", &p_gltf_scene_blueprint_asset);
-	p_blueprint = p_gltf_scene_blueprint_asset->asset_.p_data_;
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 3, &shared_resources.s_meshes[0]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 4, &shared_resources.s_meshes[1]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 2, &shared_resources.s_meshes[2]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 1, &shared_resources.s_meshes[3]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 5, &shared_resources.s_meshes[4]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 6, &shared_resources.s_meshes[5]);
+	//cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.s_meshes[6]);
 
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 3, &shared_resources.s_meshes[0]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 4, &shared_resources.s_meshes[1]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 2, &shared_resources.s_meshes[2]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 1, &shared_resources.s_meshes[3]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 5, &shared_resources.s_meshes[4]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 6, &shared_resources.s_meshes[5]);
-	cx_transform_gizmo_init_shared_resource(p_blueprint, 0, &shared_resources.s_meshes[6]);
-
-	vec_copy(4, CX_TRANSFORM_GIZMO_CONTROL_COLOR_HOVER, shared_resources.material_hovered.color_ka);
+	//vec_copy(4, CX_TRANSFORM_GIZMO_CONTROL_COLOR_HOVER, shared_resources.material_hovered.color_ka);
 }
 
 static inline void cx_transform_gizmo_init_control(
@@ -386,7 +380,7 @@ void cx_transform_gizmo_init_shared_resource(
 	struct cx_cmp_static_mesh* p_cmp_static_mesh =
 		cx_blueprint_node_find_component(p_blueprint, p_blueprint->p_nodes[bp_node_index].id, &cmp_type_static_mesh);
 
-	struct static_mesh* p_static_mesh = p_cmp_static_mesh->p_asset_package_record->asset_.p_data_;
+	struct static_mesh* p_static_mesh = cx_asset_cache_acquire(&p_cmp_static_mesh->asset_ref);
 	static_mesh_load_device_meshes(p_static_mesh);
 
 	*pp_out_mesh = &p_static_mesh->p_gfx_meshes[0];

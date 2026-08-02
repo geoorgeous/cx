@@ -31,5 +31,6 @@ int cx_stream_deserialize_int64(struct cx_stream* p_stream, int64_t* p_out);
 int cx_stream_deserialize_float32(struct cx_stream* p_stream, float* p_out);
 int cx_stream_deserialize_float64(struct cx_stream* p_stream, double* p_out);
 int cx_stream_deserialize_string(struct cx_stream* p_stream, char* p_out_str, size_t* p_out_len);
+int cx_stream_deserialize_cstring(struct cx_stream* p_stream, char* p_out_cstr, size_t* p_out_len);
 
 #endif

@@ -19,11 +19,6 @@ struct cx_asset_package_record {
 	uint32_t file_location_;
 };
 
-static struct asset_directory {
-	const struct cx_asset_package** pp_packages;
-	size_t n_packages;
-} directory;
-
 struct cx_stream;
 
 void cx_asset_package_free(struct cx_asset_package* p_package);
@@ -32,11 +27,11 @@ int cx_asset_package_deserialize_records(struct cx_asset_package* p_package, str
 
 void cx_asset_package_load_records_from_file(struct cx_asset_package* p_package, const char* s_filename);
 
-int cx_asset_package_serialize(const struct cx_asset_package* p_package, struct cx_stream* p_stream);
-
 int cx_asset_package_find_record(
 	const struct cx_asset_package* p_package,
 	cx_asset_id id,
-	struct cx_asset_package_record** pp_out);
+	const struct cx_asset_package_record** pp_out);
+
+int cx_asset_package_deserialize_asset(const struct cx_asset_package* p_package, cx_asset_id id, void* p_out);
 
 #endif

@@ -59,7 +59,7 @@ struct cx_transform_gizmo_interaction_result {
 
 struct cx_asset_package;
 
-void cx_transform_gizmo_init_shared_resources(struct cx_asset_package* p_package);
+void cx_transform_gizmo_init_shared_resources(void);
 
 void cx_transform_gizmo_init_controls(struct cx_transform_gizmo* p_gizmo);
 

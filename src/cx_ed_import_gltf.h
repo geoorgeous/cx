@@ -7,11 +7,7 @@
 
 struct gltf;
 
-int cx_ed_import_gltf(
-	const struct gltf* p_gltf,
-	cx_asset_handle* p_out_handle);
-int cx_ed_import_gltf_file(
-	const char* s_filepath,
-	cx_asset_handle* p_out_handle);
+int cx_ed_import_gltf(const struct gltf* p_gltf, struct cx_asset_ref* p_out);
+int cx_ed_import_gltf_file(const char* s_filepath, struct cx_asset_ref* p_out);
 
 #endif

@@ -3,14 +3,14 @@
 
 #include <stdint.h>
 
-#include "cx_asset.h"
+#include "cx_array.h"
+#include "cx_asset_types.h"
 
 struct cx_rt_manifest {
 	char title_buf[64];
 	uint32_t window_size[2];
-	struct cx_asset_package* p_asset_packages;
-	uint16_t num_asset_packages;
-	cx_asset_handle p_start_world_blueprint;
+	struct cx_array asset_packages;
+	struct cx_asset_ref start_world_blueprint_ref;
 };
 
 struct cx_stream;

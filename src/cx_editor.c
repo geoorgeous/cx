@@ -1,7 +1,10 @@
+#include <stdio.h>
+
 #include "cx_app.h"
+#include "cx_asset_cache.h"
 #include "cx_asset_package.h"
-#include "cx_asset_package_registry.h"
 #include "cx_ed.h"
+#include "cx_ed_asset_library.h"
 #include "cx_ed_asset_package_builder.h"
 #include "cx_ed_import_bdf.h"
 #include "cx_ed_import_gltf.h"
@@ -15,11 +18,29 @@ static void cx_editor_shutdown(void);
 
 static void cx_editor_rebuild_built_in_assets_package(void);
 
+static int cx_asset_source_deserialize_library_asset(cx_asset_id id, void* p_context, void* p_out) {
+	(void)p_context;
+	return cx_ed_asset_library_deserialize_asset(id, p_out);
+}
+
+static int cx_asset_source_deserialize_package_asset(cx_asset_id id, void* p_context, void* p_out) {
+	const struct cx_asset_package* p_package = p_context;
+	return cx_asset_package_deserialize_asset(p_package, id, p_out);
+}
+
 int cx_editor_init(void) {
+	cx_asset_cache_push_source(&(struct cx_asset_source) {
+		.f_try_deserialize_asset = cx_asset_source_deserialize_library_asset
+	});
+
 	cx_asset_package_load_records_from_file(&built_in_assets_pkg, "res/builtin.cxpkg");
-	cx_asset_package_registry_mount(&built_in_assets_pkg);
+	cx_asset_cache_push_source(&(struct cx_asset_source) {
+		.p_context = &built_in_assets_pkg,
+		.f_try_deserialize_asset = cx_asset_source_deserialize_package_asset
+	});
 
 	cx_ed_init(cx_app_primary_window());
+
 	return 0;
 }
 
@@ -33,26 +54,41 @@ void cx_editor_draw(const struct cx_gfx_framebuffer* p_frambuffer) {
 
 void cx_editor_shutdown(void) {
 	cx_ed_shutdown();
+	cx_ed_asset_library_free();
 }
 
 void cx_editor_rebuild_built_in_assets_package(void) {
-	struct cx_asset_package package;
+	struct cx_ed_asset_package_builder package_builder = {0};
 
-	cx_asset_handle handle;
+	struct cx_asset_ref asset_ref;
 
-	cx_ed_import_gltf_file("res/builtin/gizmo_translate.glb", &handle);
-	cx_ed_asset_package_builder_add_asset(&package, handle);
+	FILE* p_file = fopen("src/cx_ed_builtin_asset_ids.h", "w");
 
-	cx_ed_import_gltf_file("res/builtin/gizmo_rotate.glb", &handle);
-	cx_ed_asset_package_builder_add_asset(&package, handle);
+	fputs("#ifndef CX_ED_BUILTIN_ASSET_IDS_H\n", p_file);
+	fputs("#define CX_ED_BUILTIN_ASSET_IDS_H\n\n", p_file);
+	fputs("/* Generated file. Do not edit. */\n\n", p_file);
 
-	cx_ed_import_gltf_file("res/builtin/gizmo_scale.glb", &handle);
-	cx_ed_asset_package_builder_add_asset(&package, handle);
+	cx_ed_import_bdf_file("res/builtin/font_dbg_8x14.bdf", &asset_ref);
+	cx_ed_asset_package_builder_add_asset(&package_builder, &asset_ref);
+	fprintf(p_file, "#define CX_ED_BUILTIN_ASSET_ID_GIZMO_FONT_DEFAULT %u\n", asset_ref.asset_id);
 
-	cx_ed_import_bdf_file("res/builtin/font_dbg_8x14.bdf", &handle);
-	cx_ed_asset_package_builder_add_asset(&package, handle);
+	cx_ed_import_gltf_file("res/builtin/gizmo_translate.glb", &asset_ref);
+	cx_ed_asset_package_builder_add_asset(&package_builder, &asset_ref);
+	fprintf(p_file, "#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_TRANSLATE %u\n", asset_ref.asset_id);
 
-	cx_ed_asset_package_builder_export(&package, "res/builtin.cxpkg");
+	cx_ed_import_gltf_file("res/builtin/gizmo_scale.glb", &asset_ref);
+	cx_ed_asset_package_builder_add_asset(&package_builder, &asset_ref);
+	fprintf(p_file, "#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_SCALE %u\n", asset_ref.asset_id);
+
+	cx_ed_import_bdf_file("res/builtin/font_dbg_8x14.bdf", &asset_ref);
+	cx_ed_asset_package_builder_add_asset(&package_builder, &asset_ref);
+	fprintf(p_file, "#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_ROTATE %u\n", asset_ref.asset_id);
+
+	fputs("\n#endif", p_file);
+
+	cx_ed_asset_package_builder_export(&package_builder, "res/builtin.cxpkg");
+
+	cx_ed_asset_package_builder_free(&package_builder);
 }
 
 int main(int argc, const char** argv) {

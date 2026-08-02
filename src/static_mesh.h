@@ -13,7 +13,7 @@ struct cx_mesh_data;
 struct static_mesh {
 	struct cx_mesh_data* p_primitives;
 	uint16_t num_primitives;
-	cx_asset_handle* p_materials;
+	struct cx_asset_ref* p_primitives_material_asset_refs;
 	struct cx_gfx_mesh* p_gfx_meshes;
 	int b_loaded_device_meshes;
 };

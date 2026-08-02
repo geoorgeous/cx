@@ -1,9 +1,10 @@
-#include <stdlib.h>
 #include <string.h>
 
+#include "cx_alloc.h"
+#include "cx_array.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_static_mesh.h"
-#include "cx_ed_asset_database.h"
+#include "cx_ed_asset_library.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_import_image.h"
 #include "cx_image.h"
@@ -21,15 +22,11 @@
 
 struct cx_ed_import_gltf_context {
 	const struct gltf* p_gltf;
-	cx_asset_handle image_assets[256];
-	cx_asset_handle texture_assets[256];
-	cx_asset_handle material_assets[256];
-	cx_asset_handle p_static_meshes[256];
-	cx_asset_handle p_out_blueprint;
-	size_t num_images;
-	size_t num_textures;
-	size_t num_materials;
-	size_t num_static_meshes;
+	struct cx_array image_assets;
+	struct cx_array texture_assets;
+	struct cx_array material_assets;
+	struct cx_array static_mesh_assets;
+	struct cx_asset_ref asset_ref;
 };
 
 static void cx_ed_import_gltf_image(struct cx_ed_import_gltf_context* p_context, size_t gltf_image_index);
@@ -81,14 +78,16 @@ static enum cx_texture_address_mode gltf_enum_to_texture_address_mode(enum gltf_
 static enum cx_mesh_vertex_index_type gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type type);
 static enum cx_mesh_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode mode);
 
-int cx_ed_import_gltf(
-	const struct gltf* p_gltf,
-	cx_asset_handle* p_out_handle) {
-
+int cx_ed_import_gltf(const struct gltf* p_gltf, struct cx_asset_ref* p_out) {
 	struct cx_ed_import_gltf_context context = {
-		.p_gltf = p_gltf,
+		.p_gltf = p_gltf
 	};
-	
+
+	cx_array_init(sizeof(struct cx_asset_ref), &context.image_assets);
+	cx_array_init(sizeof(struct cx_asset_ref), &context.texture_assets);
+	cx_array_init(sizeof(struct cx_asset_ref), &context.material_assets);
+	cx_array_init(sizeof(struct cx_asset_ref), &context.static_mesh_assets);
+
 	for (size_t i = 0; i < p_gltf->num_images; ++i) {
 		cx_ed_import_gltf_image(&context, i);
 	}
@@ -118,21 +117,19 @@ int cx_ed_import_gltf(
 		cx_ed_import_gltf_scene(&context, i);
 	}
 
-	*p_out_handle = context.p_out_blueprint;
+	*p_out = context.asset_ref;
 
-	return 1;
+	return CX_TRUE;
 }
 
-int cx_ed_import_gltf_file(
-	const char* s_filepath,
-	cx_asset_handle* p_out_handle) {
+int cx_ed_import_gltf_file(const char* s_filepath, struct cx_asset_ref* p_out) {
 
 	struct gltf gltf;
 	if (gltf_load_from_file(s_filepath, &gltf) != GLTF_SUCCESS) {
 		return 0;
 	}
 
-	const int result = cx_ed_import_gltf(&gltf, p_out_handle);
+	const int result = cx_ed_import_gltf(&gltf, p_out);
 
 	gltf_free(&gltf);
 
@@ -156,22 +153,22 @@ void cx_ed_import_gltf_image(struct cx_ed_import_gltf_context* p_context, size_t
 		size = p_gltf_buffer_view->byte_length;
 	}
 
-	cx_asset_handle image_asset;
-	cx_ed_import_image(p_bytes, size, &image_asset);
+	struct cx_asset_ref image_asset_ref;
+	cx_ed_import_image(p_bytes, size, &image_asset_ref);
 
-	p_context->image_assets[p_context->num_images] = image_asset;
-	p_context->num_images++;
+	(void)cx_array_push(&p_context->image_assets, &image_asset_ref);
 }
 
 void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size_t gltf_texture_index) {
 	const struct gltf_texture* p_gltf_texture = &p_context->p_gltf->p_textures[gltf_texture_index];
 
-	struct cx_texture* p_texture = malloc(sizeof(struct cx_texture));
+	struct cx_texture* p_texture = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_TEXTURE));
 
-	cx_asset_handle source_image_asset = p_context->image_assets[p_gltf_texture->source_image_index];
+	const struct cx_asset_ref* p_source_image_asset_ref =
+		cx_array_at(&p_context->image_assets, p_gltf_texture->source_image_index);
 
 	*p_texture = (struct cx_texture){
-		.source_image_asset = source_image_asset,
+		.source_image_asset_ref = *p_source_image_asset_ref,
 		.sampler_settings = {
 			.mag_filter_mode = gltf_enum_to_texture_filter_mag(p_gltf_texture->sampler_mag_filter),
 			.min_filter_mode = gltf_enum_to_texture_filter_min(p_gltf_texture->sampler_min_filter),
@@ -179,53 +176,57 @@ void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size
 			.address_mode_v = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_t)
 		},
 		.gfx_texture_format =
-			((const struct cx_image*)cx_asset_get(source_image_asset))->pixel_data_format.pixel_format
+			((const struct cx_image*)cx_asset_ref_get(p_source_image_asset_ref))->pixel_data_format.pixel_format
 	};
 
-	cx_asset_handle texture_asset;
-	cx_ed_asset_database_new(CX_ASSET_TYPE_TEXTURE, p_texture, &texture_asset);
+	struct cx_asset_ref texture_asset_ref;
+	cx_ed_asset_library_new(CX_ASSET_TYPE_TEXTURE, p_texture, &texture_asset_ref);
 
-	p_context->texture_assets[p_context->num_textures] = texture_asset;
-	p_context->num_textures++;
+	(void)cx_array_push(&p_context->texture_assets, &texture_asset_ref);
 }
 
 void cx_ed_import_gltf_material(struct cx_ed_import_gltf_context* p_context, size_t gltf_material_index) {
 	const struct gltf_material* p_gltf_material = &p_context->p_gltf->p_materials[gltf_material_index];
 
-	struct material* p_material = malloc(sizeof(struct material));
+	struct material* p_material = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_MATERIAL));
+
+	const struct cx_asset_ref* p_material_texture_asset_ref = 
+		cx_array_at(&p_context->texture_assets, p_gltf_material->pbr_base_color_texture.source_texture_index);
 
 	*p_material = (struct material) {
-		.p_texture = p_context->texture_assets[p_gltf_material->pbr_base_color_texture.source_texture_index],
+		.texture_asset_ref = *p_material_texture_asset_ref,
 		.color = { 1, 1, 1, 1 }
 	};
 	
-	cx_asset_handle material_asset;
-	cx_ed_asset_database_new(CX_ASSET_TYPE_MATERIAL, p_material, &material_asset);
+	struct cx_asset_ref material_asset_ref;
+	cx_ed_asset_library_new(CX_ASSET_TYPE_MATERIAL, p_material, &material_asset_ref);
 
-	p_context->material_assets[p_context->num_materials] = material_asset;
-	p_context->num_materials++;
+	(void)cx_array_push(&p_context->material_assets, &material_asset_ref);
 }
 
 void cx_ed_import_gltf_mesh(struct cx_ed_import_gltf_context* p_context, size_t gltf_mesh_index) {
 	const struct gltf_mesh* p_gltf_mesh = &p_context->p_gltf->p_meshes[gltf_mesh_index];
 
-	struct static_mesh* p_static_mesh = malloc(sizeof(struct static_mesh));
+	struct static_mesh* p_static_mesh = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_STATIC_MESH));
+	struct cx_mesh_data* p_static_mesh_primitives =
+		CX_MALLOC(p_gltf_mesh->num_primitives * sizeof(*p_static_mesh->p_primitives));
+	struct cx_asset_ref* p_static_mesh_primitive_materials =
+		CX_MALLOC(p_gltf_mesh->num_primitives * sizeof(*p_static_mesh->p_primitives_material_asset_refs));
 
 	*p_static_mesh = (struct static_mesh) {
-		.num_primitives = p_gltf_mesh->num_primitives,
-		.p_primitives = calloc(p_gltf_mesh->num_primitives, sizeof(*p_static_mesh->p_primitives)),
-		.p_materials = calloc(p_gltf_mesh->num_primitives, sizeof(*p_static_mesh->p_materials)),
+		.num_primitives = (uint16_t)p_gltf_mesh->num_primitives,
+		.p_primitives = p_static_mesh_primitives,
+		.p_primitives_material_asset_refs = p_static_mesh_primitive_materials
 	};
 	
 	for (size_t i = 0; i < p_gltf_mesh->num_primitives; ++i) {
 		cx_ed_import_gltf_mesh_primitive(p_context, p_static_mesh, gltf_mesh_index, i);
 	}
-	
-	cx_asset_handle static_mesh_asset;
-	cx_ed_asset_database_new(CX_ASSET_TYPE_STATIC_MESH, p_static_mesh, &static_mesh_asset);
 
-	p_context->p_static_meshes[p_context->num_static_meshes] = static_mesh_asset;
-	p_context->num_static_meshes++;
+	struct cx_asset_ref static_mesh_asset_ref;
+	cx_ed_asset_library_new(CX_ASSET_TYPE_STATIC_MESH, p_static_mesh, &static_mesh_asset_ref);
+
+	(void)cx_array_push(&p_context->static_mesh_assets, &static_mesh_asset_ref);
 }
 
 void cx_ed_import_gltf_mesh_primitive(
@@ -266,7 +267,7 @@ void cx_ed_import_gltf_mesh_primitive(
 	
 	const struct gltf_accessor* p_attribute_gltf_accessors[8] = {0};
 	struct cx_mesh_vertex_attribute attributes[8] = {0};
-	size_t num_attributes = 0;
+	uint16_t num_attributes = 0;
 
 	size_t offset = 0;
 
@@ -375,7 +376,7 @@ void cx_ed_import_gltf_mesh_primitive(
 	// Allocate vertex buffer storage
 
 	struct cx_mesh_vertex_buffer buffers[8] = {0};
-	size_t num_buffers = 0;
+	uint16_t num_buffers = 0;
 
 	for (size_t i = 0; i < num_attributes; ++i) {
 		if (num_buffers <= attributes[i].vertex_buffer_index) {
@@ -387,7 +388,7 @@ void cx_ed_import_gltf_mesh_primitive(
 	}
 
 	for (size_t i = 0; i < num_buffers; ++i) {
-		buffers[i].p_bytes = malloc(buffers[i].size);
+		buffers[i].p_bytes = CX_MALLOC(buffers[i].size);
 	}
 
 	// Copy over vertex buffer data
@@ -412,7 +413,7 @@ void cx_ed_import_gltf_mesh_primitive(
 		
 		p_mesh_data->layout.index_type = gltf_enum_to_vertex_index_type(p_gltf_indices_accessor->component_type);
 		p_mesh_data->index_buffer.count = p_gltf_indices_accessor->count;
-		p_mesh_data->index_buffer.p_bytes = malloc(p_mesh_data->index_buffer.count * element_size);
+		p_mesh_data->index_buffer.p_bytes = CX_MALLOC(p_mesh_data->index_buffer.count * element_size);
 
 		cx_ed_import_gltf_copy_accessor(
 			p_context->p_gltf,
@@ -422,7 +423,9 @@ void cx_ed_import_gltf_mesh_primitive(
 	}
 
 	if (p_gltf_mesh_primitive->material_index != GLTF_INVALID_INDEX) {
-		p_mesh->p_materials[mesh_primitive_index] = p_context->material_assets[p_gltf_mesh_primitive->material_index];
+		const struct cx_asset_ref* p_material_asset_ref = 
+			cx_array_at(&p_context->material_assets, p_gltf_mesh_primitive->material_index);
+		p_mesh->p_primitives_material_asset_refs[mesh_primitive_index] = *p_material_asset_ref;
 	}
 
 	p_mesh_data->layout.draw_mode = gltf_enum_to_mesh_primitive_draw_mode(p_gltf_mesh_primitive->mode);
@@ -430,13 +433,13 @@ void cx_ed_import_gltf_mesh_primitive(
 	p_mesh_data->layout.num_vertex_buffers = num_buffers;
 	const size_t vertex_buffers_size =
 		p_mesh_data->layout.num_vertex_buffers * sizeof(*p_mesh_data->p_vertex_buffers);
-	p_mesh_data->p_vertex_buffers = malloc(vertex_buffers_size);
+	p_mesh_data->p_vertex_buffers = CX_MALLOC(vertex_buffers_size);
 	memcpy(p_mesh_data->p_vertex_buffers, buffers, vertex_buffers_size);
 
 	p_mesh_data->layout.num_attributes = num_attributes;
 	const size_t attributes_size =
 		p_mesh_data->layout.num_attributes * sizeof(*p_mesh_data->layout.p_attributes);
-	p_mesh_data->layout.p_attributes = malloc(attributes_size);
+	p_mesh_data->layout.p_attributes = CX_MALLOC(attributes_size);
 	memcpy(p_mesh_data->layout.p_attributes, attributes, attributes_size);
 	
 	// Post-processing
@@ -452,12 +455,12 @@ void cx_ed_import_gltf_mesh_primitive(
 void cx_ed_import_gltf_skin(struct cx_ed_import_gltf_context* p_context, size_t gltf_skin_index) {
 	const struct gltf_skin* p_gltf_skin = &p_context->p_gltf->p_skins[gltf_skin_index];
 	
-	struct skeleton* p_skeleton = malloc(sizeof(struct skeleton));
+	struct skeleton* p_skeleton = CX_MALLOC(sizeof(struct skeleton));
 
 	*p_skeleton = (struct skeleton) {
 		.num_joints = p_gltf_skin->num_joints,
-		.p_joints = calloc(p_gltf_skin->num_joints, sizeof(*p_skeleton->p_joints)),
-		.p_inverse_bind_matrices = calloc(p_gltf_skin->num_joints, sizeof(float) * 16)
+		.p_joints = CX_CALLOC(p_gltf_skin->num_joints * sizeof(*p_skeleton->p_joints)),
+		.p_inverse_bind_matrices = CX_CALLOC(p_gltf_skin->num_joints * sizeof(float) * 16)
 	};
 	
 	if (p_gltf_skin->inverse_bind_matrices_accessor_index == GLTF_INVALID_INDEX) {
@@ -489,7 +492,7 @@ void cx_ed_import_gltf_skin(struct cx_ed_import_gltf_context* p_context, size_t 
 		struct skeleton_joint* p_joint = &p_skeleton->p_joints[i];
 		if (p_joint->parent_index == SIZE_MAX) {
 			++p_skeleton->num_root_joints;
-			p_skeleton->p_root_joints_indices = realloc(
+			p_skeleton->p_root_joints_indices = CX_REALLOC(
 				p_skeleton->p_root_joints_indices,
 				p_skeleton->num_root_joints * sizeof(*p_skeleton->p_root_joints_indices));
 			p_skeleton->p_root_joints_indices[p_skeleton->num_root_joints - 1] = i;
@@ -554,7 +557,7 @@ void cx_ed_import_gltf_animation(struct cx_ed_import_gltf_context* p_context, si
 		}
 
 		transform_animation.sampler.p_keyframe_timestamps =
-			malloc(
+			CX_MALLOC(
 				cx_ed_import_gltf_compute_accessor_element_size(p_gltf_sampler_input_accessor)
 				* transform_animation.sampler.num_keyframes);
 
@@ -565,7 +568,7 @@ void cx_ed_import_gltf_animation(struct cx_ed_import_gltf_context* p_context, si
 			0);
 
 		transform_animation.sampler.p_keyframe_values =
-			malloc(
+			CX_MALLOC(
 				cx_ed_import_gltf_compute_accessor_element_size(p_gltf_sampler_output_accessor)
 				* transform_animation.sampler.num_keyframes);
 
@@ -609,7 +612,7 @@ void cx_ed_import_gltf_animation(struct cx_ed_import_gltf_context* p_context, si
 void cx_ed_import_gltf_scene(struct cx_ed_import_gltf_context* p_context, size_t gltf_scene_index) {
 	const struct gltf_scene* p_gltf_scene = &p_context->p_gltf->p_scenes[gltf_scene_index];
 	
-	struct cx_blueprint* p_blueprint = malloc(sizeof(struct cx_blueprint));
+	struct cx_blueprint* p_blueprint = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_BLUEPRINT));
 	*p_blueprint = (struct cx_blueprint) {0};
 
 	for (size_t i = 0; i < p_gltf_scene->num_root_nodes; ++i) {
@@ -617,10 +620,7 @@ void cx_ed_import_gltf_scene(struct cx_ed_import_gltf_context* p_context, size_t
 		cx_ed_import_gltf_process_scene_node(p_context, p_gltf_root_node, p_blueprint);
 	}
 
-	cx_asset_handle blueprint_asset;
-	cx_ed_asset_database_new(CX_ASSET_TYPE_BLUEPRINT, p_blueprint, &blueprint_asset);
-
-	p_context->p_out_blueprint = blueprint_asset;
+	cx_ed_asset_library_new(CX_ASSET_TYPE_BLUEPRINT, p_blueprint, &p_context->asset_ref);
 }
 
 const struct gltf_accessor* cx_ed_import_gltf_get_mesh_primitive_vertex_attribute_accessor(
@@ -653,7 +653,7 @@ void cx_ed_import_gltf_discover_joint_hierarchy(
 	// This may break in instances where we have non-joint nodes attached to joint nodes
 
 	p_joint->num_children = p_gltf_joint_node->num_children;
-	p_joint->p_children_indices = calloc(p_joint->num_children, sizeof(*p_joint->p_children_indices));
+	p_joint->p_children_indices = CX_CALLOC(p_joint->num_children * sizeof(*p_joint->p_children_indices));
 
 	for (size_t i = 0; i < p_joint->num_children; ++i) {
 		size_t translated_gltf_child_joint_node_index = SIZE_MAX;
@@ -686,7 +686,8 @@ uint16_t cx_ed_import_gltf_process_scene_node(
 	struct cx_cmp_static_mesh* p_static_mesh_component =
 		cx_blueprint_node_add_component(p_blueprint, new_node_id, &cmp_type_static_mesh);
 
-	p_static_mesh_component->handle = p_context->p_static_meshes[p_gltf_node->mesh_index];
+	const struct cx_asset_ref* p_static_mesh_asset_ref = cx_array_at(&p_context->static_mesh_assets, p_gltf_node->mesh_index);
+	p_static_mesh_component->asset_ref = *p_static_mesh_asset_ref;
 
 	struct transform* p_node_transform = cx_blueprint_node_get_transform(p_blueprint, new_node_id);
 

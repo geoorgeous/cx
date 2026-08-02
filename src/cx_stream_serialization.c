@@ -110,3 +110,11 @@ int cx_stream_deserialize_string(struct cx_stream* p_stream, char* p_out_str, si
 	}
 	return CX_FALSE;
 }
+
+int cx_stream_deserialize_cstring(struct cx_stream* p_stream, char* p_out_cstr, size_t* p_out_len) {
+	const int b_result = cx_stream_deserialize_string(p_stream, p_out_cstr, p_out_len);
+	if (b_result) {
+		p_out_cstr[*p_out_len] = '\0';
+	}
+	return b_result;
+}

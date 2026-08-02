@@ -1,4 +1,4 @@
-#include "cx_asset.h"
+#include "cx_asset_cache.h"
 #include "cx_cmp_collider.h"
 #include "cx_cmp_rigidbody.h"
 #include "cx_cmp_static_mesh.h"
@@ -7,7 +7,6 @@
 #include "cx_console.h"
 #include "cx_ed.h"
 #include "cx_ed_action.h"
-#include "cx_ed_asset_database.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_transform_gizmo.h"
 #include "cx_io.h"
@@ -259,7 +258,7 @@ void cx_ed_init(struct platform_window* p_window) {
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
 
-	cx_transform_gizmo_init_shared_resources(&ed.asset_package);
+	cx_transform_gizmo_init_shared_resources();
 	cx_transform_gizmo_init_controls(&ed.gizmo);
 
 	struct cx_component_pool_def world_component_pool_defs[] = {
@@ -274,9 +273,9 @@ void cx_ed_init(struct platform_window* p_window) {
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
-	cx_asset_handle gltf_scene_blueprint_asset;
-	cx_ed_import_gltf_file("res/Industrial_exterior_v2.glb", &gltf_scene_blueprint_asset);
-	struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_get(gltf_scene_blueprint_asset);
+	struct cx_asset_ref gltf_scene_blueprint_asset_ref;
+	cx_ed_import_gltf_file("res/Industrial_exterior_v2.glb", &gltf_scene_blueprint_asset_ref);
+	struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_cache_acquire(&gltf_scene_blueprint_asset_ref);
 
 	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
 
@@ -284,7 +283,6 @@ void cx_ed_init(struct platform_window* p_window) {
 }
 
 void cx_ed_shutdown(void) {
-	cx_ed_asset_database_unload_all();
 	cx_world_free(&ed.world);
 }
 
@@ -571,7 +569,6 @@ void cx_ed_on_key(const void* p_e, void* p_user_ptr) {
 }
 
 int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
-	
 }
 
 int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {

@@ -1,9 +1,7 @@
 #include <string.h>
 
 #include "cx_asset.h"
-#include "cx_asset_store.h"
 #include "cx_logging.h"
-#include "cx_stream.h"
 #include "cx_stream_serialization.h"
 
 #define CX_ASSET_TYPE_NAME_MAX_LEN 63
@@ -39,51 +37,46 @@ void cx_asset_register_type(
 	asset_type_tables[type].f_free = f_free;
 }
 
-int cx_asset_load(cx_asset_handle handle) {
-	if (!handle->p_source) {
-		CX_LOG_FMT(ERROR, ASSET, "Failed to load asset %x: asset has no source\n",
-			handle->id);
-		return CX_FALSE;
-	}
-
-	struct cx_stream stream;
-	if (!cx_asset_store_open_asset_read_stream(handle->p_source, handle->id, &stream)) {
-		return CX_FALSE;
-	}
-
-	const struct asset_type_table* p_type_table = &asset_type_tables[CX_ASSET_GET_TYPE_ID(handle->id)];
-
-	handle->p_asset = calloc(1, p_type_table->asset_size);
-
-	const int b_result = p_type_table->f_deserialize(&stream, handle->p_asset);
-
-	cx_stream_close(&stream);
-
-	return b_result;
+const char* cx_asset_type_display_name_str(cx_asset_type type) {
+	return asset_type_tables[type].s_display_name;
 }
 
-void cx_asset_free(cx_asset_handle handle) {
-	if (!handle->p_asset) {
-		return;
-	}
-
-	CX_LOG_FMT(INFO, ASSET, "Unloading asset (%s) %x\n", 
-		asset_type_tables[CX_ASSET_GET_TYPE_ID(handle->id)].s_display_name,
-		handle->id);
-	
-	const struct asset_type_table* p_type_table = &asset_type_tables[CX_ASSET_GET_TYPE_ID(handle->id)];
-	if (p_type_table->f_free) {
-		p_type_table->f_free(handle->p_asset);
-	}
-
-	free(handle->p_asset);
-	handle->p_asset = CX_NULL;
+size_t cx_asset_type_size(cx_asset_type type) {
+	return asset_type_tables[type].asset_size;
 }
 
-void* cx_asset_get(cx_asset_handle handle) {
-	if (!handle->p_asset) {
-		cx_asset_load(handle);
-	}
-	return handle->p_asset;
+int cx_asset_type_serialize_asset(cx_asset_type type, const void* p_asset, struct cx_stream* p_stream) {
+	return asset_type_tables[type].f_serialize(p_asset, p_stream);
 }
 
+int cx_asset_type_deserialize_asset(cx_asset_type type, struct cx_stream* p_stream, void* p_asset) {
+	return asset_type_tables[type].f_deserialize(p_stream, p_asset);
+}
+
+void cx_asset_type_free_asset(cx_asset_type type, void* p_asset) {
+	asset_type_tables[type].f_free(p_asset);
+}
+
+void* cx_asset_ref_get(const struct cx_asset_ref* p_ref) {
+	if (cx_asset_ref_is_valid(p_ref)) {
+		return *p_ref->pp_asset;
+	}
+	return CX_NULL;
+}
+
+int cx_asset_ref_is_valid(const struct cx_asset_ref* p_ref) {
+	return p_ref->pp_asset != CX_NULL;
+}
+
+int cx_asset_ref_is_set(const struct cx_asset_ref* p_ref) {
+	return p_ref->asset_id != 0;
+}
+
+int cx_asset_ref_serialize(const struct cx_asset_ref* p_ref, struct cx_stream* p_stream) {
+	return cx_stream_serialize_uint32(p_stream, p_ref->asset_id);
+}
+
+int cx_asset_ref_deserialize(struct cx_stream* p_stream, struct cx_asset_ref* p_out) {
+	*p_out = (struct cx_asset_ref){0};
+	return cx_stream_deserialize_uint32(p_stream, &p_out->asset_id);
+}

@@ -1,3 +1,4 @@
+#include "cx_asset_cache.h"
 #include "cx_cmp_static_mesh.h"
 #include "cx_image.h"
 #include "cx_object_id_capturer.h"
@@ -21,11 +22,11 @@ void cx_world_renderer_record_forward_pass_commands(
 	cx_world_renderer_init();
 
 	const struct cx_component_pool* p_pool = cx_world_get_component_pool(p_world, &cmp_type_static_mesh);
-	const struct cx_cmp_static_mesh* p_static_meshes = (const void*)p_pool->p_dense_components;
+	struct cx_cmp_static_mesh* p_static_meshes = (void*)p_pool->p_dense_components;
 
 	for (size_t i = 0; i < p_pool->count; ++i) {
-		struct static_mesh* p_static_mesh = p_static_meshes[i].p_asset_package_record->asset_.p_data_;
-		
+		struct static_mesh* p_static_mesh = cx_asset_cache_acquire(&p_static_meshes[i].asset_ref);
+
 		const struct transform* p_transform =
 			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);
 
@@ -36,11 +37,13 @@ void cx_world_renderer_record_forward_pass_commands(
 		for (size_t j = 0; j < p_static_mesh->num_primitives; ++j) {
 			const struct cx_gfx_texture* p_gfx_texture = &texture_white_1x1;
 			const float* p_color = color_white;
+			
+			struct cx_asset_ref* p_material_asset_ref = &p_static_mesh->p_primitives_material_asset_refs[j];
+			if (cx_asset_ref_is_set(p_material_asset_ref)) {
+				struct material* p_material = cx_asset_cache_acquire(p_material_asset_ref);
 
-			if (p_static_mesh->p_materials[j]) {
-				const struct material* p_material = p_static_mesh->p_materials[j]->asset_.p_data_;
-				if (p_material->p_texture) {
-					struct cx_texture* p_texture = p_material->p_texture->asset_.p_data_;
+				if (cx_asset_ref_is_set(&p_material->texture_asset_ref)) {
+					struct cx_texture* p_texture = cx_asset_cache_acquire(&p_material->texture_asset_ref);
 					cx_texture_load_gfx_texture(p_texture, 0);
 					p_gfx_texture = &p_texture->gfx_texture_;
 				}
@@ -68,10 +71,10 @@ void cx_world_renderer_record_picker_pass_commands(
 	} object_data[1024];
 
 	const struct cx_component_pool* p_pool = cx_world_get_component_pool(p_world, &cmp_type_static_mesh);
-	const struct cx_cmp_static_mesh* p_static_meshes = (const void*)p_pool->p_dense_components;
+	struct cx_cmp_static_mesh* p_static_meshes = (void*)p_pool->p_dense_components;
 
 	for (size_t i = 0; i < p_pool->count; ++i) {
-		struct static_mesh* p_static_mesh = p_static_meshes[i].p_asset_package_record->asset_.p_data_;
+		struct static_mesh* p_static_mesh = cx_asset_cache_acquire(&p_static_meshes[i].asset_ref);
 
 		const struct transform* p_transform =
 			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);

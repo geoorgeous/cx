@@ -9,7 +9,7 @@
 #define CX_ASSET_TYPE_TEXTURE 2
 
 struct cx_texture {
-	cx_asset_handle source_image_asset;
+	struct cx_asset_ref source_image_asset_ref;
 	struct cx_texture_sampler_settings sampler_settings;
 	int b_gfx_texture_loaded_;
 	enum cx_pixel_format gfx_texture_format;
