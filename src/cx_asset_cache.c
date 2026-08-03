@@ -17,7 +17,7 @@ static struct {
 static int cx_asset_source_cmp(const void* p_a, const void* p_b);
 
 void cx_asset_cache_push_source(const struct cx_asset_source* p_source) {
-	if (cache.sources.element_size) {
+	if (cache.sources.element_size == 0) {
 		cx_array_init(sizeof(struct cx_asset_source), &cache.sources);
 	}
 
@@ -33,7 +33,6 @@ void cx_asset_cache_remove_source(const struct cx_asset_source* p_source) {
 }
 
 void cx_asset_cache_adopt(cx_asset_id asset_id, void* p_asset, struct cx_asset_ref* p_out) {
-
 	struct cx_asset_cache_entry* p_cache_entry = hashtable_i_get(&cache.assets, asset_id);
 	*p_cache_entry = (struct cx_asset_cache_entry) {
 		.p_asset = p_asset,
@@ -50,6 +49,11 @@ void* cx_asset_cache_acquire(struct cx_asset_ref* p_ref) {
 	if (cx_asset_ref_is_valid(p_ref)) {
 		return cx_asset_ref_get(p_ref);
 	}
+
+	// not sure about this:
+	// - need to make sure hashtable is initialized
+	// - hashtable might not have record of requested asset. it might exist in sources, but not yet acquired
+	// - add asserts to hashtable! (and array!) assert p_hashtable->element_size != 0
 
 	struct cx_asset_cache_entry* p_cache_entry = hashtable_i_get(&cache.assets, p_ref->asset_id);
 

@@ -26,7 +26,7 @@ void cx_array_reserve(struct cx_array* p_array, size_t new_capacity) {
 	if (p_array->capacity >= new_capacity) {
 		return;
 	}
-	CX_REALLOC(p_array->p_data, p_array->element_size * new_capacity);
+	p_array->p_data = CX_REALLOC(p_array->p_data, p_array->element_size * new_capacity);
 	p_array->capacity = new_capacity;
 }
 
@@ -39,12 +39,12 @@ void cx_array_shrink_to_fit(struct cx_array* p_array) {
 	if (p_array->length == p_array->capacity) {
 		return;
 	}
-	CX_REALLOC(p_array->p_data, p_array->length * p_array->element_size);
+	p_array->p_data = CX_REALLOC(p_array->p_data, p_array->length * p_array->element_size);
 	p_array->capacity = p_array->length;
 }
 
 void* cx_array_at(const struct cx_array* p_array, size_t index) {
-	CX_ASSERT(p_array->length > index, ARRAY);
+	CX_ASSERT_MSG_FMT(p_array->length > index, ARRAY, "(%u > %u)\n", p_array->length, index);
 	return ((uint8_t*)p_array->p_data) + p_array->element_size * index;
 }
 
@@ -59,16 +59,22 @@ void cx_array_pop(struct cx_array* p_array) {
 
 void* cx_array_insert(struct cx_array* p_array, size_t index, const void* p_element) {
 	CX_ASSERT(index <= p_array->length, ARRAY);
+
 	cx_array_reserve(p_array, p_array->length + 1);
-	void* p_new_element = cx_array_at(p_array, index);
+
+	void* p_new_element = ((uint8_t*)p_array->p_data) + p_array->element_size * index;
+
 	if (index < p_array->length) {
 		void* p_new_element_next = (uint8_t*)p_new_element + p_array->element_size;
 		memmove(p_new_element_next, p_new_element, p_array->length - index);
 	}
+
 	p_array->length++;
+
 	if (p_element) {
 		memcpy(p_new_element, p_element, p_array->element_size);
 	}
+
 	return p_new_element;
 }
 
