@@ -66,7 +66,7 @@ void* cx_array_insert(struct cx_array* p_array, size_t index, const void* p_elem
 
 	if (index < p_array->length) {
 		void* p_new_element_next = (uint8_t*)p_new_element + p_array->element_size;
-		memmove(p_new_element_next, p_new_element, p_array->length - index);
+		memmove(p_new_element_next, p_new_element, p_array->element_size * (p_array->length - index));
 	}
 
 	p_array->length++;
