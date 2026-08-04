@@ -10,7 +10,7 @@
 
 struct cx_ed_asset_library_entry {
 	struct cx_asset_ref asset_ref;
-	char fileapth[250];
+	char filepath[250];
 	size_t asset_file_offset;
 	int b_is_dirty;
 };
@@ -25,14 +25,18 @@ void cx_ed_asset_library_add_file(const char* s_filepath) {
 	cx_asset_id asset_id;
 	cx_stream_deserialize_uint32(&stream.base, &asset_id);
 
-	const cx_asset_type asset_type = CX_ASSET_GET_TYPE_ID(asset_id);
+	const cx_asset_type type = CX_ASSET_GET_TYPE_ID(asset_id);
 
-	struct cx_ed_asset_library_entry* p_new_entry = hashtable_i_add(&library_asset_tables[asset_type], asset_id);
+	if (library_asset_tables[type].element_size_ == 0) {
+		hashtable_init(&library_asset_tables[type], sizeof(struct cx_ed_asset_library_entry));
+	}
+
+	struct cx_ed_asset_library_entry* p_new_entry = hashtable_i_add(&library_asset_tables[type], asset_id);
 	*p_new_entry = (struct cx_ed_asset_library_entry){
 		.asset_file_offset = cx_stream_tell(&stream.base)
 	};
 	
-	strcpy(p_new_entry->fileapth, s_filepath);
+	strcpy(p_new_entry->filepath, s_filepath);
 
 	cx_stream_close(&stream.base);
 }
@@ -40,7 +44,14 @@ void cx_ed_asset_library_add_file(const char* s_filepath) {
 void cx_ed_asset_library_new(cx_asset_type type, void* p_asset, struct cx_asset_ref* p_out) {
 	cx_asset_id new_asset_id = cx_ed_asset_generate_id(type);
 
+	if (library_asset_tables[type].element_size_ == 0) {
+		hashtable_init(&library_asset_tables[type], sizeof(struct cx_ed_asset_library_entry));
+	}
+
 	struct cx_ed_asset_library_entry* p_new_entry = hashtable_i_add(&library_asset_tables[type], new_asset_id);
+	*p_new_entry = (struct cx_ed_asset_library_entry) {
+		.b_is_dirty = CX_TRUE
+	};
 
 	cx_asset_cache_adopt(new_asset_id, p_asset, &p_new_entry->asset_ref);
 
@@ -69,7 +80,7 @@ int cx_ed_asset_library_deserialize_asset(cx_asset_id id, void* p_out) {
 
 	struct cx_stream_file stream;
 	
-	if (!cx_stream_file_open(p_entry->fileapth, "rb", &stream)) {
+	if (!cx_stream_file_open(p_entry->filepath, "rb", &stream)) {
 		return CX_FALSE;
 	}
 	

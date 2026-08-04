@@ -24,16 +24,23 @@ void cx_texture_unload_gfx_texture(struct cx_texture* p_texture);
 int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream* p_stream);
 int cx_texture_deserialize(struct cx_stream* p_stream, struct cx_texture* p_out_texture);
 
-static inline void cx_texture_asset_destroy(void* p_asset) {
-	cx_texture_destroy(p_asset);
-}
-
 static inline int cx_texture_asset_serialize(const void* p_asset, struct cx_stream* p_stream) {
 	return cx_texture_serialize(p_asset, p_stream);
 }
 
 static inline int cx_texture_asset_deserialize(struct cx_stream* p_stream, void* p_out_asset) {
 	return cx_texture_deserialize(p_stream, p_out_asset);
+}
+
+static inline void cx_texture_asset_enumerate_dependencies(
+	const void* p_asset, cx_asset_enumerate_dependencies_cb_fn f_cb, void* p_user_ptr) {
+	
+	const struct cx_texture* p_texture = p_asset;
+	f_cb(p_texture->source_image_asset_ref.asset_id, p_user_ptr);
+}
+
+static inline void cx_texture_asset_free(void* p_asset) {
+	cx_texture_destroy(p_asset);
 }
 
 #endif

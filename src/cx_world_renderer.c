@@ -44,7 +44,7 @@ void cx_world_renderer_record_forward_pass_commands(
 
 				if (cx_asset_ref_is_set(&p_material->texture_asset_ref)) {
 					struct cx_texture* p_texture = cx_asset_cache_acquire(&p_material->texture_asset_ref);
-					cx_texture_load_gfx_texture(p_texture, 0);
+					cx_texture_load_gfx_texture(p_texture, CX_FALSE);
 					p_gfx_texture = &p_texture->gfx_texture_;
 				}
 				p_color = p_material->color;

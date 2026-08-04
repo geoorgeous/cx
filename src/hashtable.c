@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "cx_alloc.h"
 #include "cx_dbg.h"
 #include "cx_logging.h"
 #include "hashtable.h"
@@ -43,15 +44,19 @@ void hashtable_init(struct hashtable* p_table, size_t element_size) {
 }
 
 void hashtable_free(struct hashtable* p_table) {
+	if (p_table->element_size_ == 0 || p_table->n_buckets_ == 0) {
+		return;
+	}
+
 	for(size_t i = 0; i < p_table->n_buckets_; ++i) {
 		struct hashtable_element* p_elem = ((struct hashtable_bucket*)p_table->p_buckets_)[i].p_first;
 		while (p_elem) {
 			void* p_next = p_elem->p_next;
-			free(p_elem);
+			CX_FREE(p_elem);
 			p_elem = p_next;
 		}
 	}
-	free(p_table->p_buckets_);
+	CX_FREE(p_table->p_buckets_);
 	*p_table = (struct hashtable){0};
 }
 
@@ -60,6 +65,8 @@ int hashtable_find(
 	const void* p_key, size_t key_len,
 	struct hashtable_itr* p_out_itr) {
 	
+	CX_ASSERT(p_table->element_size_ != 0, HASHTABLE);
+
 	if (p_out_itr) {
 		*p_out_itr = (struct hashtable_itr){0};
 	}
@@ -100,21 +107,12 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
 			"p_key=%x, key_len=%llu: Couldn't add new item. An item with the specified key already exists\n",
 			p_table, p_table->element_size_, p_table->n_elements_, p_table->n_buckets_, p_table->p_buckets_,
 			p_key, key_len);
-		return 0;
+		return CX_NULL;
 	}
 
 	const size_t hashtable_element_size = (sizeof(*p_table));
 	const size_t total_element_size = hashtable_element_size + p_table->element_size_ + key_len;
-	unsigned char* p_new_elem_bytes = malloc(total_element_size);
-
-	if (!p_new_elem_bytes) {
-		CX_LOG_FMT(ERROR, HASHTABLE,
-			"hashtable_add: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, "
-			"p_key=%x, key_len=%llu: Couldn't allocate memory for new item\n",
-			p_table, p_table->element_size_, p_table->n_elements_, p_table->n_buckets_, p_table->p_buckets_,
-			p_key, key_len);
-		return 0;
-	}
+	unsigned char* p_new_elem_bytes = CX_CALLOC(total_element_size);
 
 	struct hashtable_element* p_new_elem = (void*)p_new_elem_bytes;
 	*p_new_elem = (struct hashtable_element) {
@@ -134,7 +132,7 @@ void* hashtable_add(struct hashtable* p_table, const void* p_key, size_t key_len
 				"p_key=%x, key_len=%llu: Couldn't resize hashtable for new item\n",
 				p_table, p_table->element_size_, p_table->n_elements_, p_table->n_buckets_, p_table->p_buckets_,
 				p_key, key_len);
-			free(p_new_elem);
+			CX_FREE(p_new_elem);
 			return 0;
 		}
 	}
@@ -155,6 +153,8 @@ void* hashtable_get(struct hashtable* p_table, const void* p_key, size_t key_len
 }
 
 void hashtable_remove(struct hashtable* p_table, const void* p_key, size_t key_len) {
+	CX_ASSERT(p_table->element_size_ != 0, HASHTABLE);
+
 	struct hashtable_bucket* p_bucket = hashtable_find_bucket(p_table, p_key, key_len, 0);
 	struct hashtable_element* p_elem = p_bucket->p_first;
 	struct hashtable_element* p_prev = 0;
@@ -171,7 +171,7 @@ void hashtable_remove(struct hashtable* p_table, const void* p_key, size_t key_l
 				p_bucket->p_last = p_prev;
 			}
 
-			free(p_elem);
+			CX_FREE(p_elem);
 
 			// todo: check if we should shrink size?
 
@@ -345,7 +345,7 @@ int hashtable_resize(struct hashtable* p_table, size_t n_buckets) {
 	const size_t n_buckets_old = p_table->n_buckets_;
 	struct hashtable_bucket* p_buckets_old = p_table->p_buckets_;
 
-	void* p_buckets = calloc(n_buckets, sizeof(struct hashtable_bucket));
+	void* p_buckets = CX_CALLOC(n_buckets * sizeof(struct hashtable_bucket));
 	if (!p_buckets) {
 		CX_LOG_FMT(ERROR, HASHTABLE,
 			"hashtable_resize: p_table=(%x){ element_size=%llu, n_elements=%llu, n_buckets=%llu, p_buckets=%x }, "
@@ -368,7 +368,7 @@ int hashtable_resize(struct hashtable* p_table, size_t n_buckets) {
 		}
 	}
 
-	free(p_buckets_old);
+	CX_FREE(p_buckets_old);
 
 	return 1;
 }

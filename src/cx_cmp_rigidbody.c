@@ -1,4 +1,5 @@
 #include "cx_cmp_rigidbody.h"
+#include "cx_macro.h"
 
 struct cx_component_type cmp_type_rigidbody = {
 	.s_name = "rigidbody",

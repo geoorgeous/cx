@@ -1,4 +1,5 @@
 #include "cx_cmp_collider.h"
+#include "cx_macro.h"
 
 struct cx_component_type cmp_type_collider = {
 	.s_name = "collider",

@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "cx_macro.h"
+#include "cx_asset_types.h"
 #include "cx_stream_serialization.h"
 
 #define CX_LOG_CAT_COMPONENT "components"
@@ -13,17 +13,10 @@
 
 #define CX_COMPONENT_TYPE_NAME_MAX_LEN 64
 
-#define CX_COMPONENT_TYPE_DECL(NAME) extern struct cx_component_type cmp_type_##NAME
-#define CX_COMPONENT_TYPE_DEFINE(NAME, TYPE) struct cx_component_type cmp_type_##NAME = {\
-	.s_name = #NAME,\
-	.size = sizeof(TYPE),\
-	.alignment = CX_ALIGNOF(TYPE),\
-	.f_serialize = cx_cmp_##NAME##_serialize\
-	.f_deserialize = cx_cmp_##NAME##_deserialize\
-}
-
 typedef int(*cx_component_serialize_fn)(const void*, struct cx_stream*);
 typedef int(*cx_component_deserialize_fn)(struct cx_stream*, void*);
+typedef void(*cx_component_enumerate_asset_dependencies_fn)
+	(const void*, cx_asset_enumerate_dependencies_cb_fn f_cb, void*);
 
 struct cx_component_type {
 	const char* s_name;
@@ -32,6 +25,7 @@ struct cx_component_type {
 	uint16_t    runtime_id;
 	cx_component_serialize_fn f_serialize;
 	cx_component_deserialize_fn f_deserialize;
+	cx_component_enumerate_asset_dependencies_fn f_enumerate_asset_dependencies;
 };
 
 void cx_component_register(struct cx_component_type* p_type);
@@ -43,5 +37,11 @@ int cx_component_serialize(
 
 int cx_component_deserialize(
 	struct cx_stream* p_stream, const struct cx_component_type** pp_out_type, void* p_out_component);
+
+void cx_component_enumerate_asset_dependencies(
+	const struct cx_component_type* p_type,
+	const void* p_component,
+	cx_asset_enumerate_dependencies_cb_fn f_cb,
+	void* p_user_ptr);
 
 #endif

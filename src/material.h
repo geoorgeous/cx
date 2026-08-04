@@ -23,4 +23,11 @@ static inline int material_asset_deserialize(struct cx_stream* p_stream, void* p
 	return material_deserialize(p_stream, p_out_asset);
 }
 
+static inline void material_asset_enumerate_dependencies(
+	const void* p_asset, cx_asset_enumerate_dependencies_cb_fn f_cb, void* p_user_ptr) {
+	
+	const struct material* p_material = p_asset;
+	f_cb(p_material->texture_asset_ref.asset_id, p_user_ptr);
+}
+
 #endif

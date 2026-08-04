@@ -36,3 +36,14 @@ int cx_component_deserialize(
 
 	return (*pp_out_type)->f_deserialize(p_stream, p_out_component);
 }
+
+void cx_component_enumerate_asset_dependencies(
+	const struct cx_component_type* p_type,
+	const void* p_component,
+	cx_asset_enumerate_dependencies_cb_fn f_cb,
+	void* p_user_ptr) {
+
+	if (p_type->f_enumerate_asset_dependencies) {
+		p_type->f_enumerate_asset_dependencies(p_component, f_cb, p_user_ptr);
+	}
+}

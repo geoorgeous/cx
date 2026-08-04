@@ -2,30 +2,29 @@
 
 #include "cx_blueprint.h"
 #include "cx_stream_serialization.h"
+#include "cx_macro.h"
 
 static struct cx_blueprint_node* cx_blueprint_find_node(const struct cx_blueprint* p_blueprint, uint16_t node_id);
 
 void cx_blueprint_destroy(struct cx_blueprint *p_blueprint) {
-	for (size_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		free(p_blueprint->p_nodes[i].p_components);
-		free(p_blueprint->p_nodes[i].p_component_data);
+	for (size_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
+		free(p_node->p_components);
+		free(p_node->p_component_data);
 	}
-	free(p_blueprint->p_nodes);
+	cx_array_free(&p_blueprint->nodes);
 	*p_blueprint = (struct cx_blueprint){0};
 }
 
 uint16_t cx_blueprint_create_node(struct cx_blueprint* p_blueprint) {
-	if (p_blueprint->nodes_capacity == p_blueprint->nodes_count) {
-		p_blueprint->nodes_capacity++;
-		p_blueprint->p_nodes = realloc(p_blueprint->p_nodes, sizeof(*p_blueprint->p_nodes) * p_blueprint->nodes_capacity);
+	if (p_blueprint->nodes.element_size == 0) {
+		cx_array_init(sizeof(struct cx_blueprint_node), &p_blueprint->nodes);
 	}
-	
-	struct cx_blueprint_node* p_new_node = p_blueprint->p_nodes + p_blueprint->nodes_count++;
 
-	*p_new_node = (struct cx_blueprint_node) {
+	struct cx_blueprint_node* p_new_node = cx_array_push(&p_blueprint->nodes, &(struct cx_blueprint_node) {
 		.id = p_blueprint->next_node_id++,
 		.parent_id = CX_BLUEPRINT_NODE_INVALID_ID
-	};
+	});
 
 	transform_make_identity(&p_new_node->transform);
 
@@ -34,13 +33,12 @@ uint16_t cx_blueprint_create_node(struct cx_blueprint* p_blueprint) {
 
 void cx_blueprint_destroy_node(struct cx_blueprint* p_blueprint, uint16_t node_id) {
 	// todo: orphan children
-	for (size_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		if (p_blueprint->p_nodes[i].id == node_id) {
-			free(p_blueprint->p_nodes[i].p_components);
-			if (i < p_blueprint->nodes_count - 1) {
-				p_blueprint->p_nodes[i] = p_blueprint->p_nodes[p_blueprint->nodes_count - 1];
-			}
-			p_blueprint->nodes_count--;
+	for (size_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
+
+		if (p_node->id == node_id) {
+			free(p_node->p_components);
+			cx_array_unordered_remove_at(&p_blueprint->nodes, i);
 			break;
 		}
 	}
@@ -166,20 +164,21 @@ int cx_blueprint_node_has_component(
 }
 
 struct cx_blueprint_node* cx_blueprint_find_node(const struct cx_blueprint* p_blueprint, uint16_t node_id) {
-	for (size_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		if (p_blueprint->p_nodes[i].id == node_id) {
-			return p_blueprint->p_nodes + i;
+	for (size_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);		
+		if (p_node->id == node_id) {
+			return p_node;
 		}
 	}
 
-	return 0;
+	return CX_NULL;
 }
 
 int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream* p_stream) {
-	cx_stream_serialize_uint16(p_stream, p_blueprint->nodes_count);
+	cx_stream_serialize_uint16(p_stream, (uint16_t)p_blueprint->nodes.length);
 
-	for (uint16_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		const struct cx_blueprint_node* p_node = &p_blueprint->p_nodes[i];
+	for (uint16_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		const struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
 
 		cx_stream_serialize_uint16(p_stream, p_node->id);
 		cx_stream_serialize_uint16(p_stream, p_node->parent_id);
@@ -211,12 +210,13 @@ int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_str
 }
 
 int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_out_blueprint) {
-	cx_stream_deserialize_uint16(p_stream, &p_out_blueprint->nodes_count);
+	uint16_t num_nodes;
+	cx_stream_deserialize_uint16(p_stream, &num_nodes);
 
-	// alloc nodes
+	cx_array_init_capacity(sizeof(struct cx_blueprint_node), num_nodes, &p_out_blueprint->nodes);
 
-	for (uint16_t i = 0; i < p_out_blueprint->nodes_count; ++i) {
-		struct cx_blueprint_node* p_node = &p_out_blueprint->p_nodes[i];
+	for (uint16_t i = 0; i < num_nodes; ++i) {
+		struct cx_blueprint_node* p_node = cx_array_push(&p_out_blueprint->nodes, CX_NULL);
 
 		cx_stream_deserialize_uint16(p_stream, &p_node->id);
 		cx_stream_deserialize_uint16(p_stream, &p_node->parent_id);
@@ -247,4 +247,22 @@ int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_
 	}
 
 	return CX_TRUE;
+}
+
+void cx_blueprint_asset_enumerate_dependencies(
+	const void* p_asset, cx_asset_enumerate_dependencies_cb_fn f_cb, void* p_user_ptr) {
+
+	const struct cx_blueprint* p_blueprint = p_asset;
+
+	for (uint16_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		const struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
+
+		for (uint16_t j = 0; j < p_node->components_count; ++j) {
+			const struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
+
+			const void* p_component = p_node->p_component_data + p_node_component->data_off;
+
+			cx_component_enumerate_asset_dependencies(p_node_component->p_type, p_component, f_cb, p_user_ptr);
+		}
+	}
 }

@@ -21,11 +21,11 @@ struct cx_asset_package_record {
 
 struct cx_stream;
 
+int cx_asset_package_import(const char* s_filename, struct cx_asset_package* p_out);
+
 void cx_asset_package_free(struct cx_asset_package* p_package);
 
 int cx_asset_package_deserialize_records(struct cx_asset_package* p_package, struct cx_stream* p_stream);
-
-void cx_asset_package_load_records_from_file(struct cx_asset_package* p_package, const char* s_filename);
 
 int cx_asset_package_find_record(
 	const struct cx_asset_package* p_package,

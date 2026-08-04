@@ -10,6 +10,7 @@ static struct asset_type_table {
 	size_t asset_size;
 	cx_asset_serialize_fn f_serialize;
 	cx_asset_deserialize_fn f_deserialize;
+	cx_asset_enumerate_dependencies_fn f_enumerate_dependencies;
 	cx_asset_free_fn f_free;
 	char s_display_name[CX_ASSET_TYPE_NAME_MAX_LEN + 1];
 } asset_type_tables[CX_ASSET_TYPE_ID_MAX];
@@ -20,6 +21,7 @@ void cx_asset_register_type(
 	size_t size,
 	cx_asset_serialize_fn f_serialize,
 	cx_asset_deserialize_fn f_deserialize,
+	cx_asset_enumerate_dependencies_fn f_enumerte_dependencies,
 	cx_asset_free_fn f_free) {
 
 	if (asset_type_tables[type].f_serialize) {
@@ -34,6 +36,7 @@ void cx_asset_register_type(
 	asset_type_tables[type].asset_size = size;
 	asset_type_tables[type].f_serialize = f_serialize;
 	asset_type_tables[type].f_deserialize = f_deserialize;
+	asset_type_tables[type].f_enumerate_dependencies = f_enumerte_dependencies;
 	asset_type_tables[type].f_free = f_free;
 }
 
@@ -53,8 +56,17 @@ int cx_asset_type_deserialize_asset(cx_asset_type type, struct cx_stream* p_stre
 	return asset_type_tables[type].f_deserialize(p_stream, p_asset);
 }
 
+void cx_asset_type_enumerate_dependencies(
+	cx_asset_type type, const void* p_asset, cx_asset_enumerate_dependencies_cb_fn f_cb, void* p_user_ptr) {
+	if (asset_type_tables[type].f_enumerate_dependencies) {
+		asset_type_tables[type].f_enumerate_dependencies(p_asset, f_cb, p_user_ptr);
+	}
+}
+
 void cx_asset_type_free_asset(cx_asset_type type, void* p_asset) {
-	asset_type_tables[type].f_free(p_asset);
+	if (asset_type_tables[type].f_free) {
+		asset_type_tables[type].f_free(p_asset);
+	}
 }
 
 void* cx_asset_ref_get(const struct cx_asset_ref* p_ref) {

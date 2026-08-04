@@ -17,18 +17,12 @@
 
 static inline void* cx_malloc(size_t size, const char* s_file, int line, const char* s_func) {
 	void* p = malloc(size);
-
-#ifdef NDEBUG
-	(void)s_file;
-	(void)line;
-	(void)s_func;
-#else
-	if (!p) {
+	
+	if (p == CX_NULL) {
 		CX_LOG_FMT(ERROR, ALLOC, "Failed to allocate %"CX_PRI_SIZE" bytes! %s:%d (%s)\n",
 			size, s_file, line, s_func);
 		abort();
 	}
-#endif
 
 	return p;
 }
@@ -36,16 +30,10 @@ static inline void* cx_malloc(size_t size, const char* s_file, int line, const c
 static inline void* cx_calloc(size_t size, const char* s_file, int line, const char* s_func) {
 	void* p = calloc(1, size);
 
-#ifdef NDEBUG
-	(void)s_file;
-	(void)line;
-	(void)s_func;
-#else
-	if (!p) {
+	if (p == CX_NULL) {
 		CX_LOG_FMT(ERROR, ALLOC, "Failed to allocate %"CX_PRI_SIZE" bytes! %s:%d (%s)\n", size, s_file, line, s_func);
 		abort();
 	}
-#endif
 
 	return p;
 }
@@ -53,17 +41,11 @@ static inline void* cx_calloc(size_t size, const char* s_file, int line, const c
 static inline void* cx_realloc(void* p, size_t size, const char* s_file, int line, const char* s_func) {
 	p = realloc(p, size);
 
-#ifdef NDEBUG
-	(void)s_file;
-	(void)line;
-	(void)s_func;
-#else
-	if (!p) {
-		CX_LOG_FMT(ERROR, ALLOC, "Failed to reallocate %"CX_PRI_SIZE" bytes! %s:%d (%s)\n",
-			size, s_file, line, s_func);
+	if (p == CX_NULL) {
+		CX_LOG_FMT(ERROR, ALLOC, "Failed to reallocate %p with %"CX_PRI_SIZE" bytes! %s:%d (%s)\n",
+			p, size, s_file, line, s_func);
 		abort();
 	}
-#endif
 
 	return p;
 }

@@ -21,4 +21,12 @@ struct cx_asset_ref {
 	void** pp_asset;
 };
 
+struct cx_stream;
+
+typedef int(*cx_asset_serialize_fn)(const void*, struct cx_stream*);
+typedef int(*cx_asset_deserialize_fn)(struct cx_stream*, void*);
+typedef void(*cx_asset_enumerate_dependencies_cb_fn)(cx_asset_id, void*);
+typedef void(*cx_asset_enumerate_dependencies_fn)(const void*, cx_asset_enumerate_dependencies_cb_fn, void*);
+typedef void(*cx_asset_free_fn)(void*);
+
 #endif

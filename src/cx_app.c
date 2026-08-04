@@ -135,25 +135,34 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 		&cx_app.screen_quad_program_opaque_param_texture);
 
 	cx_asset_register_type(CX_ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image),
-		cx_image_asset_serialize, cx_image_asset_deserialize, cx_image_asset_destroy);
+		cx_image_asset_serialize, cx_image_asset_deserialize, CX_NULL, cx_image_asset_destroy);
 
 	cx_asset_register_type(CX_ASSET_TYPE_TEXTURE, "texture", sizeof(struct cx_texture),
-		cx_texture_asset_serialize, cx_texture_asset_deserialize, cx_texture_asset_destroy);
+		cx_texture_asset_serialize,
+		cx_texture_asset_deserialize,
+		cx_texture_asset_enumerate_dependencies,
+		cx_texture_asset_free);
 
 	cx_asset_register_type(CX_ASSET_TYPE_MATERIAL, "material", sizeof(struct material),
-		material_asset_serialize, material_asset_deserialize, CX_NULL);
+		material_asset_serialize, material_asset_deserialize, material_asset_enumerate_dependencies, CX_NULL);
 	
 	cx_asset_register_type(CX_ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh),
-		static_mesh_asset_serialize, static_mesh_asset_deserialize, static_mesh_asset_destroy);
+		static_mesh_asset_serialize,
+		static_mesh_asset_deserialize,
+		static_mesh_asset_enumerate_dependencies,
+		static_mesh_asset_free);
 	
 	cx_asset_register_type(CX_ASSET_TYPE_FONT, "font", sizeof(struct cx_font),
-		cx_font_asset_serialize, cx_font_asset_deserialize, cx_font_asset_destroy);
+		cx_font_asset_serialize, cx_font_asset_deserialize, CX_NULL, cx_font_asset_destroy);
 	
 	cx_asset_register_type(CX_ASSET_TYPE_BLUEPRINT, "blueprint", sizeof(struct cx_blueprint),
-		cx_blueprint_asset_serialize, cx_blueprint_asset_deserialize, cx_blueprint_asset_destroy);
+		cx_blueprint_asset_serialize,
+		cx_blueprint_asset_deserialize,
+		cx_blueprint_asset_enumerate_dependencies,
+		cx_blueprint_asset_free);
 
 	cx_asset_register_type(CX_ASSET_TYPE_WORLD_BLUEPRINT, "world_blueprint", sizeof(struct cx_world_blueprint),
-		cx_world_blueprint_asset_serialize, cx_world_blueprint_asset_deserialize, CX_NULL);
+		cx_world_blueprint_asset_serialize, cx_world_blueprint_asset_deserialize, CX_NULL, CX_NULL);
 	
 	cx_component_register(&cmp_type_static_mesh);
 	cx_component_register(&cmp_type_collider);

@@ -1,9 +1,15 @@
 #include "cx_asset.h"
+#include "cx_asset_cache.h"
 #include "cx_asset_package.h"
 #include "cx_macro.h"
 #include "cx_rt_manifest.h"
 #include "cx_stream_file.h"
 #include "cx_stream_serialization.h"
+
+static int cx_asset_source_deserialize_package_asset(cx_asset_id id, void* p_context, void* p_out) {
+	const struct cx_asset_package* p_package = p_context;
+	return cx_asset_package_deserialize_asset(p_package, id, p_out);
+}
 
 int cx_rt_manifest_serialize(const struct cx_rt_manifest* p_manifest, struct cx_stream* p_stream) {
 	cx_stream_serialize_bytes(p_stream, sizeof(p_manifest->window_size), p_manifest->window_size);
@@ -38,9 +44,11 @@ int cx_rt_manifest_deserialize(struct cx_stream* p_stream, struct cx_rt_manifest
 		cx_stream_deserialize_cstring(p_stream, asset_package_filename_buf, &temp_len);
 
 		struct cx_asset_package* p_package = cx_array_push(&p_out_manifest->asset_packages, CX_NULL);
-		cx_asset_package_load_records_from_file(p_package, asset_package_filename_buf);
-
-		// todo: add package to asset cache sources
+		cx_asset_package_import(asset_package_filename_buf, p_package);
+		cx_asset_cache_push_source(&(struct cx_asset_source) {
+			.p_context = p_package,
+			.f_try_deserialize_asset = cx_asset_source_deserialize_package_asset
+		});
 	}
 
 	cx_asset_ref_deserialize(p_stream, &p_out_manifest->start_world_blueprint_ref);

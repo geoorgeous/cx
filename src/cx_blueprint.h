@@ -1,6 +1,8 @@
 #ifndef CX_BLUEPRINT_H
 #define CX_BLUEPRINT_H
 
+#include "cx_array.h"
+#include "cx_asset_types.h"
 #include "cx_component.h"
 #include "transform.h"
 
@@ -23,9 +25,7 @@ struct cx_blueprint_node {
 };
 
 struct cx_blueprint {
-	struct cx_blueprint_node* p_nodes;
-	uint16_t nodes_count;
-	uint16_t nodes_capacity;
+	struct cx_array nodes;
 	uint16_t next_node_id;
 };
 
@@ -72,16 +72,19 @@ struct cx_stream;
 int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream* p_stream);
 int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_out_blueprint);
 
-static inline void cx_blueprint_asset_destroy(void* p) {
-	cx_blueprint_destroy(p);
-}
-
 static inline int cx_blueprint_asset_serialize(const void* p_asset, struct cx_stream* p_stream) {
 	return cx_blueprint_serialize(p_asset, p_stream);
 }
 
 static inline int cx_blueprint_asset_deserialize(struct cx_stream* p_stream, void* p_out_asset) {
 	return cx_blueprint_deserialize(p_stream, p_out_asset);
+}
+
+void cx_blueprint_asset_enumerate_dependencies(
+	const void* p_asset, cx_asset_enumerate_dependencies_cb_fn f_cb, void* p_user_ptr);
+
+static inline void cx_blueprint_asset_free(void* p) {
+	cx_blueprint_destroy(p);
 }
 
 #endif

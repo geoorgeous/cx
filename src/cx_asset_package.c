@@ -6,6 +6,26 @@
 #include "cx_stream_file.h"
 #include "cx_stream_serialization.h"
 
+int cx_asset_package_import(const char* s_filename, struct cx_asset_package* p_out) {
+	*p_out = (struct cx_asset_package){0};
+
+	struct cx_stream_file stream;
+	
+	if (!cx_stream_file_open(s_filename, "rb", &stream)) {
+		return CX_FALSE;
+	}
+
+	strcpy(p_out->s_filename_, s_filename);
+
+	CX_LOG_FMT(INFO, ASSET, "Reading asset package records from file '%s'...\n", p_out->s_filename_);
+
+	const int b_result = cx_asset_package_deserialize_records(p_out, &stream.base);
+
+	cx_stream_close(&stream.base);
+
+	return b_result;
+}
+
 void cx_asset_package_free(struct cx_asset_package* p_package) {
 	CX_LOG_FMT(TRACE, ASSET, "Freeing asset package (%s)\n", p_package->s_filename_);
 
@@ -30,31 +50,25 @@ int cx_asset_package_deserialize_records(struct cx_asset_package* p_package, str
 
 		struct hashtable* p_table = &p_package->asset_type_record_tables_[CX_ASSET_GET_TYPE_ID(id)];
 
+		if (p_table->element_size_ == 0) {
+			hashtable_init(p_table, sizeof(struct cx_asset_package_record));
+		}
+
 		struct cx_asset_package_record* p_new_record = hashtable_i_add(p_table, id);
 		*p_new_record = (struct cx_asset_package_record) {
 			.p_package_ = p_package
 		};
 
 		cx_stream_deserialize_uint32(p_stream, &p_new_record->file_location_);
+
+		CX_LOG_FMT(INFO, ASSET, "  type=%u(%s), id=%u, file_offset=%u\n",
+			CX_ASSET_GET_TYPE_ID(id),
+			cx_asset_type_display_name_str(CX_ASSET_GET_TYPE_ID(id)),
+			id,
+			p_new_record->file_location_);
 	}
 
 	return CX_TRUE;
-}
-
-void cx_asset_package_load_records_from_file(struct cx_asset_package* p_package, const char* s_filename) {
-	struct cx_stream_file stream;
-	
-	if (!cx_stream_file_open(s_filename, "rb", &stream)) {
-		return;
-	}
-
-	strcpy(p_package->s_filename_, s_filename);
-
-	CX_LOG_FMT(INFO, ASSET, "Reading asset package records from file '%s'...\n", p_package->s_filename_);
-
-	cx_asset_package_deserialize_records(p_package, &stream.base);
-
-	cx_stream_close(&stream.base);
 }
 
 int cx_asset_package_find_record(

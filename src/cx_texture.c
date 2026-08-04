@@ -24,14 +24,12 @@ void cx_texture_load_gfx_texture(struct cx_texture* p_texture, int b_force_reloa
 	cx_gfx_texture_set_sampler_settings(&p_texture->gfx_texture_, &p_texture->sampler_settings);
 	cx_gfx_texture_set_data(&p_texture->gfx_texture_, p_image->p_pixel_data, &p_image->pixel_data_format);
 	
-	cx_asset_cache_release(&p_texture->source_image_asset_ref);
-
-	p_texture->b_gfx_texture_loaded_ = 1;
+	p_texture->b_gfx_texture_loaded_ = CX_TRUE;
 }
 
 void cx_texture_unload_gfx_texture(struct cx_texture* p_texture) {
 	cx_gfx_texture_destroy(&p_texture->gfx_texture_);
-	p_texture->b_gfx_texture_loaded_ = 0;
+	p_texture->b_gfx_texture_loaded_ = CX_FALSE;
 }
 
 int cx_texture_serialize(const struct cx_texture* p_texture, struct cx_stream* p_stream) {

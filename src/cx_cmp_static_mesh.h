@@ -12,5 +12,7 @@ struct cx_cmp_static_mesh {
 
 int cx_cmp_static_mesh_serialize(const void* p_cmp, struct cx_stream* p_stream);
 int cx_cmp_static_mesh_deserialize(struct cx_stream* p_stream, void* p_out_cmp);
+void cx_cmp_static_mesh_enumerate_asset_dependencies(
+	const void* p_cmp, cx_asset_enumerate_dependencies_cb_fn f_cb, void* p_user_ptr);
 
 #endif
