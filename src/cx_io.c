@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cx_io.h"
 #include "cx_error.h"
@@ -58,4 +59,35 @@ enum cx_error cx_io_file_read_all(const char* s_filename, void** pp_out_buf, siz
 
 void cx_io_file_free(void* p_file_read_all_result) {
 	free(p_file_read_all_result);
+}
+
+void cx_io_filepath_stem(const char* s_filepath, const char** pp_out_stem_start, size_t* p_out_stem_len) {
+	const char* p_fwd = strrchr(s_filepath, '/');
+	const char* p_bwd = strrchr(s_filepath, '\\');
+	const char* p_sep = (p_fwd > p_bwd) ? p_fwd : p_bwd;
+
+	*pp_out_stem_start = p_sep ? (p_sep + 1) : s_filepath;
+
+	if ((*pp_out_stem_start)[0] == '\0') {
+		*p_out_stem_len = 0;
+		return;
+	}
+
+	const char* p_dot = strrchr(*pp_out_stem_start, '.');
+
+	*p_out_stem_len =
+		p_dot && p_dot != *pp_out_stem_start ?
+		(size_t)(p_dot - *pp_out_stem_start) :
+		strlen(*pp_out_stem_start);
+}
+
+void cx_io_filepath_stem_cpy(const char* s_filename, char* s_out, size_t* p_out_len) {
+	const char* p_filepath_stem;
+	cx_io_filepath_stem(s_filename, &p_filepath_stem, p_out_len);
+
+	if (!s_out) {
+		return;
+	}
+	
+	strncpy(s_out, p_filepath_stem, *p_out_len);
 }
