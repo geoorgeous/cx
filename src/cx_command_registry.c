@@ -174,7 +174,8 @@ void cx_command_registry_add_alias(
 	p_registry->p_aliases_[index].s_name = cx_strdup(s_name);
 	p_registry->p_aliases_[index].s_expansion = cx_strdup(s_expansion);
 
-	CX_LOG_FMT(INFO, COMMAND, "New alias registered: %s\n", p_registry->p_aliases_[index].s_name);
+	CX_LOG_FMT(INFO, COMMAND, "New alias registered: [%s] -> (%s)\n",
+		p_registry->p_aliases_[index].s_name, s_expansion);
 }
 
 void cx_command_registry_remove_alias(struct cx_command_registry* p_registry, const char* s_alias_name) {

@@ -12,6 +12,8 @@
 #define CX_ASSET_GET_TYPE_ID(ID) ((uint8_t)((ID) >> 24))
 #define CX_ASSET_GET_IDN(ID) (((uint32_t)(ID)) & CX_ASSET_IDN_MASK)
 
+#define CX_ASSET_NAME_MAX_LEN 255
+
 typedef uint8_t cx_asset_type;
 
 typedef uint32_t cx_asset_id;

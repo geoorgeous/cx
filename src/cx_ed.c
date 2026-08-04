@@ -3,11 +3,11 @@
 #include "cx_cmp_rigidbody.h"
 #include "cx_cmp_static_mesh.h"
 #include "cx_command.h"
-#include "cx_command_registry.h"
 #include "cx_console.h"
 #include "cx_ed.h"
 #include "cx_ed_action.h"
 #include "cx_ed_import_gltf.h"
+#include "cx_ed_asset_package_builder.h"
 #include "cx_ed_transform_gizmo.h"
 #include "cx_io.h"
 #include "cx_macro.h"
@@ -181,28 +181,28 @@ void cx_ed_init(struct platform_window* p_window) {
 	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
 	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
 
-	CX_NEW_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, 0,
-		CX_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
-		CX_COMMAND_PARAM(FLOAT("x", "Position X component"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("y", "Position Y component"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("z", "Position Z component"), OPTIONAL));
+	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Position X component"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Position Y component"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Position Z component"), OPTIONAL));
 
-	CX_NEW_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_scale, 0,
-		CX_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
-		CX_COMMAND_PARAM(FLOAT("x", "Scale X component (default = 1)"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("y", "Scale Y component (default = x)"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("z", "Scale Z component (default = x)"), OPTIONAL));
+	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_scale, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Scale X component (default = 1)"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Scale Y component (default = x)"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Scale Z component (default = x)"), OPTIONAL));
 
-	CX_NEW_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, 0,
-		CX_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
-		CX_COMMAND_PARAM(FLOAT("x", "Rotation X component"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("y", "Rotation Y component"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("z", "Rotation Z component"), OPTIONAL));
+	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Rotation X component"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Rotation Y component"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Rotation Z component"), OPTIONAL));
 
-	CX_NEW_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, 0,
-		CX_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
-		CX_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
+	CX_NEW_CONSOLE_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
 	
 	void* p_vsource;
 	void* p_fsource;
@@ -273,13 +273,19 @@ void cx_ed_init(struct platform_window* p_window) {
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
+	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
+
 	struct cx_asset_ref gltf_scene_blueprint_asset_ref;
 	cx_ed_import_gltf_file("res/Industrial_exterior_v2.glb", &gltf_scene_blueprint_asset_ref);
 	struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_cache_acquire(&gltf_scene_blueprint_asset_ref);
 
 	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
 
-	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
+	struct cx_ed_asset_package_builder package_builder;
+
+	cx_ed_asset_package_builder_add_asset(&package_builder, &gltf_scene_blueprint_asset_ref);
+	cx_ed_asset_package_builder_export(&package_builder, "res/test.cxpkg");
+	cx_ed_asset_package_builder_free(&package_builder);
 }
 
 void cx_ed_shutdown(void) {

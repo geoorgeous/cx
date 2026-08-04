@@ -1,7 +1,10 @@
 #include <stdlib.h>
 
+#include "cx_alloc.h"
 #include "cx_blueprint.h"
+#include "cx_stream.h"
 #include "cx_stream_serialization.h"
+#include "cx_logging.h"
 #include "cx_macro.h"
 
 static struct cx_blueprint_node* cx_blueprint_find_node(const struct cx_blueprint* p_blueprint, uint16_t node_id);
@@ -91,7 +94,7 @@ void* cx_blueprint_node_add_component(
 	struct cx_blueprint_node* p_node = cx_blueprint_find_node(p_blueprint, node_id);
 
 	if (cx_blueprint_node_has_component(p_blueprint, node_id, p_type)) {
-		return 0;
+		return CX_NULL;
 	}
 
 	const struct cx_blueprint_node_component* p_last =
@@ -152,7 +155,7 @@ void* cx_blueprint_node_find_component(
 		}
 	}
 
-	return 0;
+	return CX_NULL;
 }
 
 int cx_blueprint_node_has_component(
@@ -177,6 +180,8 @@ struct cx_blueprint_node* cx_blueprint_find_node(const struct cx_blueprint* p_bl
 int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_stream* p_stream) {
 	cx_stream_serialize_uint16(p_stream, (uint16_t)p_blueprint->nodes.length);
 
+	CX_LOG_FMT(INFO, STREAM_WRITE, "Serializing blueprint asset (%u blueprint nodes)...\n", p_blueprint->nodes.length);
+
 	for (uint16_t i = 0; i < p_blueprint->nodes.length; ++i) {
 		const struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
 
@@ -196,11 +201,29 @@ int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_str
 		cx_stream_serialize_bytes(p_stream,
 			sizeof(p_node->transform.world_scale), p_node->transform.world_scale);
 
+		const struct cx_blueprint_node_component* p_last =
+			p_node->components_count ?
+			p_node->p_components + p_node->components_count - 1 :
+			0;
+
+		const size_t component_data_size =
+			p_last ?
+			p_last->data_off + p_last->p_type->size :
+			0;
+
 		cx_stream_serialize_uint16(p_stream, p_node->components_count);
+		cx_stream_serialize_uint64(p_stream, component_data_size);
+
+		CX_LOG_FMT(INFO, STREAM_WRITE, "  Serializing node (%u component(s), %"CX_PRI_SIZE" bytes)...\n",
+			p_node->components_count, component_data_size);
 
 		for (uint16_t j = 0; j < p_node->components_count; ++j) {
 			const struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
-			cx_stream_serialize_uint64(p_stream, p_node_component->data_off);
+
+			CX_LOG_FMT(INFO, STREAM_WRITE,
+				"    Serializing component (%s, data_off=%"CX_PRI_SIZE", %"CX_PRI_SIZE" bytes)...\n",
+				p_node_component->p_type->s_name, p_node_component->data_off, component_data_size);
+
 			cx_component_serialize(
 				p_node->p_component_data + p_node_component->data_off, p_node_component->p_type, p_stream);
 		}
@@ -212,6 +235,8 @@ int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_str
 int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_out_blueprint) {
 	uint16_t num_nodes;
 	cx_stream_deserialize_uint16(p_stream, &num_nodes);
+
+	CX_LOG_FMT(INFO, STREAM_READ, "Deserializing blueprint asset (%u blueprint nodes)...\n", num_nodes);
 
 	cx_array_init_capacity(sizeof(struct cx_blueprint_node), num_nodes, &p_out_blueprint->nodes);
 
@@ -236,13 +261,31 @@ int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_
 
 		cx_stream_deserialize_uint16(p_stream, &p_node->components_count);
 
-		// alloc components and component data
+		size_t component_data_size;
+		cx_stream_deserialize_uint64(p_stream, &component_data_size);
+
+		CX_LOG_FMT(INFO, STREAM_READ, "  Deserializing node (%u component(s), %"CX_PRI_SIZE" bytes)...\n",
+			p_node->components_count, component_data_size);
+
+		p_node->p_components = CX_MALLOC(sizeof(*p_node->p_components) * p_node->components_count);
+		p_node->p_component_data = CX_MALLOC(component_data_size);
+
+		size_t component_data_off = 0;
 
 		for (uint16_t j = 0; j < p_node->components_count; ++j) {
 			struct cx_blueprint_node_component* p_node_component = &p_node->p_components[j];
-			cx_stream_deserialize_uint64(p_stream, &p_node_component->data_off);
+			*p_node_component = (struct cx_blueprint_node_component) {
+				.data_off = component_data_off
+			};
+			
 			cx_component_deserialize(
 				p_stream, &p_node_component->p_type, p_node->p_component_data + p_node_component->data_off);
+
+			CX_LOG_FMT(INFO, STREAM_WRITE,
+				"    Deserializing component (%s, data_off=%"CX_PRI_SIZE", %"CX_PRI_SIZE" bytes)...\n",
+				p_node_component->p_type->s_name, component_data_off, component_data_size);
+
+			component_data_off += p_node_component->p_type->size;
 		}
 	}
 

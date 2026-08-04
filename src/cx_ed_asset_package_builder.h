@@ -4,8 +4,10 @@
 #include "cx_array.h"
 #include "cx_asset_types.h"
 
+#define CX_LOG_CAT_ASSET_PACKAGE_BUILDER "asset:pkg_builder"
+
 struct cx_ed_asset_package_builder {
-	struct cx_array assets;
+	struct cx_array entries;
 };
 
 void cx_ed_asset_package_builder_add_asset(

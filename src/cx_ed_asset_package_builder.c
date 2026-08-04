@@ -4,6 +4,12 @@
 #include "cx_stream_file.h"
 #include "cx_stream_serialization.h"
 
+struct cx_ed_asset_package_builder_entry {
+	struct cx_asset_ref asset_ref;
+	uint32_t asset_name_file_off;
+	uint32_t asset_data_file_off;
+};
+
 static void cx_ed_asset_package_builder_add_asset_internal(
 	struct cx_ed_asset_package_builder* p_builder, const struct cx_asset_ref* p_asset_ref);
 
@@ -26,70 +32,86 @@ void cx_ed_asset_package_builder_export(const struct cx_ed_asset_package_builder
 
 	cx_stream_file_open(s_filepath, "wb", &stream);
 
-	cx_stream_serialize_uint32(&stream.base, (uint32_t)p_builder->assets.length);
+	// Asset name string table
 
-	for (cx_asset_type i = 0; i < p_builder->assets.length; ++i) {
-		const struct cx_asset_ref* p_asset = cx_array_at(&p_builder->assets, i);
+	const size_t asset_name_table_off = sizeof(uint32_t) + sizeof(uint32_t) * 3 * p_builder->entries.length;
 
-		cx_stream_serialize_uint32(&stream.base, p_asset->asset_id);
-		cx_stream_serialize_uint32(&stream.base, 0);
+	cx_stream_seek(&stream.base, (ptrdiff_t)asset_name_table_off, CX_STREAM_SEEK_ORIGIN_begin);
+
+	for (size_t i = 0; i < p_builder->entries.length; ++i) {
+		struct cx_ed_asset_package_builder_entry* p_entry = cx_array_at(&p_builder->entries, i);
+
+		p_entry->asset_name_file_off = (uint32_t)cx_stream_tell(&stream.base);
+
+		const char* s_asset_name;
+		cx_asset_cache_get_name(p_entry->asset_ref.asset_id, &s_asset_name);
+		cx_stream_serialize_string(&stream.base, s_asset_name, 0);
 	}
 
-	const size_t package_record_size = sizeof(uint32_t) * 2;
+	// Asset data blobs
 
-	size_t asset_data_offset = cx_stream_tell(&stream.base);
+	for (size_t i = 0; i < p_builder->entries.length; ++i) {
+		struct cx_ed_asset_package_builder_entry* p_entry = cx_array_at(&p_builder->entries, i);
 
-	for (cx_asset_type i = 0; i < p_builder->assets.length; ++i) {
-		struct cx_asset_ref* p_asset_ref = cx_array_at(&p_builder->assets, i);
+		p_entry->asset_data_file_off = (uint32_t)cx_stream_tell(&stream.base);
 
-		const void* p_asset = cx_asset_cache_acquire(p_asset_ref);
+		const void* p_asset = cx_asset_cache_acquire(&p_entry->asset_ref);
 
-		CX_LOG_FMT(TRACE, ASSET, "  Saving asset %x...\n", p_asset_ref->asset_id);
 		const int b_result = cx_asset_type_serialize_asset(
-			CX_ASSET_GET_TYPE_ID(p_asset_ref->asset_id),
+			CX_ASSET_GET_TYPE_ID(p_entry->asset_ref.asset_id),
 			p_asset,
 			&stream.base);
 
-		cx_asset_cache_release(p_asset_ref);
-
 		if (!b_result) {
 			// todo: handle serialization error
-			CX_LOG_FMT(ERROR, ASSET, "Asset serialization error: asset_id=%x\n", p_asset_ref->asset_id);
+			CX_LOG_FMT(ERROR, ASSET_PACKAGE_BUILDER, "Asset serialization error: asset_id=%X\n", &p_entry->asset_ref);
 		}
+	}
 
-		// Cache the next record's data location
-		const size_t next_asset_data_offset = cx_stream_tell(&stream.base);
+	// Package record table
 
-		const ptrdiff_t offset =
-			sizeof(uint32_t) +         // num records
-			package_record_size * i +  // previous records
-			sizeof(uint32_t);          // record asset id
+	cx_stream_seek(&stream.base, 0, CX_STREAM_SEEK_ORIGIN_begin);
 
-		// write the asset's file location now that we know it
-		cx_stream_seek(&stream.base, offset, CX_STREAM_SEEK_ORIGIN_begin);
+	cx_stream_serialize_uint32(&stream.base, (uint32_t)p_builder->entries.length);
 
-		cx_stream_serialize_uint32(&stream.base, (uint32_t)asset_data_offset);
+	for (size_t i = 0; i < p_builder->entries.length; ++i) {
+		struct cx_ed_asset_package_builder_entry* p_entry = cx_array_at(&p_builder->entries, i);
 
-		cx_stream_seek(&stream.base, (ptrdiff_t)next_asset_data_offset, CX_STREAM_SEEK_ORIGIN_begin);
+		const char* s_asset_name;
+		cx_asset_cache_get_name(p_entry->asset_ref.asset_id, &s_asset_name);
 
-		asset_data_offset = next_asset_data_offset;
+		CX_LOG_FMT(INFO, ASSET_PACKAGE_BUILDER, "  [%u] %s (%s:%X) name_off=%u, data_off=%u\n",
+			i,
+			s_asset_name,
+			cx_asset_type_display_name_str(CX_ASSET_GET_TYPE_ID(p_entry->asset_ref.asset_id)),
+			p_entry->asset_ref.asset_id,
+			p_entry->asset_name_file_off,
+			p_entry->asset_data_file_off);
+
+		cx_stream_serialize_uint32(&stream.base, p_entry->asset_ref.asset_id);
+		cx_stream_serialize_uint32(&stream.base, p_entry->asset_name_file_off);
+		cx_stream_serialize_uint32(&stream.base, p_entry->asset_data_file_off);
+
+		cx_asset_cache_release(&p_entry->asset_ref);
 	}
 
 	cx_stream_close(&stream.base);
 }
 
 void cx_ed_asset_package_builder_free(struct cx_ed_asset_package_builder* p_builder) {
-	cx_array_free(&p_builder->assets);
+	cx_array_free(&p_builder->entries);
 }
 
 void cx_ed_asset_package_builder_add_asset_internal(
 	struct cx_ed_asset_package_builder* p_builder, const struct cx_asset_ref* p_asset_ref) {
 
-	if (p_builder->assets.element_size == 0) {
-		cx_array_init(sizeof(struct cx_asset_ref), &p_builder->assets);
+	if (p_builder->entries.element_size == 0) {
+		cx_array_init(sizeof(struct cx_ed_asset_package_builder_entry), &p_builder->entries);
 	}
 
-	(void)cx_array_push(&p_builder->assets, p_asset_ref);
+	(void)cx_array_push(&p_builder->entries, &(struct cx_ed_asset_package_builder_entry) {
+		.asset_ref = { .asset_id = p_asset_ref->asset_id }
+	});
 }
 
 void cx_asset_enumerate_dependencies_cb(cx_asset_id asset_id, void* p_user_ptr) {

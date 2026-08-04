@@ -240,8 +240,10 @@ uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct c
 
 	uint16_t node_entities[CX_WORLD_MAX_ENTITIES];
 
-	for (size_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		const struct cx_blueprint_node* p_node = p_blueprint->p_nodes + i;
+	for (size_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		const struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
+
+		// Create new entity from node
 		
 		uint16_t new_entity_id = cx_world_entity_create(p_world);
 
@@ -250,6 +252,8 @@ uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct c
 		const struct transform* p_bp_t = cx_blueprint_node_get_transform(p_blueprint, p_node->id);
 		struct transform* p_t = cx_world_entity_get_transform(p_world, new_entity_id);
 		*p_t = *p_bp_t;
+
+		// Duplicate component data for entity
 
 		void* p_component_data;
 		size_t num_components;
@@ -263,15 +267,19 @@ uint16_t cx_world_instantiate_blueprint(struct cx_world* p_world, const struct c
 		}
 	}
 
-	for (size_t i = 0; i < p_blueprint->nodes_count; ++i) {
-		if (p_blueprint->p_nodes[i].parent_id == CX_BLUEPRINT_NODE_INVALID_ID) {
+	// Create parent-child relationships
+
+	for (size_t i = 0; i < p_blueprint->nodes.length; ++i) {
+		const struct cx_blueprint_node* p_node = cx_array_at(&p_blueprint->nodes, i);
+
+		if (p_node->parent_id == CX_BLUEPRINT_NODE_INVALID_ID) {
 			root_entity = node_entities[i];
 			continue;
 		}
 	
 		transform_set_local_transform(
 			cx_world_entity_get_transform(p_world, node_entities[i]),
-			cx_world_entity_get_transform(p_world, node_entities[p_blueprint->p_nodes[i].parent_id]),
+			cx_world_entity_get_transform(p_world, node_entities[p_node->parent_id]),
 			0);
 	}
 

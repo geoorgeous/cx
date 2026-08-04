@@ -1,17 +1,30 @@
+#include <string.h>
+
+#include "cx_array.h"
 #include "cx_component.h"
-#include "cx_dbg.h"
+#include "cx_logging.h"
+#include "cx_macro.h"
 
-void cx_component_register(struct cx_component_type* p_type) {
-	static uint16_t next_runtime_id = 1;
+struct cx_array component_types;
 
-	CX_ASSERT_MSG(next_runtime_id < CX_COMPONENT_MAX_TYPES, COMPONENT, "Exceeded maximum number of component types");
-	CX_ASSERT_MSG(p_type->runtime_id == 0, COMPONENT, "Component type already registered");
+void cx_component_register_type(struct cx_component_type* p_type) {
+	if (component_types.element_size == 0) {
+		cx_array_init(sizeof(struct cx_component_type*), &component_types);
+	}
 
-	p_type->runtime_id = next_runtime_id;
-	next_runtime_id++;
+	(void)cx_array_push(&component_types, &p_type);
+	p_type->runtime_id = (uint16_t)component_types.length;
 }
 
 int cx_component_find_type(const char *s_name, const struct cx_component_type **pp_out) {
+	for (size_t i = 0; i < component_types.length; ++i) {
+		const struct cx_component_type** pp_type = cx_array_at(&component_types, i);
+		if (strcmp(s_name, (*pp_type)->s_name) == 0) {
+			*pp_out = *pp_type;
+			return CX_TRUE;
+		}
+	}
+	CX_LOG_FMT(ERROR, COMPONENT, "Failed to find type with name \"%s\"\n", s_name);
 	return CX_FALSE;
 }
 
@@ -25,10 +38,9 @@ int cx_component_serialize(
 int cx_component_deserialize(
 	struct cx_stream* p_stream, const struct cx_component_type** pp_out_type, void* p_out_component) {
 	char component_type_name_buf[CX_COMPONENT_TYPE_NAME_MAX_LEN + 1];
-	size_t component_type_name_len;
 	
-	cx_stream_deserialize_string(p_stream, component_type_name_buf, &component_type_name_len);
-	component_type_name_buf[component_type_name_len] = '\0';
+	size_t component_type_name_len;
+	cx_stream_deserialize_cstring(p_stream, component_type_name_buf, &component_type_name_len);
 
 	if (!cx_component_find_type(component_type_name_buf, pp_out_type)) {
 		return CX_FALSE;

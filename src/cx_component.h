@@ -28,7 +28,7 @@ struct cx_component_type {
 	cx_component_enumerate_asset_dependencies_fn f_enumerate_asset_dependencies;
 };
 
-void cx_component_register(struct cx_component_type* p_type);
+void cx_component_register_type(struct cx_component_type* p_type);
 
 int cx_component_find_type(const char* s_name, const struct cx_component_type** pp_out);
 

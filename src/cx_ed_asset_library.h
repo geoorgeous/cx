@@ -4,10 +4,12 @@
 #include "cx_asset_types.h"
 
 void cx_ed_asset_library_add_file(const char* s_filepath);
-void cx_ed_asset_library_new(cx_asset_type type, void* p_asset, struct cx_asset_ref* p_out);
+void cx_ed_asset_library_new(cx_asset_type type, const char* s_name, void* p_asset, struct cx_asset_ref* p_out);
 void cx_ed_asset_library_delete(cx_asset_id id);
 void cx_ed_asset_library_make_dirty(cx_asset_id id);
 void cx_ed_asset_library_save(cx_asset_id id);
+int cx_ed_asset_library_get_asset_name(cx_asset_id id, const char** pp_out);
+int cx_ed_asset_library_find_asset_by_name(cx_asset_type type, const char* s_name, struct cx_asset_ref* p_out);
 int cx_ed_asset_library_deserialize_asset(cx_asset_id id, void* p_out);
 void cx_ed_asset_library_free(void);
 

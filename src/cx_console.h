@@ -26,6 +26,30 @@
 #define CX_CONSOLE_MAX_INPUT_LEN 256
 #define CX_CONSOLE_MAX_HISTORY_LEN 64
 
+#define CX_NEW_CONSOLE_COMMAND(S_NAME, S_DESC, F, P_USER, /* PARAMS LIST */ ...) do {\
+	static const struct cx_command_param command_params_[] = {\
+		__VA_ARGS__\
+	};\
+	static const struct cx_command command_ = {\
+		.s_name = S_NAME,\
+		.s_desc = S_DESC,\
+		.p_params = command_params_,\
+		.num_params = sizeof(command_params_) / sizeof(struct cx_command_param),\
+		.f = F,\
+		.p_user_ptr = P_USER\
+	};\
+	cx_command_registry_add(&cx_console_get()->command_registry, &command_); } while(0)
+
+#define CX_CONSOLE_COMMAND_PARAM(DESC, REQUIRED) {\
+	.desc = CX_VAR_DESC_##DESC,\
+	.b_required = CX_COMMAND_PARAM_##REQUIRED,\
+}
+
+#define CX_CONSOLE_COMMAND_NO_PARAMS 0
+
+#define CX_NEW_CONSOLE_COMMAND_ALIAS(S_NAME, S_EXPANSION) \
+	cx_command_registry_add_alias(&cx_console_get()->command_registry, S_NAME, S_EXPANSION)
+
 struct cx_console_input {
 	char buf[CX_CONSOLE_MAX_INPUT_LEN];
 	struct cx_text_edit text;

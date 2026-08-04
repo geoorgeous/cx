@@ -7,6 +7,8 @@
 #include "cx_asset_types.h"
 #include "hashtable.h"
 
+#define CX_LOG_CAT_ASSET_PACKAGE "asset:pkg"
+
 #define CX_ASSET_PACKAGE_FILENAME_MAX_LEN 260
 
 struct cx_asset_package {
@@ -16,6 +18,7 @@ struct cx_asset_package {
 
 struct cx_asset_package_record {
 	struct cx_asset_package* p_package_;
+	char name[CX_ASSET_NAME_MAX_LEN];
 	uint32_t file_location_;
 };
 
@@ -31,6 +34,11 @@ int cx_asset_package_find_record(
 	const struct cx_asset_package* p_package,
 	cx_asset_id id,
 	const struct cx_asset_package_record** pp_out);
+
+int cx_asset_package_get_asset_name(const struct cx_asset_package* p_package, cx_asset_id id, const char** pp_out);
+
+int cx_asset_package_find_asset_by_name(
+	const struct cx_asset_package* p_package, cx_asset_type type, const char* s_name, struct cx_asset_ref* p_out_ref);
 
 int cx_asset_package_deserialize_asset(const struct cx_asset_package* p_package, cx_asset_id id, void* p_out);
 

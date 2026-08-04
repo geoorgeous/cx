@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define CX_LOG_CAT_STREAM_WRITE "stream:write"
+#define CX_LOG_CAT_STREAM_READ "stream:read"
+
 struct cx_stream;
 
 int cx_stream_serialize_bytes(struct cx_stream* p_stream, size_t size, const void* p_bytes);

@@ -2,6 +2,8 @@
 
 #include "cx_app.h"
 #include "cx_asset_cache.h"
+#include "cx_asset_package.h"
+#include "cx_asset_types.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_collider.h"
 #include "cx_cmp_rigidbody.h"
@@ -22,12 +24,14 @@
 #include "cx_platform_time.h"
 #include "cx_text_mesher.h"
 #include "cx_texture.h"
+#include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
 #include "gl.h"
 #include "input.h"
 #include "keys.h"
 #include "material.h"
+#include "matrix.h"
 #include "mouse_buttons.h"
 #include "platform_window.h"
 #include "static_mesh.h"
@@ -43,10 +47,11 @@ static struct {
 	struct cx_gfx_program screen_quad_program;
 	struct cx_gfx_program_opaque_param screen_quad_program_opaque_param_texture;
 
-	//cx_asset_handle console_font;
-	//struct cx_texture_atlas_layout console_font_glyph_atlas_layout;
-	//struct cx_texture_atlas_entry console_font_glyph_atlas_layout_entries[CX_FONT_NUM_GLYPHS];
-	//struct cx_gfx_texture console_font_glyph_atlas_texture;
+	struct cx_asset_package builtin_asset_pkg;
+	struct cx_asset_ref console_font_ref;
+	struct cx_texture_atlas_layout console_font_glyph_atlas_layout;
+	struct cx_texture_atlas_entry console_font_glyph_atlas_layout_entries[CX_FONT_NUM_GLYPHS];
+	struct cx_gfx_texture console_font_glyph_atlas_texture;
 } cx_app;
 
 static void platform_window_on_created(struct platform_window*, void*);
@@ -60,6 +65,11 @@ static void on_key(const void* p_e, void* p_user_ptr);
 
 static int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
+static int cx_asset_source_get_package_asset_name(cx_asset_id id, void* p_context, const char** pp_out);
+static int cx_asset_source_find_package_asset_by_name(
+	cx_asset_type type, const char* s_name, void* p_context, struct cx_asset_ref* p_out_ref);
+static int cx_asset_source_deserialize_package_asset(cx_asset_id id, void* p_context, void* p_out);
+
 int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_height, cx_app_init_callback_fn f_init) {
 	enum cx_error err;
 
@@ -70,8 +80,8 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 		0,
 		&cx_app.window);
 
-	CX_NEW_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_COMMAND_NO_PARAMS);
-	CX_NEW_COMMAND_ALIAS("q", "quit");
+	CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
+	CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
 
 	if (err != CX_ERROR_none) {
 		return (int)err;
@@ -164,38 +174,46 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 	cx_asset_register_type(CX_ASSET_TYPE_WORLD_BLUEPRINT, "world_blueprint", sizeof(struct cx_world_blueprint),
 		cx_world_blueprint_asset_serialize, cx_world_blueprint_asset_deserialize, CX_NULL, CX_NULL);
 	
-	cx_component_register(&cmp_type_static_mesh);
-	cx_component_register(&cmp_type_collider);
-	cx_component_register(&cmp_type_rigidbody);
+	cx_component_register_type(&cmp_type_static_mesh);
+	cx_component_register_type(&cmp_type_collider);
+	cx_component_register_type(&cmp_type_rigidbody);
+
+	if (cx_asset_package_import("res/builtin/core.cxpkg", &cx_app.builtin_asset_pkg)) {
+		cx_asset_cache_push_source(&(struct cx_asset_source) {
+			.p_context = &cx_app.builtin_asset_pkg,
+			.f_get_asset_name = cx_asset_source_get_package_asset_name,
+			.f_find_asset_by_name = cx_asset_source_find_package_asset_by_name,
+			.f_try_deserialize_asset = cx_asset_source_deserialize_package_asset
+		});
+
+		cx_asset_cache_find_by_name(CX_ASSET_TYPE_FONT, "default_8x14", &cx_app.console_font_ref);
+		struct cx_font* p_font = cx_asset_cache_acquire(&cx_app.console_font_ref);
+
+		cx_app.console_font_glyph_atlas_layout.p_entries = cx_app.console_font_glyph_atlas_layout_entries;
+
+		struct cx_image font_atlas_image;
+		cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
+
+		cx_font_free_glyph_bitmap_buffer(p_font);
+
+		cx_gfx_texture_create(
+			&cx_app.console_font_glyph_atlas_texture,
+			font_atlas_image.width, font_atlas_image.height,
+			CX_PIXEL_FORMAT_red);
+
+		cx_gfx_texture_set_data(
+			&cx_app.console_font_glyph_atlas_texture,
+			font_atlas_image.p_pixel_data,
+			&font_atlas_image.pixel_data_format);
+
+		free(font_atlas_image.p_pixel_data);
+
+		cx_console_init(cx_console_get());
+	}
 
 	input_init();
 
 	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
-
-	//cx_ed_import_bdf_file(&cx_app.core_asset_package, "res/builtin/font_dbg_8x14.bdf", &cx_app.p_console_font);
-
-	//struct cx_font* p_font = cx_app.p_console_font->asset_.p_data_;
-
-	//cx_app.console_font_glyph_atlas_layout.p_entries = cx_app.console_font_glyph_atlas_layout_entries;
-
-	//struct cx_image font_atlas_image;
-	//cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
-
-	//cx_font_free_glyph_bitmap_buffer(p_font);
-
-	//cx_gfx_texture_create(
-	//	&cx_app.console_font_glyph_atlas_texture,
-	//	font_atlas_image.width, font_atlas_image.height,
-	//	CX_PIXEL_FORMAT_red);
-
-	//cx_gfx_texture_set_data(
-	//	&cx_app.console_font_glyph_atlas_texture,
-	//	font_atlas_image.p_pixel_data,
-	//	&font_atlas_image.pixel_data_format);
-
-	//free(font_atlas_image.p_pixel_data);
-
-	//cx_console_init(cx_console_get());
 
 	f_init();
 
@@ -224,36 +242,36 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 		{
 			f_draw(&cx_app.primary_framebuffer);
 
-			//if (cx_console_get()->b_is_input_enabled) {
-			//	glEnable(GL_BLEND);
-			//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			if (cx_console_get()->b_is_input_enabled) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			//	struct cx_font_render_data font_render_data = {
-			//		.p_font = cx_app.p_console_font->asset_.p_data_,
-			//		.p_glyph_texture = &cx_app.console_font_glyph_atlas_texture,
-			//		.p_glyph_atlas_layout = &cx_app.console_font_glyph_atlas_layout
-			//	};
+				struct cx_font_render_data font_render_data = {
+					.p_font = cx_asset_cache_acquire(&cx_app.console_font_ref),
+					.p_glyph_texture = &cx_app.console_font_glyph_atlas_texture,
+					.p_glyph_atlas_layout = &cx_app.console_font_glyph_atlas_layout
+				};
 
-			//	float projection_matrix[16];
-			//	float view_matrix[16];
+				float projection_matrix[16];
+				float view_matrix[16];
 
-			//	matrix_make_orthographic_projection(
-			//		 0,
-			//		(float)cx_app.primary_framebuffer_texture_color.width_,
-			//		(float)cx_app.primary_framebuffer_texture_color.height_,
-			//		 0,
-			//		-1,
-			//		 1,
-			//		projection_matrix);
-			//	matrix_make_identity(view_matrix);
+				matrix_make_orthographic_projection(
+					 0,
+					(float)cx_app.primary_framebuffer_texture_color.width_,
+					(float)cx_app.primary_framebuffer_texture_color.height_,
+					 0,
+					-1,
+					 1,
+					projection_matrix);
+				matrix_make_identity(view_matrix);
 
-			//	cx_console_view_draw(cx_console_get(),
-			//		&font_render_data,
-			//		&cx_app.primary_framebuffer,
-			//		cx_app.primary_framebuffer_texture_color.width_,
-			//		cx_app.primary_framebuffer_texture_color.height_,
-			//		projection_matrix, view_matrix);
-			//}
+				cx_console_view_draw(cx_console_get(),
+					&font_render_data,
+					&cx_app.primary_framebuffer,
+					cx_app.primary_framebuffer_texture_color.width_,
+					cx_app.primary_framebuffer_texture_color.height_,
+					projection_matrix, view_matrix);
+			}
 
 			// SCREEN QUAD
 			{
@@ -403,4 +421,21 @@ int console_command_quit(const struct cx_command_args* p_args, const struct cx_c
 	(void)p_context;
 	platform_window_destroy(&cx_app.window);
 	return 0;
+}
+
+int cx_asset_source_get_package_asset_name(cx_asset_id id, void* p_context, const char** pp_out) {
+	const struct cx_asset_package* p_package = p_context;
+	return cx_asset_package_get_asset_name(p_package, id, pp_out);
+}
+
+int cx_asset_source_find_package_asset_by_name(
+	cx_asset_type type, const char* s_name, void* p_context, struct cx_asset_ref* p_out_ref) {
+	
+	const struct cx_asset_package* p_package = p_context;
+	return cx_asset_package_find_asset_by_name(p_package, type, s_name, p_out_ref);
+}
+
+int cx_asset_source_deserialize_package_asset(cx_asset_id id, void* p_context, void* p_out) {
+	const struct cx_asset_package* p_package = p_context;
+	return cx_asset_package_deserialize_asset(p_package, id, p_out);
 }

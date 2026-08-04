@@ -60,39 +60,39 @@ void cx_console_init(struct cx_console* p_console) {
 		p_console->flogger_storage.ring_entries_buf_,
 		p_console->flogger_storage.ring_entries_entries_buf_);
 
-	CX_NEW_COMMAND("clear",
+	CX_NEW_CONSOLE_COMMAND("clear",
 		"Clear the console output",
 		cx_console_command_clear, 0,
-		CX_COMMAND_NO_PARAMS);
+		CX_CONSOLE_COMMAND_NO_PARAMS);
 
-	CX_NEW_COMMAND("help",
+	CX_NEW_CONSOLE_COMMAND("help",
 		"List all commands, or the details of a single command",
 		cx_console_command_help, &console.command_registry,
-		CX_COMMAND_PARAM(STRING("name", "Command to list detail of"), OPTIONAL));
+		CX_CONSOLE_COMMAND_PARAM(STRING("name", "Command to list detail of"), OPTIONAL));
 
-	CX_NEW_COMMAND_ALIAS("h", "help");
+	CX_NEW_CONSOLE_COMMAND_ALIAS("h", "help");
 
-	CX_NEW_COMMAND("alias",
+	CX_NEW_CONSOLE_COMMAND("alias",
 		"List, create, or query aliases",
 		cx_console_command_alias, &console.command_registry,
-		CX_COMMAND_PARAM(STRING("name", "Alias name"), OPTIONAL),
-		CX_COMMAND_PARAM(STRING("expansion", "Expansion to execute"), OPTIONAL));
+		CX_CONSOLE_COMMAND_PARAM(STRING("name", "Alias name"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(STRING("expansion", "Expansion to execute"), OPTIONAL));
 
-	CX_NEW_COMMAND("unalias",
+	CX_NEW_CONSOLE_COMMAND("unalias",
 		"Delete an alias",
 		cx_console_command_unalias, &console.command_registry,
-		CX_COMMAND_PARAM(STRING("name", "Name of the alias to delete"), REQUIRED));
+		CX_CONSOLE_COMMAND_PARAM(STRING("name", "Name of the alias to delete"), REQUIRED));
 
-	CX_NEW_COMMAND("var",
+	CX_NEW_CONSOLE_COMMAND("var",
 		"List, query, or assign vars",
 		cx_console_command_var, &console.var_registry,
-		CX_COMMAND_PARAM(STRING("name", "Name of the variable to get/set"), OPTIONAL),
-		CX_COMMAND_PARAM(STRING("value", "Value to assign to the variable"), OPTIONAL));
+		CX_CONSOLE_COMMAND_PARAM(STRING("name", "Name of the variable to get/set"), OPTIONAL),
+		CX_CONSOLE_COMMAND_PARAM(STRING("value", "Value to assign to the variable"), OPTIONAL));
 
-	CX_NEW_COMMAND("history",
+	CX_NEW_CONSOLE_COMMAND("history",
 		"List command history",
 		cx_console_command_history, &console.history,
-		CX_COMMAND_NO_PARAMS);
+		CX_CONSOLE_COMMAND_NO_PARAMS);
 
 	static const struct cx_var_enum_map_entry entries[] = {
 		{ "eone",   0 },
@@ -102,16 +102,16 @@ void cx_console_init(struct cx_console* p_console) {
 		{ "efive",  4 }
 	};
 
-	CX_NEW_COMMAND("test",
+	CX_NEW_CONSOLE_COMMAND("test",
 		"Testing, tesing, one, two, three",
 		cx_console_command_test, 0,
-		CX_COMMAND_PARAM(STRING("one", "First parameter"), REQUIRED),
-		CX_COMMAND_PARAM(INT("two", "Second parameter"), REQUIRED),
-		CX_COMMAND_PARAM(INT_RANGE("two", "Second parameter", 0, 100), REQUIRED),
-		CX_COMMAND_PARAM(FLOAT("three", "Third parameter"), REQUIRED),
-		CX_COMMAND_PARAM(FLOAT_RANGE("three", "Third parameter", -0.5, 0.5), REQUIRED),
-		CX_COMMAND_PARAM(BOOL("four", "Four parameter"), REQUIRED),
-		CX_COMMAND_PARAM(ENUM("seven", "", entries, 5), REQUIRED));
+		CX_CONSOLE_COMMAND_PARAM(STRING("one", "First parameter"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(INT("two", "Second parameter"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(INT_RANGE("two", "Second parameter", 0, 100), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT("three", "Third parameter"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(FLOAT_RANGE("three", "Third parameter", -0.5, 0.5), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(BOOL("four", "Four parameter"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(ENUM("seven", "", entries, 5), REQUIRED));
 }
 
 void cx_console_set_is_input_enabled(struct cx_console* p_console, int b_is_input_enabled) {

@@ -1,15 +1,18 @@
+#include <string.h>
+
 #include "cx_alloc.h"
 #include "cx_asset.h"
 #include "cx_ed_asset_library.h"
 #include "cx_ed_import_image.h"
 #include "cx_image.h"
+#include "cx_io.h"
 #include "cx_logging.h"
 #include "stb_image.h"
 
 static void cx_ed_import_image_from_stbi_retval(
-	int x, int y, int comp, uint8_t* p_pixel_data, struct cx_asset_ref* p_out);
+	const char* s_name, int x, int y, int comp, uint8_t* p_pixel_data, struct cx_asset_ref* p_out);
 
-int cx_ed_import_image(const uint8_t* p_bytes, size_t size, struct cx_asset_ref* p_out) {
+int cx_ed_import_image(const char* s_name, const uint8_t* p_bytes, size_t size, struct cx_asset_ref* p_out) {
 	int x, y, comp;
 	uint8_t* p_pixel_data = stbi_load_from_memory(p_bytes, (int)size, &x, &y, &comp, 0);
 
@@ -18,7 +21,7 @@ int cx_ed_import_image(const uint8_t* p_bytes, size_t size, struct cx_asset_ref*
 		return 0;
 	}
 
-	cx_ed_import_image_from_stbi_retval(x, y, comp, p_pixel_data, p_out);
+	cx_ed_import_image_from_stbi_retval(s_name, x, y, comp, p_pixel_data, p_out);
 
 	return 1;
 }
@@ -32,13 +35,18 @@ int cx_ed_import_image_file(const char* s_filepath, struct cx_asset_ref* p_out) 
 		return 0;
 	}
 
-	cx_ed_import_image_from_stbi_retval(x, y, comp, p_pixel_data, p_out);
+
+	char asset_name_buf[CX_ASSET_NAME_MAX_LEN];
+	size_t asset_name_len;
+	cx_io_filepath_stem_cpy(s_filepath, asset_name_buf, &asset_name_len);
+
+	cx_ed_import_image_from_stbi_retval(asset_name_buf, x, y, comp, p_pixel_data, p_out);
 
 	return 1;
 }
 
 void cx_ed_import_image_from_stbi_retval(
-	int x, int y, int comp, uint8_t* p_pixel_data, struct cx_asset_ref* p_out) {
+	const char* s_name, int x, int y, int comp, uint8_t* p_pixel_data, struct cx_asset_ref* p_out) {
 
 	struct cx_image* p_image = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_IMAGE));
 
@@ -54,5 +62,5 @@ void cx_ed_import_image_from_stbi_retval(
 		case 4: p_image->pixel_data_format.pixel_format = CX_PIXEL_FORMAT_rgba; break;
 	}
 	
-	cx_ed_asset_library_new(CX_ASSET_TYPE_IMAGE, p_image, p_out);
+	cx_ed_asset_library_new(CX_ASSET_TYPE_IMAGE, s_name, p_image, p_out);
 }

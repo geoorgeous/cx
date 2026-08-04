@@ -7,7 +7,7 @@
 #include "cx_io.h"
 #include "cx_logging.h"
 
-int cx_ed_import_bdf(const struct cx_bdf* p_bdf, struct cx_asset_ref* p_out) {
+int cx_ed_import_bdf(const char* s_name, const struct cx_bdf* p_bdf, struct cx_asset_ref* p_out) {
 	struct cx_font* p_font = CX_MALLOC(sizeof(struct cx_font));
 	*p_font = (struct cx_font) {
 		.max_glyph_width_ = p_bdf->max_glyph_width_,
@@ -73,7 +73,7 @@ int cx_ed_import_bdf(const struct cx_bdf* p_bdf, struct cx_asset_ref* p_out) {
 		p_font->space_adv_ = (int32_t)p_font->max_glyph_width_;
 	}
 
-	cx_ed_asset_library_new(CX_ASSET_TYPE_FONT, p_font, p_out);
+	cx_ed_asset_library_new(CX_ASSET_TYPE_FONT, s_name, p_font, p_out);
 
 	return CX_TRUE;
 }
@@ -90,7 +90,11 @@ int cx_ed_import_bdf_file(const char* s_filepath, struct cx_asset_ref* p_out) {
 	cx_bdf_parse(p_bdf_buf, &bdf);
 	cx_io_file_free(p_bdf_buf);
 
-	const int result = cx_ed_import_bdf(&bdf, p_out);
+	char asset_name_buf[CX_ASSET_NAME_MAX_LEN];
+	size_t asset_name_len;
+	cx_io_filepath_stem_cpy(s_filepath, asset_name_buf, &asset_name_len);
+
+	const int result = cx_ed_import_bdf(asset_name_buf, &bdf, p_out);
 
 	cx_bdf_free(&bdf);
 
