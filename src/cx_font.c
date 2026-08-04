@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "cx_alloc.h"
 #include "cx_bits.h"
 #include "cx_font.h"
 #include "cx_image.h"
@@ -22,7 +23,7 @@ int cx_font_glyph_atlas_dst_cmp(
 	const struct cx_font_glyph_atlas_dst* p_b);
 
 void cx_font_free_glyph_bitmap_buffer(struct cx_font* p_font) {
-	free(p_font->p_glyph_bitmap_buf);
+	CX_FREE(p_font->p_glyph_bitmap_buf);
 	p_font->p_glyph_bitmap_buf = 0;
 
 	for (size_t i = 0; i < CX_FONT_NUM_GLYPHS; ++i) {
@@ -180,7 +181,6 @@ int cx_font_serialize(const struct cx_font* p_font, struct cx_stream* p_stream) 
 }
 
 int cx_font_deserialize(struct cx_stream* p_stream, struct cx_font* p_out_font) {
-
 	cx_stream_deserialize_uint32(p_stream, &p_out_font->max_glyph_width_);
 	cx_stream_deserialize_uint32(p_stream, &p_out_font->max_glyph_height_);
 	cx_stream_deserialize_uint32(p_stream, &p_out_font->line_height_);
@@ -188,7 +188,10 @@ int cx_font_deserialize(struct cx_stream* p_stream, struct cx_font* p_out_font) 
 	cx_stream_deserialize_int32(p_stream, &p_out_font->space_adv_);
 	cx_stream_deserialize_bytes(p_stream, sizeof(p_out_font->glyphs_), p_out_font->glyphs_);
 
-	const size_t buf_size = (p_out_font->max_glyph_width_ * p_out_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
+	const size_t buf_size =
+		(p_out_font->max_glyph_width_ * p_out_font->max_glyph_height_ * CX_FONT_NUM_GLYPHS - 7u) / 8u;
+
+	p_out_font->p_glyph_bitmap_buf = CX_MALLOC(buf_size);
 
 	cx_stream_deserialize_bytes(p_stream, buf_size, p_out_font->p_glyph_bitmap_buf);
 
