@@ -1,4 +1,6 @@
 #include "cx_asset_cache.h"
+#include "cx_asset_types.h"
+#include "cx_blueprint.h"
 #include "cx_cmp_collider.h"
 #include "cx_cmp_rigidbody.h"
 #include "cx_cmp_static_mesh.h"
@@ -85,8 +87,11 @@ static struct {
 
 // COMMANDS
 
-int cx_cmd_world_editor_open_blueprint(
-	const struct cx_command_args* p_args, const struct cx_command_context* p_contex);
+int cx_cmd_world_editor_open_world_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+
+int cx_cmd_world_editor_spawn_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
 int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
@@ -184,8 +189,16 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
 	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
 
-	CX_NEW_CONSOLE_COMMAND("open_world_bp", "", cx_cmd_world_editor_open_blueprint, CX_NULL,
-		CX_CONSOLE_COMMAND_PARAM(STRING("asset_name", ""), REQUIRED));
+	CX_NEW_CONSOLE_COMMAND(
+		"open_world_bp",
+		"Open a new or existing world blueprint to edit", cx_cmd_world_editor_open_world_blueprint, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("world_blueprint", "The world blueprint asset's name"), OPTIONAL));
+
+	CX_NEW_CONSOLE_COMMAND(
+		"spawn_bp",
+		"Spawn a blueprint asset in the world, creating the entity hierarchy and components.",
+		cx_cmd_world_editor_spawn_blueprint, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("blueprint", "The blueprint asset's ID or name"), REQUIRED));
 
 	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
@@ -281,17 +294,11 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 
 	input_event_subscribe(INPUT_EVENT_key, cx_ed_world_editor_on_key, 0);
 
-	struct cx_asset_ref gltf_scene_blueprint_asset_ref;
-	cx_ed_import_gltf_file("res/Industrial_exterior_v2.glb", &gltf_scene_blueprint_asset_ref);
-	struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_cache_acquire(&gltf_scene_blueprint_asset_ref);
+	//struct cx_asset_ref gltf_scene_blueprint_asset_ref;
+	//cx_ed_import_gltf_file("res/test.glb", &gltf_scene_blueprint_asset_ref);
+	//struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_cache_acquire(&gltf_scene_blueprint_asset_ref);
 
-	cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
-
-	struct cx_ed_asset_package_builder package_builder;
-
-	cx_ed_asset_package_builder_add_asset(&package_builder, &gltf_scene_blueprint_asset_ref);
-	cx_ed_asset_package_builder_export(&package_builder, "res/test.cxpkg");
-	cx_ed_asset_package_builder_free(&package_builder);
+	//cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
 }
 
 void cx_ed_world_editor_shutdown(void) {
@@ -580,9 +587,32 @@ void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
 	}
 }
 
-int cx_cmd_world_editor_open_blueprint(
-	const struct cx_command_args* p_args, const struct cx_command_context* p_contex) {
+int cx_cmd_world_editor_open_world_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 
+}
+
+int cx_cmd_world_editor_spawn_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	(void)p_context;
+
+	struct cx_asset_ref blueprint_asset_ref;
+	if (!cx_asset_cache_find_by_name(CX_ASSET_TYPE_BLUEPRINT, p_args->list[0].as_str.p, &blueprint_asset_ref)) {
+		return 1;
+	}
+
+	const struct cx_blueprint* p_blueprint = cx_asset_cache_acquire(&blueprint_asset_ref);
+
+	if (!p_blueprint) {
+		return 2;
+	}
+
+	cx_world_instantiate_blueprint(&ed.world, p_blueprint);
+
+	cx_asset_cache_release(&blueprint_asset_ref);
+
+	return 0;
 }
 
 int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
