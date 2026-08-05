@@ -1,6 +1,7 @@
 #ifndef CX_STR_H
 #define CX_STR_H
 
+#include <ctype.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,23 @@
 char* cx_str_f32(char* p_dst, float f);
 
 char* cx_str_f32_n(char* p_dst, const float* p_v, size_t n);
+
+static inline int cx_str_eq(const char* s_a, const char* s_b) {
+	return strcmp(s_a, s_b) == 0;
+}
+
+static inline int cx_str_icmp(const char* s_a, const char* s_b) {
+	while(*s_a && *s_b) {
+		const int c_a = tolower((unsigned char)*s_a);
+		const int c_b = tolower((unsigned char)*s_b);
+		if (c_a != c_b) {
+			return c_a - c_b;
+		}
+		++s_a;
+		++s_b;
+	}
+	return tolower((unsigned char)*s_a) - tolower((unsigned char)*s_b);
+}
 
 static inline int cx_strcmp_n(const char* s_a, const char* p_b, size_t len) {
 	while(len-- && *s_a && *s_a == *p_b) {

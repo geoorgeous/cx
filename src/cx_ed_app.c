@@ -4,6 +4,7 @@
 #include "cx_console.h"
 #include "cx_ed_asset_library.h"
 #include "cx_ed_asset_package_builder.h"
+#include "cx_ed_import.h"
 #include "cx_ed_import_bdf.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_world_editor.h"
@@ -13,6 +14,8 @@ static int cx_ed_app_init(int argc, const char** argv);
 static void cx_ed_app_update(double);
 static void cx_ed_app_draw(const struct cx_gfx_framebuffer*);
 static void cx_ed_app_shutdown(void);
+
+static int cx_cmd_import(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 static int cx_ed_app_open_world_editor_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
@@ -40,6 +43,13 @@ int cx_ed_app_init(int argc, const char** argv) {
 
 	//cx_editor_rebuild_core_asset_package();
 	
+	CX_NEW_CONSOLE_COMMAND(
+		"import", 
+		"Import an asset file", 
+		cx_cmd_import, 
+		CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("filepath", "Filepath of the asset to import"), REQUIRED));
+
 	CX_NEW_CONSOLE_COMMAND(
 		"open_world_editor", 
 		"", 
@@ -77,6 +87,15 @@ void cx_ed_app_shutdown(void) {
 	}
 
 	cx_ed_asset_library_free();
+}
+
+int cx_cmd_import(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	(void)p_context;
+
+	struct cx_asset_ref asset_ref;
+	int b_success = cx_ed_import_file(p_args->list[0].as_str.p, &asset_ref);
+
+	return b_success != CX_TRUE;
 }
 
 int cx_ed_app_open_world_editor_command(

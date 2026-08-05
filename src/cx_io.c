@@ -6,10 +6,10 @@
 #include "cx_error.h"
 #include "cx_logging.h"
 
-enum cx_error cx_io_file_read_all(const char* s_filename, void** pp_out_buf, size_t* p_out_size) {
-	CX_LOG_FMT(INFO, IO, "Reading file from disk '%s'...\n", s_filename);
+enum cx_error cx_io_file_read_all(const char* s_filepath, void** pp_out_buf, size_t* p_out_size) {
+	CX_LOG_FMT(INFO, IO, "Reading file from disk '%s'...\n", s_filepath);
 
-	FILE* file = fopen(s_filename, "rb");
+	FILE* file = fopen(s_filepath, "rb");
 
 	*pp_out_buf = 0;
 
@@ -90,4 +90,17 @@ void cx_io_filepath_stem_cpy(const char* s_filename, char* s_out, size_t* p_out_
 	}
 	
 	strncpy(s_out, p_filepath_stem, *p_out_len);
+}
+
+int cx_io_filepath_ext(const char* s_filepath, const char** pp_out_ext_start, size_t* p_out_ext_len) {
+	const char* p_dot = strrchr(s_filepath, '.');
+
+	if (p_dot == CX_NULL || p_dot[1] == '\0') {
+		return CX_FALSE;
+	}
+
+	*pp_out_ext_start = p_dot + 1;
+	*p_out_ext_len = strlen(*pp_out_ext_start);
+
+	return CX_TRUE;
 }

@@ -85,6 +85,9 @@ static struct {
 
 // COMMANDS
 
+int cx_cmd_world_editor_open_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_contex);
+
 int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
 int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
 int cx_cmd_ent_rot(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
@@ -180,6 +183,9 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 
 	ed.entity_id_at_cursor = CX_ENTITY_ID_INVALID;
 	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
+
+	CX_NEW_CONSOLE_COMMAND("open_world_bp", "", cx_cmd_world_editor_open_blueprint, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("asset_name", ""), REQUIRED));
 
 	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
@@ -572,6 +578,11 @@ void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
 	else if (p_key_event->key == KEY_y && p_key_event->mods & INPUT_MOD_ctrl) {
 		cx_ed_action_history_redo(&ed.action_history);
 	}
+}
+
+int cx_cmd_world_editor_open_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_contex) {
+
 }
 
 int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
