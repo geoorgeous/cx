@@ -22,14 +22,14 @@
 
 struct platform_window;
 
-void cx_ed_init(struct platform_window* p_window);
+void cx_ed_world_editor_init(struct platform_window* p_window);
 
-void cx_ed_shutdown(void);
+void cx_ed_world_editor_shutdown(void);
 
-void cx_ed_update(double dt_seconds);
+void cx_ed_world_editor_update(double dt_seconds);
 
 struct cx_gfx_framebuffer;
 
-void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height);
+void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height);
 
 #endif

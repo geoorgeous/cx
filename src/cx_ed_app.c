@@ -2,11 +2,11 @@
 #include "cx_asset_cache.h"
 #include "cx_command.h"
 #include "cx_console.h"
-#include "cx_ed.h"
 #include "cx_ed_asset_library.h"
 #include "cx_ed_asset_package_builder.h"
 #include "cx_ed_import_bdf.h"
 #include "cx_ed_import_gltf.h"
+#include "cx_ed_world_editor.h"
 #include "cx_macro.h"
 
 static int cx_editor_init(int argc, const char** argv);
@@ -15,7 +15,6 @@ static void cx_editor_draw(const struct cx_gfx_framebuffer*);
 static void cx_editor_shutdown(void);
 
 static void cx_editor_rebuild_core_asset_package(void);
-
 static int cx_editor_rebuild_core_asset_package_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
@@ -49,15 +48,15 @@ int cx_editor_init(int argc, const char** argv) {
 }
 
 void cx_editor_update(double frame_delta_time) {
-	cx_ed_update(frame_delta_time);
+	//cx_ed_update(frame_delta_time);
 }
 
 void cx_editor_draw(const struct cx_gfx_framebuffer* p_frambuffer) {
-	cx_ed_draw(p_frambuffer, 1920, 1080);
+	//cx_ed_draw(p_frambuffer, 1920, 1080);
 }
 
 void cx_editor_shutdown(void) {
-	cx_ed_shutdown();
+	cx_ed_world_editor_shutdown();
 	cx_ed_asset_library_free();
 }
 

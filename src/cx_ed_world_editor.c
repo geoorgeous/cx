@@ -4,11 +4,11 @@
 #include "cx_cmp_static_mesh.h"
 #include "cx_command.h"
 #include "cx_console.h"
-#include "cx_ed.h"
 #include "cx_ed_action.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_asset_package_builder.h"
 #include "cx_ed_transform_gizmo.h"
+#include "cx_ed_world_editor.h"
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_object_id_capturer.h"
@@ -167,9 +167,9 @@ void cx_ed_action_set_entity_transform_undo(void* p_ctx) {
 uint16_t cx_ed_destroy_entity(uint16_t entity_id);
 uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
 
-static void cx_ed_on_key(const void* p_e, void* p_user_ptr);
+static void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr);
 
-void cx_ed_init(struct platform_window* p_window) {
+void cx_ed_world_editor_init(struct platform_window* p_window) {
 	ed.p_window = p_window;
 
 	ed.flog_builder = (struct cx_flog_builder) {
@@ -273,7 +273,7 @@ void cx_ed_init(struct platform_window* p_window) {
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
-	input_event_subscribe(INPUT_EVENT_key, cx_ed_on_key, 0);
+	input_event_subscribe(INPUT_EVENT_key, cx_ed_world_editor_on_key, 0);
 
 	struct cx_asset_ref gltf_scene_blueprint_asset_ref;
 	cx_ed_import_gltf_file("res/Industrial_exterior_v2.glb", &gltf_scene_blueprint_asset_ref);
@@ -288,11 +288,11 @@ void cx_ed_init(struct platform_window* p_window) {
 	cx_ed_asset_package_builder_free(&package_builder);
 }
 
-void cx_ed_shutdown(void) {
+void cx_ed_world_editor_shutdown(void) {
 	cx_world_free(&ed.world);
 }
 
-void cx_ed_update(double dt_seconds) {
+void cx_ed_world_editor_update(double dt_seconds) {
 	float move_direction[3] = {0};
 	if (!cx_console_get()->b_is_input_enabled) {
 		if (input_frame_is_key_down(KEY_a)) {
@@ -442,7 +442,7 @@ void cx_ed_update(double dt_seconds) {
 	cx_world_compute_transforms(&ed.world);
 }
 
-void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
+void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
 	matrix_make_perspective_projection(
 		1,
 		(float)fb_width / (float)fb_height,
@@ -557,7 +557,7 @@ void cx_ed_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32
 		mouse_position_normalized[0], mouse_position_normalized[1]);
 }
 
-void cx_ed_on_key(const void* p_e, void* p_user_ptr) {
+void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
 	(void)p_user_ptr;
 
 	const struct input_event_data_key* p_key_event = p_e;

@@ -116,9 +116,9 @@ SRC_FILTER_OUT := $(foreach x, $(SRC_IGNORE_WILDCARDS), $(wildcard $(SRC_DIR)/$(
 SRC            := $(filter-out $(SRC_FILTER_OUT), $(SRC_ALL))
 
 ifeq ($(TARGET),runtime)
-	SRC        := $(filter-out $(SRC_DIR)/cx_editor.c, $(SRC))
+	SRC        := $(filter-out $(SRC_DIR)/cx_ed_app.c, $(SRC))
 else ifeq ($(TARGET),editor)
-	SRC        := $(filter-out $(SRC_DIR)/cx_runtime.c, $(SRC))
+	SRC        := $(filter-out $(SRC_DIR)/cx_rt_app.c, $(SRC))
 endif
 
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
