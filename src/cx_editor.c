@@ -9,7 +9,7 @@
 #include "cx_ed_import_gltf.h"
 #include "cx_macro.h"
 
-static int cx_editor_init(void);
+static int cx_editor_init(int argc, const char** argv);
 static void cx_editor_update(double);
 static void cx_editor_draw(const struct cx_gfx_framebuffer*);
 static void cx_editor_shutdown(void);
@@ -24,7 +24,10 @@ static int cx_asset_source_find_library_asset_by_name(
 	cx_asset_type type, const char* s_name, void* p_context, struct cx_asset_ref* p_out_ref);
 static int cx_asset_source_deserialize_library_asset(cx_asset_id id, void* p_context, void* p_out);
 
-int cx_editor_init(void) {
+int cx_editor_init(int argc, const char** argv) {
+	(void)argc;
+	(void)argv;
+
 	cx_asset_cache_push_source(&(struct cx_asset_source) {
 		.f_get_asset_name = cx_asset_source_get_library_asset_name,
 		.f_find_asset_by_name = cx_asset_source_find_library_asset_by_name,
@@ -40,7 +43,7 @@ int cx_editor_init(void) {
 		CX_NULL,
 		CX_CONSOLE_COMMAND_NO_PARAMS);
 
-	cx_ed_init(cx_app_primary_window());
+	//cx_ed_init(cx_app_primary_window());
 
 	return 0;
 }

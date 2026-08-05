@@ -70,7 +70,14 @@ static int cx_asset_source_find_package_asset_by_name(
 	cx_asset_type type, const char* s_name, void* p_context, struct cx_asset_ref* p_out_ref);
 static int cx_asset_source_deserialize_package_asset(cx_asset_id id, void* p_context, void* p_out);
 
-int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_height, cx_app_init_callback_fn f_init) {
+int cx_app_init(
+	const char* s_name,
+	uint32_t window_width,
+	uint32_t window_height,
+	cx_app_init_callback_fn f_init,
+	int argc,
+	const char** argv) {
+
 	enum cx_error err;
 
 	err = platform_window_create(
@@ -215,7 +222,7 @@ int cx_app_init(const char* s_name, uint32_t window_width, uint32_t window_heigh
 
 	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
 
-	f_init();
+	f_init(argc, argv);
 
 	return 0;
 }
