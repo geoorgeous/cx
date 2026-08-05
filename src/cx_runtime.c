@@ -18,10 +18,10 @@ int main(int argc, const char** argv) {
 		s_manifest_filename = argv[1];
 	}
 
-	struct cx_rt_manifest manifest;
-	cx_rt_manifest_load_from_file(s_manifest_filename, &manifest);
+	//struct cx_rt_manifest manifest;
+	//cx_rt_manifest_load_from_file(s_manifest_filename, &manifest);
 
-	cx_app_init(manifest.title_buf, manifest.window_size[0], manifest.window_size[1], cx_runtime_init);
+	cx_app_init("cx demo", 800, 600, cx_runtime_init);
 
 	cx_app_run(cx_runtime_update, cx_runtime_draw);
 
