@@ -107,10 +107,7 @@ int cx_editor_rebuild_core_asset_package_command(
 }
 
 int main(int argc, const char** argv) {
-	(void)argc;
-	(void)argv;
-
-	cx_app_init("cx editor", 1920, 1080, cx_editor_init);
+	cx_app_init("cx editor", 1920, 1080, cx_editor_init, argc, argv);
 	cx_app_run(cx_editor_update, cx_editor_draw);
 	cx_app_shutdown(cx_editor_shutdown);
 }

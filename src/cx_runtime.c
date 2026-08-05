@@ -22,9 +22,7 @@ int main(int argc, const char** argv) {
 	//cx_rt_manifest_load_from_file(s_manifest_filename, &manifest);
 
 	cx_app_init("cx demo", 800, 600, cx_runtime_init, argc, argv);
-
 	cx_app_run(cx_runtime_update, cx_runtime_draw);
-
 	cx_app_shutdown(cx_runtime_shutdown);
 
 	return 0;
