@@ -9,13 +9,16 @@
 #include "cx_ed_world_editor.h"
 #include "cx_macro.h"
 
-static int cx_editor_init(int argc, const char** argv);
-static void cx_editor_update(double);
-static void cx_editor_draw(const struct cx_gfx_framebuffer*);
-static void cx_editor_shutdown(void);
+static int cx_ed_app_init(int argc, const char** argv);
+static void cx_ed_app_update(double);
+static void cx_ed_app_draw(const struct cx_gfx_framebuffer*);
+static void cx_ed_app_shutdown(void);
 
-static void cx_editor_rebuild_core_asset_package(void);
-static int cx_editor_rebuild_core_asset_package_command(
+static int cx_ed_app_open_world_editor_command(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+
+static void cx_ed_rebuild_core_asset_package(void);
+static int cx_ed_rebuild_core_asset_package_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 static int cx_asset_source_get_library_asset_name(cx_asset_id id, void* p_context, const char** pp_out);
@@ -23,7 +26,9 @@ static int cx_asset_source_find_library_asset_by_name(
 	cx_asset_type type, const char* s_name, void* p_context, struct cx_asset_ref* p_out_ref);
 static int cx_asset_source_deserialize_library_asset(cx_asset_id id, void* p_context, void* p_out);
 
-int cx_editor_init(int argc, const char** argv) {
+static int b_is_world_editor_open;
+
+int cx_ed_app_init(int argc, const char** argv) {
 	(void)argc;
 	(void)argv;
 
@@ -34,11 +39,18 @@ int cx_editor_init(int argc, const char** argv) {
 	});
 
 	//cx_editor_rebuild_core_asset_package();
+	
+	CX_NEW_CONSOLE_COMMAND(
+		"open_world_editor", 
+		"", 
+		cx_ed_app_open_world_editor_command, 
+		CX_NULL,
+		CX_CONSOLE_COMMAND_NO_PARAMS);
 
 	CX_NEW_CONSOLE_COMMAND(
 		"rebuild_core_pkg",
 		"",
-		cx_editor_rebuild_core_asset_package_command,
+		cx_ed_rebuild_core_asset_package_command,
 		CX_NULL,
 		CX_CONSOLE_COMMAND_NO_PARAMS);
 
@@ -47,20 +59,44 @@ int cx_editor_init(int argc, const char** argv) {
 	return 0;
 }
 
-void cx_editor_update(double frame_delta_time) {
-	//cx_ed_update(frame_delta_time);
+void cx_ed_app_update(double frame_delta_time) {
+	if (b_is_world_editor_open) {
+		cx_ed_world_editor_update(frame_delta_time);
+	}
 }
 
-void cx_editor_draw(const struct cx_gfx_framebuffer* p_frambuffer) {
-	//cx_ed_draw(p_frambuffer, 1920, 1080);
+void cx_ed_app_draw(const struct cx_gfx_framebuffer* p_frambuffer) {
+	if (b_is_world_editor_open) {
+		cx_ed_world_editor_draw(p_frambuffer, 1920, 1080);
+	}
 }
 
-void cx_editor_shutdown(void) {
-	cx_ed_world_editor_shutdown();
+void cx_ed_app_shutdown(void) {
+	if (b_is_world_editor_open) {
+		cx_ed_world_editor_shutdown();
+	}
+
 	cx_ed_asset_library_free();
 }
 
-void cx_editor_rebuild_core_asset_package(void) {
+int cx_ed_app_open_world_editor_command(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	(void)p_args;
+	(void)p_context;
+
+	if (b_is_world_editor_open) {
+		return 0;
+	}
+
+	cx_ed_world_editor_init(cx_app_primary_window());
+
+	b_is_world_editor_open = CX_TRUE;
+	
+	return 0;
+}
+
+void cx_ed_rebuild_core_asset_package(void) {
 	struct cx_ed_asset_package_builder package_builder = {0};
 
 	struct cx_asset_ref asset_ref;
@@ -97,16 +133,16 @@ int cx_asset_source_deserialize_library_asset(cx_asset_id id, void* p_context, v
 	return cx_ed_asset_library_deserialize_asset(id, p_out);
 }
 
-int cx_editor_rebuild_core_asset_package_command(
+int cx_ed_rebuild_core_asset_package_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	(void)p_args;
 	(void)p_context;
-	cx_editor_rebuild_core_asset_package();
+	cx_ed_rebuild_core_asset_package();
 	return 0;
 }
 
 int main(int argc, const char** argv) {
-	cx_app_init("cx editor", 1920, 1080, cx_editor_init, argc, argv);
-	cx_app_run(cx_editor_update, cx_editor_draw);
-	cx_app_shutdown(cx_editor_shutdown);
+	cx_app_init("cx editor", 1920, 1080, cx_ed_app_init, argc, argv);
+	cx_app_run(cx_ed_app_update, cx_ed_app_draw);
+	cx_app_shutdown(cx_ed_app_shutdown);
 }
