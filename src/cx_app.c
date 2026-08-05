@@ -87,9 +87,6 @@ int cx_app_init(
 		0,
 		&cx_app.window);
 
-	CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
-	CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
-
 	if (err != CX_ERROR_none) {
 		return (int)err;
 	}
@@ -216,6 +213,9 @@ int cx_app_init(
 		free(font_atlas_image.p_pixel_data);
 
 		cx_console_init(cx_console_get());
+
+		CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
+		CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
 	}
 
 	input_init();

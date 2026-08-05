@@ -8,14 +8,6 @@
 #include "cx_stream_serialization.h"
 #include "hashtable.h"
 
-struct cx_ed_asset_library_entry {
-	struct cx_asset_ref asset_ref;
-	char name[CX_ASSET_NAME_MAX_LEN + 1];
-	char filepath[250];
-	size_t asset_file_offset;
-	int b_is_dirty;
-};
-
 static struct hashtable library_asset_tables[CX_ASSET_TYPE_ID_MAX];
 
 void cx_ed_asset_library_add_file(const char* s_filepath) {
@@ -141,6 +133,27 @@ int cx_ed_asset_library_deserialize_asset(cx_asset_id id, void* p_out) {
 	cx_stream_close(&stream.base);
 
 	return b_result;
+}
+
+void cx_ed_asset_library_enumerate_assets(cx_ed_asset_library_enumerate_assets_cb_fn f_cb, void* p_user_ptr) {
+	for (cx_asset_type t = 0; t < CX_ASSET_TYPE_ID_MAX; ++t) {
+		if (library_asset_tables[t].element_size_ != 0) {
+			cx_ed_asset_library_enumerate_assets_of_type(t, f_cb, p_user_ptr);
+		}
+	}
+}
+
+void cx_ed_asset_library_enumerate_assets_of_type(
+	cx_asset_type type, cx_ed_asset_library_enumerate_assets_cb_fn f_cb, void* p_user_ptr) {
+
+	struct hashtable_itr itr;
+	hashtable_itr(&library_asset_tables[type], &itr);
+
+	while (hashtable_itr_is_valid(&itr)) {
+		const struct cx_ed_asset_library_entry* p_entry = itr.p_value;
+		f_cb(p_entry, p_user_ptr);
+		hashtable_itr_next(&itr);
+	}
 }
 
 void cx_ed_asset_library_free(void) {

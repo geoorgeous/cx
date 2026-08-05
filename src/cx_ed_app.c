@@ -1,4 +1,5 @@
 #include "cx_app.h"
+#include "cx_asset.h"
 #include "cx_asset_cache.h"
 #include "cx_command.h"
 #include "cx_console.h"
@@ -14,6 +15,10 @@ static int cx_ed_app_init(int argc, const char** argv);
 static void cx_ed_app_update(double);
 static void cx_ed_app_draw(const struct cx_gfx_framebuffer*);
 static void cx_ed_app_shutdown(void);
+
+static int cx_cmd_list_assets(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+static void cx_cmp_list_assets_asset_library_enumerate_cb(
+	const struct cx_ed_asset_library_entry* p_entry, void* p_user_ptr);
 
 static int cx_cmd_import(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
@@ -43,6 +48,13 @@ int cx_ed_app_init(int argc, const char** argv) {
 
 	//cx_editor_rebuild_core_asset_package();
 	
+	CX_NEW_CONSOLE_COMMAND(
+		"list_assets", 
+		"List all assets in the editor asset library", 
+		cx_cmd_list_assets, 
+		CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("type", "The asset type to filter by"), OPTIONAL));
+
 	CX_NEW_CONSOLE_COMMAND(
 		"import", 
 		"Import an asset file", 
@@ -87,6 +99,23 @@ void cx_ed_app_shutdown(void) {
 	}
 
 	cx_ed_asset_library_free();
+}
+
+int cx_cmd_list_assets(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	cx_ed_asset_library_enumerate_assets(cx_cmp_list_assets_asset_library_enumerate_cb, p_context->p_flogger);
+
+	// todo filter by type
+
+	return 0;
+}
+
+void cx_cmp_list_assets_asset_library_enumerate_cb(const struct cx_ed_asset_library_entry* p_entry, void* p_user_ptr) {
+	(void)p_user_ptr;
+
+	CX_LOG_FMT(INFO, ASSET, "[%X:%s] %s\n",
+		p_entry->asset_ref.asset_id,
+		cx_asset_type_display_name_str(CX_ASSET_GET_TYPE_ID(p_entry->asset_ref.asset_id)),
+		p_entry->name);
 }
 
 int cx_cmd_import(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
