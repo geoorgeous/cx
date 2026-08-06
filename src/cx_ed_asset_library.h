@@ -10,12 +10,13 @@ struct cx_ed_asset_library_entry {
 	char name[CX_ASSET_NAME_MAX_LEN + 1];
 	char filepath[250];
 	size_t asset_file_offset;
-	int b_is_dirty;
+	int b_unsaved;
 };
 
 typedef void(*cx_ed_asset_library_enumerate_assets_cb_fn)(const struct cx_ed_asset_library_entry*, void*);
 
-void cx_ed_asset_library_add_file(const char* s_filepath);
+int cx_ed_asset_library_add_file(const char* s_filepath, struct cx_asset_ref* p_out);
+int cx_ed_asset_library_import_asset_package(const char* s_filepath);
 void cx_ed_asset_library_new(cx_asset_type type, const char* s_name, void* p_asset, struct cx_asset_ref* p_out);
 void cx_ed_asset_library_delete(cx_asset_id id);
 void cx_ed_asset_library_make_dirty(cx_asset_id id);
