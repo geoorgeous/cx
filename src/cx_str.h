@@ -16,6 +16,10 @@ static inline int cx_str_eq(const char* s_a, const char* s_b) {
 	return strcmp(s_a, s_b) == 0;
 }
 
+static inline int cx_str_is_empty(const char* s) {
+	return s == CX_NULL || s[0] == '\0';
+}
+
 static inline int cx_str_icmp(const char* s_a, const char* s_b) {
 	while(*s_a && *s_b) {
 		const int c_a = tolower((unsigned char)*s_a);
