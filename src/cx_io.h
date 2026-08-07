@@ -14,5 +14,8 @@ void cx_io_file_free(void* p_file_read_all_result);
 void cx_io_filepath_stem(const char* s_filepath, const char** pp_out_stem_start, size_t* p_out_stem_len);
 void cx_io_filepath_stem_cpy(const char* s_filepath, char* s_out, size_t* p_out_len);
 int  cx_io_filepath_ext(const char* s_filepath, const char** pp_out_ext_start, size_t* p_out_ext_len);
+int  cx_io_filepath_exists(const char* s_filepath);
+int  cx_io_filepath_is_file(const char* s_filepath);
+int  cx_io_filepath_is_dir(const char* s_filepath);
 
 #endif

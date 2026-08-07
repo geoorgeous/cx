@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "cx_io.h"
 #include "cx_error.h"
@@ -103,4 +104,19 @@ int cx_io_filepath_ext(const char* s_filepath, const char** pp_out_ext_start, si
 	*p_out_ext_len = strlen(*pp_out_ext_start);
 
 	return CX_TRUE;
+}
+
+int cx_io_filepath_exists(const char* s_filepath) {
+	struct stat st;
+	return stat(s_filepath, &st) == 0;
+}
+
+int cx_io_filepath_is_file(const char* s_filepath) {
+	struct stat st;
+	return stat(s_filepath, &st) == 0 && S_ISREG(st.st_mode);
+}
+
+int cx_io_filepath_is_dir(const char* s_filepath) {
+	struct stat st;
+	return stat(s_filepath, &st) == 0 && S_ISDIR(st.st_mode);
 }
