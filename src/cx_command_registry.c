@@ -218,7 +218,7 @@ int cx_command_registry_find_alias(
 	return b_found;
 }
 
-int cx_command_registry_execute(
+cx_result cx_command_registry_execute(
 	const struct cx_command_registry* p_registry,
 	const char* s_command,
 	struct cx_flogger* p_flogger) {
@@ -254,7 +254,7 @@ int cx_command_registry_execute(
 	}
 
 	if (!s_command_name) {
-		return 0;
+		return CX_ERROR_INVALID_ARG;
 	}
 
 	char name_buf[CX_COMMAND_REGISTRY_MAX_NAME_LEN + 1];
@@ -274,8 +274,7 @@ int cx_command_registry_execute(
 
 	if (b_found) {
 		const struct cx_command_alias* p_alias = &p_registry->p_aliases_[index];
-		cx_command_registry_execute(p_registry, p_alias->s_expansion, p_flogger);
-		return 0;
+		return cx_command_registry_execute(p_registry, p_alias->s_expansion, p_flogger);
 	}
 
 	CX_BSEARCH(
@@ -289,15 +288,24 @@ int cx_command_registry_execute(
 		cx_flog_append(&flog, "command not found: ");
 		cx_flog_append(&flog, name_buf);
 		cx_flog_end(p_flogger, &flog);
-		return 0;
+		return CX_ERROR_NOT_FOUND;
 	}
 
 	const struct cx_command* p_command = p_registry->pp_commands_[index];
 	
+	cx_result result;
 
 	struct cx_command_args args;
-	if (!cx_command_resolve_args(p_command, s_args, CX_COMMAND_MAX_PARAMS, &args)) {
-		return 0;
+	result = cx_command_resolve_args(p_command, s_args, CX_COMMAND_MAX_PARAMS, &args);
+	if (result != CX_SUCCESS) {
+		if (result == CX_ERROR_INVALID_ARG) {
+			cx_flog_append(&flog, "Invalid argument(s)");
+		} else if (result == CX_ERROR_CMD_INCORRECT_ARG_NUM) {
+			cx_flog_append(&flog, "Incorrect number of arguments");
+		}
+		cx_flog_end(p_flogger, &flog);
+
+		return result;
 	}
 
 	const struct cx_command_context context = {
@@ -305,9 +313,10 @@ int cx_command_registry_execute(
 		.p_flogger = p_flogger
 	};
 
-	int ret = p_command->f(&args, &context);
-	CX_LOG_FMT(INFO, COMMAND, "command \"%s, argc=%d, args=%s\" returned %d\n", p_command->s_name, args.count, s_args, ret);
-	return ret;
+	result = p_command->f(&args, &context);
+	CX_LOG_FMT(INFO, COMMAND, "command \"%s, argc=%d, args=%s\" returned %d\n",
+		p_command->s_name, args.count, s_args, result);
+	return result;
 }
 
 int cx_command_registry_add_validate_name(const char* s_name) {

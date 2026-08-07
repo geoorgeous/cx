@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cx_result.h"
 #include "cx_var.h"
 
 #define CX_LOG_CAT_COMMAND "command"
@@ -12,6 +13,8 @@
 
 #define CX_COMMAND_PARAM_REQUIRED 1
 #define CX_COMMAND_PARAM_OPTIONAL 0
+
+#define CX_ERROR_CMD_INCORRECT_ARG_NUM 300
 
 struct cx_command_param {
 	struct cx_var_desc desc;
@@ -41,7 +44,13 @@ struct cx_command {
 	void* p_user_ptr;
 };
 
-int cx_command_resolve_args(
+/*
+ * Returns:
+ *   CX_ERROR_CMD_INCORRECT_ARG_NUM
+ *   CX_ERROR_OUT_OF_MEMORY
+ *   CX_ERROR_INVALID_ARG
+ */
+cx_result cx_command_resolve_args(
 	const struct cx_command* p_command,
 	const char* s_args,
 	size_t args_max_count,

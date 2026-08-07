@@ -7,7 +7,7 @@
 #include "cx_dbg.h"
 #include "cx_logging.h"
 
-int cx_command_resolve_args(
+cx_result cx_command_resolve_args(
 	const struct cx_command* p_command,
 	const char* s_args,
 	size_t args_max_count,
@@ -25,12 +25,12 @@ int cx_command_resolve_args(
 
 		if (argc == p_command->num_params) {
 			CX_DBG(CX_LOG_FMT(INFO, COMMAND, "usage error: too many arguments, expected %d\n", p_command->num_params));
-			return 0;
+			return CX_ERROR_CMD_INCORRECT_ARG_NUM;
 		}
 
 		if (argc == args_max_count) {
 			CX_DBG(CX_LOG(INFO, COMMAND, "internal error: argument buffer too small\n"));
-			return 0;
+			return CX_ERROR_OUT_OF_MEMORY;
 		}
 
 		size_t len;
@@ -44,7 +44,7 @@ int cx_command_resolve_args(
 			}
 			if (p[1] != '\"') {
 				CX_LOG(INFO, COMMAND, "usage error: unmatched quotes\n");
-				return 0;
+				return CX_ERROR_INVALID_ARG;
 			}
 			len = (size_t)(p - s_arg + 1);
 			p++;
@@ -64,7 +64,7 @@ int cx_command_resolve_args(
 				argc + 1,
 				len, s_arg,
 				cx_var_type_str(p_command->p_params[argc].desc.type)));
-			return 0;
+			return CX_ERROR_INVALID_ARG;
 		}
 
 		++argc;
@@ -72,10 +72,10 @@ int cx_command_resolve_args(
 
 	if (argc < p_command->num_params && p_command->p_params[argc].b_required) {
 		CX_DBG(CX_LOG(INFO, COMMAND, "usage error: missing required arguments\n"));
-		return 0;
+		return CX_ERROR_CMD_INCORRECT_ARG_NUM;
 	}
 
 	p_out_args->count = argc;
 
-	return 1;
+	return CX_SUCCESS;
 }

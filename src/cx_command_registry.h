@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "cx_result.h"
+
 struct cx_command;
 
 struct cx_command_alias {
@@ -46,7 +48,7 @@ int cx_command_registry_find_alias(
 
 struct cx_flogger;
 
-int cx_command_registry_execute(
+cx_result cx_command_registry_execute(
 	const struct cx_command_registry* p_registry,
 	const char* s_command,
 	struct cx_flogger* p_flogger);
