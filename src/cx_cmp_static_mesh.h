@@ -1,7 +1,7 @@
 #ifndef CX_CMP_STATIC_MESH_H
 #define CX_CMP_STATIC_MESH_H
 
-#include "cx_asset.h"
+#include "cx_asset_defs.h"
 #include "cx_component.h"
 
 extern struct cx_component_type cmp_type_static_mesh;

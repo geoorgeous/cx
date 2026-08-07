@@ -3,7 +3,7 @@
 
 #define CX_LOG_CAT_IMPORT_GLTF "import:gltf"
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 struct gltf;
 

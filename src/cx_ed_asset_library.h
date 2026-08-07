@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 struct cx_ed_asset_library_entry {
 	struct cx_asset_ref asset_ref;

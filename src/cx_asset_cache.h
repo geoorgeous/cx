@@ -1,7 +1,7 @@
 #ifndef CX_ASSET_CACHE_H
 #define CX_ASSET_CACHE_H
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 #define CX_LOG_CAT_ASSET_CACHE "asset:cache"
 

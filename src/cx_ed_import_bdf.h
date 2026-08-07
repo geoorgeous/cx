@@ -1,7 +1,7 @@
 #ifndef CX_IMPORT_BDF_H
 #define CX_IMPORT_BDF_H
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 struct cx_bdf;
 

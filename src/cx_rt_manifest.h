@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "cx_array.h"
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 struct cx_rt_manifest {
 	char title_buf[64];

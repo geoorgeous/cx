@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 #include "hashtable.h"
 
 #define CX_LOG_CAT_ASSET_PACKAGE "asset:pkg"

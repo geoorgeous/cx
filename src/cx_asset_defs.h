@@ -1,5 +1,5 @@
-#ifndef CX_ASSET_TYPES_H
-#define CX_ASSET_TYPES_H
+#ifndef CX_ASSET_DEFS_H
+#define CX_ASSET_DEFS_H
 
 #include <stdint.h>
 
@@ -13,6 +13,9 @@
 #define CX_ASSET_GET_IDN(ID) (((uint32_t)(ID)) & CX_ASSET_IDN_MASK)
 
 #define CX_ASSET_NAME_MAX_LEN 255
+
+#define CX_ED_IMPORT_FILE_SIG_ASSET         (uint8_t[]){ 'C', 'X', '.', 'A', 'S', 'S', 'E', 'T' }
+#define CX_ED_IMPORT_FILE_SIG_ASSET_PACKAGE (uint8_t[]){ 'C', 'X', '.', '.', '.', 'P', 'K', 'G' }
 
 typedef uint8_t cx_asset_type;
 

@@ -2,7 +2,7 @@
 #define CX_ED_ASSET_PACKAGE_BUILDER_H
 
 #include "cx_array.h"
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 #define CX_LOG_CAT_ASSET_PACKAGE_BUILDER "asset:pkg_builder"
 

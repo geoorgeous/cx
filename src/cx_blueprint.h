@@ -2,7 +2,7 @@
 #define CX_BLUEPRINT_H
 
 #include "cx_array.h"
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 #include "cx_component.h"
 #include "transform.h"
 

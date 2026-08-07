@@ -1,7 +1,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 #define CX_ASSET_TYPE_MATERIAL 3
 
