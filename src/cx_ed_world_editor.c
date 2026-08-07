@@ -1,5 +1,5 @@
 #include "cx_asset_cache.h"
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_collider.h"
 #include "cx_cmp_rigidbody.h"

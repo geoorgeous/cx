@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "cx_asset_types.h"
+#include "cx_asset_defs.h"
 
 static inline cx_asset_id cx_ed_asset_generate_id(cx_asset_type type) {
 	const uint32_t id_number =
