@@ -246,6 +246,8 @@ int cx_blueprint_deserialize(struct cx_stream* p_stream, struct cx_blueprint* p_
 		cx_stream_deserialize_uint16(p_stream, &p_node->id);
 		cx_stream_deserialize_uint16(p_stream, &p_node->parent_id);
 
+		p_node->transform.p_local_transform = CX_NULL;
+
 		cx_stream_deserialize_bytes(p_stream,
 			sizeof(p_node->transform.position), p_node->transform.position);
 		cx_stream_deserialize_bytes(p_stream,
