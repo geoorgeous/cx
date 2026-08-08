@@ -79,7 +79,6 @@ int cx_ed_import_bdf(const char* s_name, const struct cx_bdf* p_bdf, struct cx_a
 }
 
 int cx_ed_import_bdf_file(const char* s_filepath, struct cx_asset_ref* p_out) {
-
 	void* p_bdf_buf;
 	size_t bdf_buf_size;
 	if (cx_io_file_read_all(s_filepath, &p_bdf_buf, &bdf_buf_size) != CX_ERROR_none) {
