@@ -4,6 +4,9 @@
 #include <stddef.h>
 
 #include "cx_asset_defs.h"
+#include "cx_result.h"
+
+#define CX_ERROR_ASSET_NO_FILEPATH 200
 
 struct cx_ed_asset_library_entry {
 	struct cx_asset_ref asset_ref;
@@ -15,18 +18,46 @@ struct cx_ed_asset_library_entry {
 
 typedef void(*cx_ed_asset_library_enumerate_assets_cb_fn)(const struct cx_ed_asset_library_entry*, void*);
 
-int cx_ed_asset_library_add_file(const char* s_filepath, struct cx_asset_ref* p_out);
-int cx_ed_asset_library_import_asset_package(const char* s_filepath);
+cx_result cx_ed_asset_library_add_file(const char* s_filepath, struct cx_asset_ref* p_out);
+
+void cx_ed_asset_library_scan_dir(const char* s_dir);
+
+cx_result cx_ed_asset_library_import_asset_package(const char* s_filepath);
+
 void cx_ed_asset_library_new(cx_asset_type type, const char* s_name, void* p_asset, struct cx_asset_ref* p_out);
+
 void cx_ed_asset_library_delete(cx_asset_id id);
-void cx_ed_asset_library_make_dirty(cx_asset_id id);
-void cx_ed_asset_library_save(cx_asset_id id);
+
+void cx_ed_asset_library_set_filepath(cx_asset_id id, const char* s_filepath);
+
+/* Returns:
+ *   CX_ERROR_NOT_FOUND
+ *   CX_ERROR_ASSET_NO_FILEPATH
+ *   CX_ERROR_IO
+ */
+cx_result cx_ed_asset_library_save(cx_asset_id id);
+
+/* Returns:
+ *   CX_ERROR_NOT_FOUND
+ *   CX_ERROR_ASSET_NO_FILEPATH
+ *   CX_ERROR_IO
+ *   CX_ERROR_ALREADY_EXISTS
+ */
+cx_result cx_ed_asset_library_save_as(cx_asset_id id, const char* s_filepath);
+
+void cx_ed_asset_library_save_all_unsaved(void);
+
 int cx_ed_asset_library_get_asset_name(cx_asset_id id, const char** pp_out);
+
 int cx_ed_asset_library_find_asset_by_name(cx_asset_type type, const char* s_name, struct cx_asset_ref* p_out);
+
 int cx_ed_asset_library_deserialize_asset(cx_asset_id id, void* p_out);
+
 void cx_ed_asset_library_enumerate_assets(cx_ed_asset_library_enumerate_assets_cb_fn f_cb, void* p_user_ptr);
+
 void cx_ed_asset_library_enumerate_assets_of_type(
 	cx_asset_type type, cx_ed_asset_library_enumerate_assets_cb_fn f_cb, void* p_user_ptr);
+
 void cx_ed_asset_library_free(void);
 
 #endif

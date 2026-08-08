@@ -13,12 +13,10 @@
 #include "cx_stream_serialization.h"
 #include "cx_stream_file.h"
 
-#define CX_ED_IMPORT_FILE_SIG_JPG           (uint8_t[]){ 0xFF, 0xD8, 0xFF }
-#define CX_ED_IMPORT_FILE_SIG_PNG           (uint8_t[]){ '%', 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A }
-#define CX_ED_IMPORT_FILE_SIG_BMP           (uint8_t[]){ 'B', 'M' }
-#define CX_ED_IMPORT_FILE_SIG_GLB           (uint8_t[]){ 'g', 'l', 'T', 'F' }
-#define CX_ED_IMPORT_FILE_SIG_ASSET         (uint8_t[]){ 'C', 'X', '.', 'A', 'S', 'S', 'E', 'T' }
-#define CX_ED_IMPORT_FILE_SIG_ASSET_PACKAGE (uint8_t[]){ 'C', 'X', '.', '.', '.', 'P', 'K', 'G' }
+#define CX_ED_IMPORT_FILE_SIG_JPG (uint8_t[]){ 0xFF, 0xD8, 0xFF }
+#define CX_ED_IMPORT_FILE_SIG_PNG (uint8_t[]){ '%', 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A }
+#define CX_ED_IMPORT_FILE_SIG_BMP (uint8_t[]){ 'B', 'M' }
+#define CX_ED_IMPORT_FILE_SIG_GLB (uint8_t[]){ 'g', 'l', 'T', 'F' }
 
 #define CX_ED_IMPORT_FILE_SIG_EQ(A, B) (memcmp(A, B, sizeof(B)) == 0)
 
@@ -51,7 +49,7 @@ int cx_ed_import_file(const char* s_filepath, struct cx_asset_ref* p_out_asset_r
 	}
 
 	if (CX_ED_IMPORT_FILE_SIG_EQ(header, CX_ED_IMPORT_FILE_SIG_ASSET_PACKAGE)) {
-		// todo: import asset package
+		return cx_ed_asset_library_import_asset_package(s_filepath);
 	}
 
 	// If we don't recognise a known file signature, we try to infer import route from file extension
@@ -84,7 +82,7 @@ int cx_ed_import_file(const char* s_filepath, struct cx_asset_ref* p_out_asset_r
 		}
 
 		if (cx_str_icmp(p_ext, "cxpkg") == 0) {
-			// todo: import asset package
+		return cx_ed_asset_library_import_asset_package(s_filepath);
 		}
 	}
 

@@ -1,3 +1,4 @@
+#include "cx_asset.h"
 #include "cx_asset_cache.h"
 #include "cx_asset_defs.h"
 #include "cx_blueprint.h"
@@ -6,9 +7,9 @@
 #include "cx_cmp_static_mesh.h"
 #include "cx_command.h"
 #include "cx_console.h"
+#include "cx_dbg.h"
 #include "cx_ed_action.h"
-#include "cx_ed_import_gltf.h"
-#include "cx_ed_asset_package_builder.h"
+#include "cx_ed_asset_library.h"
 #include "cx_ed_transform_gizmo.h"
 #include "cx_ed_world_editor.h"
 #include "cx_io.h"
@@ -16,6 +17,7 @@
 #include "cx_object_id_capturer.h"
 #include "cx_var.h"
 #include "cx_world.h"
+#include "cx_world_blueprint.h"
 #include "cx_world_renderer.h"
 #include "input.h"
 #include "matrix.h"
@@ -46,6 +48,8 @@
 
 static struct {
 	struct platform_window* p_window;
+
+	struct cx_asset_ref world_blueprint_asset_ref;
 
 	struct cx_ed_action_history action_history;
 
@@ -87,7 +91,12 @@ static struct {
 
 // COMMANDS
 
+cx_result cx_ed_world_editor_load_world_from_world_blueprint(const char* s_asset_name);
 int cx_cmd_world_editor_open_world_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+
+cx_result cx_ed_world_editor_save_world_to_world_blueprint(const char* s_name);
+int cx_cmd_world_editor_save_world_blueprint(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 int cx_cmd_world_editor_spawn_blueprint(
@@ -177,7 +186,7 @@ uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
 
 static void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr);
 
-void cx_ed_world_editor_init(struct platform_window* p_window) {
+void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_world_blueprint_asset_name) {
 	ed.p_window = p_window;
 
 	ed.flog_builder = (struct cx_flog_builder) {
@@ -190,35 +199,22 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 	ed.selected_entity_id = CX_ENTITY_ID_INVALID;
 
 	CX_NEW_CONSOLE_COMMAND(
-		"open_world_bp",
+		"w.load",
 		"Open a new or existing world blueprint to edit", cx_cmd_world_editor_open_world_blueprint, CX_NULL,
-		CX_CONSOLE_COMMAND_PARAM(STRING("world_blueprint", "The world blueprint asset's name"), OPTIONAL));
+		CX_CONSOLE_COMMAND_PARAM(STRING("world_blueprint", "The asset's name"), REQUIRED));
 
 	CX_NEW_CONSOLE_COMMAND(
-		"spawn_bp",
+		"w.save",
+		"Save the current world blueprint to disk", cx_cmd_world_editor_save_world_blueprint, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("filepath", "The location to save the asset"), OPTIONAL));
+
+	CX_NEW_CONSOLE_COMMAND(
+		"w.spawnbp",
 		"Spawn a blueprint asset in the world, creating the entity hierarchy and components.",
 		cx_cmd_world_editor_spawn_blueprint, CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(STRING("blueprint", "The blueprint asset's ID or name"), REQUIRED));
 
-	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, CX_NULL,
-		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Position X component"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Position Y component"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Position Z component"), OPTIONAL));
-
-	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_scale, CX_NULL,
-		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Scale X component (default = 1)"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Scale Y component (default = x)"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Scale Z component (default = x)"), OPTIONAL));
-
-	CX_NEW_CONSOLE_COMMAND("ent.pos", "Get/set entity position", cx_cmd_ent_pos, CX_NULL,
-		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "Entity that will be "), REQUIRED),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Rotation X component"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Rotation Y component"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Rotation Z component"), OPTIONAL));
-
-	CX_NEW_CONSOLE_COMMAND("ent.create", "Create a new entity", cx_ed_create_entity_command, CX_NULL,
+	CX_NEW_CONSOLE_COMMAND("w.newentity", "Create a new entity", cx_ed_create_entity_command, CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
 		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
 		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
@@ -228,14 +224,19 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 	
 	glGenVertexArrays(1, &ed.gl_dummy_vao);
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/fullscreen_tri.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/ed_grid.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/fullscreen_tri.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/ed_grid.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
 
-	CX_ASSERT(cx_gfx_program_create(&ed.grid_program) == CX_ERROR_none, ED);
-	CX_ASSERT(cx_gfx_program_build(&ed.grid_program, &((struct cx_gfx_program_source) {
-		.s_vertex_stage_source = p_vsource,
-		.s_fragment_stage_source = p_fsource
-	})) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_gfx_program_create(&ed.grid_program) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
+	CX_ASSERT(
+		cx_gfx_program_build(&ed.grid_program, &((struct cx_gfx_program_source) {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		})) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
@@ -243,36 +244,44 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 	cx_gfx_program_refl_param_block(&ed.grid_program, "blk_camera", &ed.grid_program_pblk_camera);
 	cx_gfx_program_param_buffer_create(&ed.grid_program_pbuf_camera, ed.grid_program_pblk_camera.size_);
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
 
-	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
-		.program_source = {
-			.s_vertex_stage_source = p_vsource,
-			.s_fragment_stage_source = p_fsource
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-		.s_material_block_name = "blk_material_properties",
-		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
-		.num_opaque_params = 1
-	}), &ed.render_pass_forward), ED);
+	CX_ASSERT(
+		cx_render_pass_build(&((struct cx_render_pass_build_info){
+			.program_source = {
+				.s_vertex_stage_source = p_vsource,
+				.s_fragment_stage_source = p_fsource
+			},
+			.s_pass_block_name = "blk_camera",
+			.s_object_block_name = "blk_object",
+			.s_material_block_name = "blk_material_properties",
+			.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
+			.num_opaque_params = 1
+		}), &ed.render_pass_forward),
+		ED_WORLD_EDITOR);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none, ED);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none, ED);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
+		ED_WORLD_EDITOR);
 
-	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
-		.program_source = {
-			.s_vertex_stage_source = p_vsource,
-			.s_fragment_stage_source = p_fsource
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-		.s_material_block_name = "blk_material_properties",
-	}), &ed.render_pass_flat_color), ED);
+	CX_ASSERT(
+		cx_render_pass_build(&((struct cx_render_pass_build_info){
+			.program_source = {
+				.s_vertex_stage_source = p_vsource,
+				.s_fragment_stage_source = p_fsource
+			},
+			.s_pass_block_name = "blk_camera",
+			.s_object_block_name = "blk_object",
+			.s_material_block_name = "blk_material_properties",
+		}), &ed.render_pass_flat_color),
+		ED_WORLD_EDITOR);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
@@ -294,11 +303,7 @@ void cx_ed_world_editor_init(struct platform_window* p_window) {
 
 	input_event_subscribe(INPUT_EVENT_key, cx_ed_world_editor_on_key, 0);
 
-	//struct cx_asset_ref gltf_scene_blueprint_asset_ref;
-	//cx_ed_import_gltf_file("res/test.glb", &gltf_scene_blueprint_asset_ref);
-	//struct cx_blueprint* p_gltf_scene_blueprint = cx_asset_cache_acquire(&gltf_scene_blueprint_asset_ref);
-
-	//cx_world_instantiate_blueprint(&ed.world, p_gltf_scene_blueprint);
+	cx_ed_world_editor_load_world_from_world_blueprint(s_world_blueprint_asset_name);
 }
 
 void cx_ed_world_editor_shutdown(void) {
@@ -587,9 +592,149 @@ void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
 	}
 }
 
+cx_result cx_ed_world_editor_load_world_from_world_blueprint(const char* s_asset_name) {
+	if (cx_asset_ref_is_set(&ed.world_blueprint_asset_ref)) {
+		cx_ed_asset_library_save(ed.world_blueprint_asset_ref.asset_id);
+		cx_asset_cache_release(&ed.world_blueprint_asset_ref);
+	}
+
+	if (!cx_asset_cache_find_by_name(CX_ASSET_TYPE_WORLD_BLUEPRINT, s_asset_name, &ed.world_blueprint_asset_ref)) {
+		struct cx_world_blueprint* p_world_blueprint =
+			CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_WORLD_BLUEPRINT));
+
+		*p_world_blueprint = (struct cx_world_blueprint){0};
+		
+		cx_ed_asset_library_new(
+			CX_ASSET_TYPE_WORLD_BLUEPRINT,
+			s_asset_name,
+			p_world_blueprint,
+			&ed.world_blueprint_asset_ref);
+	}
+
+	struct cx_world_blueprint* p_world_bp = cx_asset_cache_acquire(&ed.world_blueprint_asset_ref);
+
+	CX_LOG_FMT(INFO, ED_WORLD_EDITOR, "Loaded world from blueprint %X\n", ed.world_blueprint_asset_ref.asset_id);
+
+	cx_world_instantiate_blueprint(&ed.world, &p_world_bp->root);
+	
+	return CX_SUCCESS;
+}
+
 int cx_cmd_world_editor_open_world_blueprint(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 
+	(void)p_context;
+
+	const char* s_asset_name = p_args->list->as_str.p;
+
+	return cx_ed_world_editor_load_world_from_world_blueprint(s_asset_name);
+}
+
+cx_result cx_ed_world_editor_save_world_to_world_blueprint(const char* s_save_as_filepath) {
+	CX_ASSERT(ed.world_blueprint_asset_ref.asset_id != 0, ED_WORLD_EDITOR);
+
+	struct cx_world_blueprint* p_world_blueprint = cx_asset_cache_acquire(&ed.world_blueprint_asset_ref);
+	struct cx_blueprint* p_bp = &p_world_blueprint->root;
+
+	cx_blueprint_destroy(&p_world_blueprint->root);
+
+	uint16_t entity_node_map[CX_WORLD_MAX_ENTITIES];
+
+	for (uint16_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
+		if (!ed.world.entities[i].b_alive) {
+			continue;
+		}
+
+		uint16_t node_id = cx_blueprint_create_node(p_bp);
+		entity_node_map[i] = node_id;
+
+		struct transform* p_transform = cx_blueprint_node_get_transform(&p_world_blueprint->root, node_id);
+		*p_transform = ed.world.entities[i].transform;
+		p_transform->p_local_transform = CX_NULL;
+
+		CX_LOG_FMT(INFO, ED_WORLD_EDITOR, "Saving entity to world blueprint: id=%u, node_id=%u\n", i, node_id);
+
+		for (uint16_t j = 0; j < ed.world.num_component_pools; ++j) {
+			const struct cx_component_pool* p_pool = &ed.world.p_component_pools[j];
+			const uint16_t dense_index = p_pool->sparse[i];
+			if (dense_index >= p_pool->count || p_pool->p_dense_entities[dense_index] != i) {
+				continue;
+			}
+
+			CX_LOG_FMT(INFO, ED_WORLD_EDITOR, "  Saving component data: type='%s', size=%"CX_PRI_SIZE"\n",
+				p_pool->p_type->s_name, p_pool->p_type->size);
+
+			const size_t component_data_off = p_pool->p_type->size * dense_index;
+			const uint8_t* p_component_data = p_pool->p_dense_components + component_data_off;
+
+			void* p_node_component_data = cx_blueprint_node_add_component(p_bp, node_id, p_pool->p_type);
+	
+			memcpy(p_node_component_data, p_component_data, p_pool->p_type->size);
+		}
+	}
+
+	// Set up parent-child node relationships
+
+	for (uint16_t i = 0; i < CX_WORLD_MAX_ENTITIES; ++i) {
+		if (!ed.world.entities[i].b_alive) {
+			continue;
+		}
+
+		for (uint16_t j = 0; j < CX_WORLD_MAX_ENTITIES; ++j) {
+			if (i == j || !ed.world.entities[i].b_alive) {
+				continue;
+			}
+
+			if (ed.world.entities[i].transform.p_local_transform != &ed.world.entities[j].transform) {
+				continue;
+			}
+
+			CX_LOG_FMT(
+				INFO, 
+				ED_WORLD_EDITOR,
+				"Saving entity local transform: id=%u, parent_id=%u, node_id=%u, parent_node_id=%u\n",
+				i, j, entity_node_map[i], entity_node_map[j]);
+
+			cx_blueprint_node_set_parent(p_bp, entity_node_map[i], entity_node_map[j]);
+		}
+	}
+
+	cx_result result;
+
+	if (s_save_as_filepath) {
+		result = cx_ed_asset_library_save_as(ed.world_blueprint_asset_ref.asset_id, s_save_as_filepath);
+	} else {
+		result = cx_ed_asset_library_save(ed.world_blueprint_asset_ref.asset_id);
+	}
+
+	cx_asset_cache_release(&ed.world_blueprint_asset_ref);
+
+	return result;
+}
+
+int cx_cmd_world_editor_save_world_blueprint(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	(void)p_context;
+
+	const char* s_save_as_filepath = p_args->count > 0 ? p_args->list[0].as_str.p : CX_NULL;
+	cx_result result = cx_ed_world_editor_save_world_to_world_blueprint(s_save_as_filepath);
+
+	char flog_str_buf[128];
+	struct cx_flog_builder flog = {
+		.p_buf = flog_str_buf,
+	};
+
+	if (result == CX_ERROR_ASSET_NO_FILEPATH) {
+		cx_flog_append(&flog, "Asset requires a save file location\n");
+		cx_flog_end(p_context->p_flogger, &flog);
+	} else if (result == CX_ERROR_ALREADY_EXISTS) {
+		cx_flog_append(&flog, "File already exists\n");
+		cx_flog_end(p_context->p_flogger, &flog);
+	}
+
+
+	return result;
 }
 
 int cx_cmd_world_editor_spawn_blueprint(

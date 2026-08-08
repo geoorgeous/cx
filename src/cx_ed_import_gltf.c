@@ -3,6 +3,7 @@
 
 #include "cx_alloc.h"
 #include "cx_array.h"
+#include "cx_asset_cache.h"
 #include "cx_blueprint.h"
 #include "cx_cmp_static_mesh.h"
 #include "cx_ed_asset_library.h"
@@ -24,7 +25,8 @@
 
 struct cx_ed_import_gltf_context {
 	const char* s_name;
-	char asset_name_buf[CX_ASSET_NAME_MAX_LEN];
+	const char* s_dir;
+	char str_buf[256];
 	const struct gltf* p_gltf;
 	struct cx_array image_assets;
 	struct cx_array texture_assets;
@@ -47,6 +49,9 @@ static void cx_ed_import_gltf_animation(struct cx_ed_import_gltf_context* p_cont
 static void cx_ed_import_gltf_scene(struct cx_ed_import_gltf_context* p_context, size_t gltf_scene_index);
 
 static const char* cx_ed_import_gltf_make_asset_name(
+	struct cx_ed_import_gltf_context* p_context, cx_asset_type type, size_t id);
+
+static const char* cx_ed_import_gltf_make_asset_filepath(
 	struct cx_ed_import_gltf_context* p_context, cx_asset_type type, size_t id);
 
 static const struct gltf_accessor* cx_ed_import_gltf_get_mesh_primitive_vertex_attribute_accessor(
@@ -85,9 +90,10 @@ static enum cx_texture_address_mode gltf_enum_to_texture_address_mode(enum gltf_
 static enum cx_mesh_vertex_index_type gltf_enum_to_vertex_index_type(enum gltf_accessor_component_type type);
 static enum cx_mesh_draw_mode gltf_enum_to_mesh_primitive_draw_mode(enum gltf_mesh_primitive_mode mode);
 
-int cx_ed_import_gltf(const char* s_name, const struct gltf* p_gltf, struct cx_asset_ref* p_out) {
+int cx_ed_import_gltf(const char* s_name, const char* s_dir, const struct gltf* p_gltf, struct cx_asset_ref* p_out) {
 	struct cx_ed_import_gltf_context context = {
 		.s_name = s_name,
+		.s_dir = s_dir,
 		.p_gltf = p_gltf
 	};
 
@@ -125,13 +131,15 @@ int cx_ed_import_gltf(const char* s_name, const struct gltf* p_gltf, struct cx_a
 		cx_ed_import_gltf_scene(&context, i);
 	}
 
+	cx_ed_asset_library_set_filepath(context.asset_ref.asset_id,
+		cx_ed_import_gltf_make_asset_filepath(&context, CX_ASSET_TYPE_BLUEPRINT, 0));
+
 	*p_out = context.asset_ref;
 
 	return CX_TRUE;
 }
 
 int cx_ed_import_gltf_file(const char* s_filepath, struct cx_asset_ref* p_out) {
-
 	struct gltf gltf;
 	if (gltf_load_from_file(s_filepath, &gltf) != GLTF_SUCCESS) {
 		return 0;
@@ -141,7 +149,14 @@ int cx_ed_import_gltf_file(const char* s_filepath, struct cx_asset_ref* p_out) {
 	size_t asset_name_len;
 	cx_io_filepath_stem_cpy(s_filepath, asset_name_buf, &asset_name_len);
 
-	const int result = cx_ed_import_gltf(asset_name_buf, &gltf, p_out);
+	char asset_dir_buf[CX_ASSET_NAME_MAX_LEN];
+	size_t asset_dir_len;
+	cx_io_filepath_dir(s_filepath, &asset_dir_len);
+
+	strncpy(asset_dir_buf, s_filepath, asset_dir_len);
+	asset_dir_buf[asset_dir_len] = '/';
+
+	const int result = cx_ed_import_gltf(asset_name_buf, asset_dir_buf, &gltf, p_out);
 
 	gltf_free(&gltf);
 
@@ -165,14 +180,17 @@ void cx_ed_import_gltf_image(struct cx_ed_import_gltf_context* p_context, size_t
 		size = p_gltf_buffer_view->byte_length;
 	}
 
-	struct cx_asset_ref image_asset_ref;
+	struct cx_asset_ref asset_ref;
 	cx_ed_import_image(
 		cx_ed_import_gltf_make_asset_name(p_context, CX_ASSET_TYPE_IMAGE, gltf_image_index),
 		p_bytes,
 		size,
-		&image_asset_ref);
+		&asset_ref);
 
-	(void)cx_array_push(&p_context->image_assets, &image_asset_ref);
+	cx_ed_asset_library_set_filepath(asset_ref.asset_id,
+		cx_ed_import_gltf_make_asset_filepath(p_context, CX_ASSET_TYPE_IMAGE, gltf_image_index));
+
+	(void)cx_array_push(&p_context->image_assets, &asset_ref);
 }
 
 void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size_t gltf_texture_index) {
@@ -180,8 +198,10 @@ void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size
 
 	struct cx_texture* p_texture = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_TEXTURE));
 
-	const struct cx_asset_ref* p_source_image_asset_ref =
+	struct cx_asset_ref* p_source_image_asset_ref =
 		cx_array_at(&p_context->image_assets, p_gltf_texture->source_image_index);
+
+	const struct cx_image* p_source_image = cx_asset_cache_acquire(p_source_image_asset_ref);
 
 	*p_texture = (struct cx_texture){
 		.source_image_asset_ref = *p_source_image_asset_ref,
@@ -191,10 +211,10 @@ void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size
 			.address_mode_u = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_s),
 			.address_mode_v = gltf_enum_to_texture_address_mode(p_gltf_texture->sampler_wrap_t)
 		},
-		.gfx_texture_format =
-			((const struct cx_image*)cx_asset_ref_get(p_source_image_asset_ref))->pixel_data_format.pixel_format
+		.gfx_texture_format = p_source_image->pixel_data_format.pixel_format
 	};
 
+	cx_asset_cache_release(p_source_image_asset_ref);
 
 	struct cx_asset_ref asset_ref;
 	cx_ed_asset_library_new(
@@ -202,6 +222,9 @@ void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size
 		cx_ed_import_gltf_make_asset_name(p_context, CX_ASSET_TYPE_TEXTURE, gltf_texture_index),
 		p_texture,
 		&asset_ref);
+
+	cx_ed_asset_library_set_filepath(asset_ref.asset_id,
+		cx_ed_import_gltf_make_asset_filepath(p_context, CX_ASSET_TYPE_TEXTURE, gltf_texture_index));
 
 	(void)cx_array_push(&p_context->texture_assets, &asset_ref);
 }
@@ -218,7 +241,6 @@ void cx_ed_import_gltf_material(struct cx_ed_import_gltf_context* p_context, siz
 		.texture_asset_ref = *p_material_texture_asset_ref,
 		.color = { 1, 1, 1, 1 }
 	};
-	
 
 	struct cx_asset_ref asset_ref;
 	cx_ed_asset_library_new(
@@ -226,6 +248,9 @@ void cx_ed_import_gltf_material(struct cx_ed_import_gltf_context* p_context, siz
 		cx_ed_import_gltf_make_asset_name(p_context, CX_ASSET_TYPE_MATERIAL, gltf_material_index),
 		p_material,
 		&asset_ref);
+
+	cx_ed_asset_library_set_filepath(asset_ref.asset_id,
+		cx_ed_import_gltf_make_asset_filepath(p_context, CX_ASSET_TYPE_MATERIAL, gltf_material_index));
 
 	(void)cx_array_push(&p_context->material_assets, &asset_ref);
 }
@@ -255,6 +280,9 @@ void cx_ed_import_gltf_mesh(struct cx_ed_import_gltf_context* p_context, size_t 
 		cx_ed_import_gltf_make_asset_name(p_context, CX_ASSET_TYPE_STATIC_MESH, gltf_mesh_index),
 		p_static_mesh,
 		&asset_ref);
+
+	cx_ed_asset_library_set_filepath(asset_ref.asset_id,
+		cx_ed_import_gltf_make_asset_filepath(p_context, CX_ASSET_TYPE_STATIC_MESH, gltf_mesh_index));
 
 	(void)cx_array_push(&p_context->static_mesh_assets, &asset_ref);
 }
@@ -653,15 +681,24 @@ void cx_ed_import_gltf_scene(struct cx_ed_import_gltf_context* p_context, size_t
 	cx_ed_asset_library_new(CX_ASSET_TYPE_BLUEPRINT, p_context->s_name, p_blueprint, &p_context->asset_ref);
 }
 
-
-static const char* cx_ed_import_gltf_make_asset_name(
+const char* cx_ed_import_gltf_make_asset_name(
 	struct cx_ed_import_gltf_context* p_context, cx_asset_type type, size_t id) {
 
-	snprintf(p_context->asset_name_buf, sizeof(p_context->asset_name_buf), "%s_%s_%"CX_PRI_SIZE,
+	snprintf(p_context->str_buf, sizeof(p_context->str_buf), "%s_%s_%"CX_PRI_SIZE,
 		p_context->s_name, cx_asset_type_display_name_str(type), id);
 
-	return p_context->asset_name_buf;
+	return p_context->str_buf;
 }
+
+const char* cx_ed_import_gltf_make_asset_filepath(
+	struct cx_ed_import_gltf_context* p_context, cx_asset_type type, size_t id) {
+
+	snprintf(p_context->str_buf, sizeof(p_context->str_buf), "%s%s_%s_%"CX_PRI_SIZE,
+		p_context->s_dir ? p_context->s_dir : "", p_context->s_name, cx_asset_type_display_name_str(type), id);
+
+	return p_context->str_buf;
+}
+
 
 const struct gltf_accessor* cx_ed_import_gltf_get_mesh_primitive_vertex_attribute_accessor(
 	const struct gltf* p_gltf,

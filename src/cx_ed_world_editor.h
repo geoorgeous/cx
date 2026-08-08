@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define CX_LOG_CAT_ED "editor"
+#define CX_LOG_CAT_ED_WORLD_EDITOR "ed:world_editor"
 
 // action history
 // entity names
@@ -21,8 +21,9 @@
 //  - delete entity component
 
 struct platform_window;
+struct cx_asset_ref;
 
-void cx_ed_world_editor_init(struct platform_window* p_window);
+void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_world_blueprint_asset_name);
 
 void cx_ed_world_editor_shutdown(void);
 

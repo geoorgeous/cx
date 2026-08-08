@@ -35,12 +35,21 @@ int cx_ed_import_image_file(const char* s_filepath, struct cx_asset_ref* p_out) 
 		return 0;
 	}
 
-
 	char asset_name_buf[CX_ASSET_NAME_MAX_LEN];
 	size_t asset_name_len;
 	cx_io_filepath_stem_cpy(s_filepath, asset_name_buf, &asset_name_len);
 
 	cx_ed_import_image_from_stbi_retval(asset_name_buf, x, y, comp, p_pixel_data, p_out);
+
+	char asset_filepath_buf[CX_ASSET_NAME_MAX_LEN];
+	size_t dir_len;
+	cx_io_filepath_dir(s_filepath, &dir_len);
+
+	strncpy(asset_name_buf, s_filepath, dir_len);
+	asset_name_buf[dir_len] = '/';
+	strncpy(asset_name_buf + dir_len + 1, asset_name_buf, asset_name_len);
+
+	cx_ed_asset_library_set_filepath(p_out->asset_id, asset_filepath_buf);
 
 	return 1;
 }

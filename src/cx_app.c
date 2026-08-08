@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <time.h>
 
 #include "cx_app.h"
 #include "cx_asset_cache.h"
@@ -79,6 +80,8 @@ int cx_app_init(
 	const char** argv) {
 
 	enum cx_error err;
+
+	srand(time(CX_NULL));
 
 	err = platform_window_create(
 		window_width, window_height,
@@ -176,7 +179,10 @@ int cx_app_init(
 		cx_blueprint_asset_free);
 
 	cx_asset_register_type(CX_ASSET_TYPE_WORLD_BLUEPRINT, "world_blueprint", sizeof(struct cx_world_blueprint),
-		cx_world_blueprint_asset_serialize, cx_world_blueprint_asset_deserialize, CX_NULL, CX_NULL);
+		cx_world_blueprint_asset_serialize,
+		cx_world_blueprint_asset_deserialize,
+		CX_NULL,
+		cx_world_blueprint_asset_free);
 	
 	cx_component_register_type(&cmp_type_static_mesh);
 	cx_component_register_type(&cmp_type_collider);

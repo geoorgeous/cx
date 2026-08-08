@@ -14,9 +14,14 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 	const size_t entity_id_size = sizeof(*((struct cx_component_pool*)0)->p_dense_entities);
 	const size_t entity_id_alignment = CX_ALIGNOF(*((struct cx_component_pool*)0)->p_dense_entities);
 
+	CX_LOG_FMT(INFO, WORLD, "Initialising world with %"CX_PRI_SIZE" component pools...\n", num_pool_defs);
+
 	size_t buf_size = component_pool_size * num_pool_defs;
 
-	CX_LOG_FMT(INFO, WORLD, "Initialising world with %"CX_PRI_SIZE" component pools...\n", num_pool_defs);
+	*p_world = (struct cx_world) {
+		.num_component_pools = num_pool_defs,
+	};
+
 
 	for (uint16_t i = 0; i < CX_COMPONENT_MAX_TYPES; ++i) {
 		p_world->component_type_pool_ids[i] = CX_COMPONENT_MAX_TYPES;
@@ -43,15 +48,11 @@ void cx_world_init(struct cx_world* p_world, const struct cx_component_pool_def*
 	}
 
 	uint8_t* p_buf = CX_MALLOC(buf_size);
+	p_world->p_buf = p_buf;
+	p_world->p_component_pools = p_world->p_buf;
 
 	CX_LOG_FMT(INFO, WORLD, "World buffer size: %"CX_PRI_SIZE" bytes\n", buf_size);
 	
-	*p_world = (struct cx_world) {
-		.p_component_pools = (void*)p_buf,
-		.num_component_pools = num_pool_defs,
-		.p_buf = p_buf
-	};
-
 	size_t cursor = component_pools_array_size;
 
 	for (size_t i = 0; i < num_pool_defs; ++i) {
@@ -225,7 +226,7 @@ void* cx_world_component_find(
 		const size_t component_off = p_pool->p_type->size * dense_index;
 		return p_pool->p_dense_components + component_off;
 	}
-	return 0;
+	return CX_NULL;
 }
 
 int cx_world_component_has(

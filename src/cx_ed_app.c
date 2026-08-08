@@ -25,6 +25,9 @@ static int cx_cmd_import(const struct cx_command_args* p_args, const struct cx_c
 static int cx_ed_app_open_world_editor_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
+static int cx_cmd_save_all(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+
 static void cx_ed_rebuild_core_asset_package(void);
 static int cx_ed_rebuild_core_asset_package_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
@@ -49,34 +52,53 @@ int cx_ed_app_init(int argc, const char** argv) {
 	//cx_editor_rebuild_core_asset_package();
 	
 	CX_NEW_CONSOLE_COMMAND(
-		"list_assets", 
+		"cx.listassets", 
 		"List all assets in the editor asset library", 
 		cx_cmd_list_assets, 
 		CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(STRING("type", "The asset type to filter by"), OPTIONAL));
 
 	CX_NEW_CONSOLE_COMMAND(
-		"import", 
+		"cx.import",
 		"Import an asset file", 
 		cx_cmd_import, 
 		CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(STRING("filepath", "Filepath of the asset to import"), REQUIRED));
 
 	CX_NEW_CONSOLE_COMMAND(
-		"open_world_editor", 
+		"cx.worldedit", 
 		"", 
 		cx_ed_app_open_world_editor_command, 
+		CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING(
+			"name",
+			"Name of the world_blueprint asset to open, or the name of the new world_blueprint"),
+			REQUIRED)
+		);
+
+	CX_NEW_CONSOLE_COMMAND(
+		"cx.saveall",
+		"",
+		cx_cmd_save_all,
 		CX_NULL,
 		CX_CONSOLE_COMMAND_NO_PARAMS);
 
 	CX_NEW_CONSOLE_COMMAND(
-		"rebuild_core_pkg",
+		"cx.rebuildcorepkg",
 		"",
 		cx_ed_rebuild_core_asset_package_command,
 		CX_NULL,
 		CX_CONSOLE_COMMAND_NO_PARAMS);
 
-	//cx_ed_init(cx_app_primary_window());
+	struct cx_asset_ref ref;
+
+	//cx_ed_import_file("res/test.glb", &ref);
+	
+	cx_ed_asset_library_scan_dir("./res");
+	cx_ed_asset_library_add_file("./testworld.cxasset", &ref);
+	cx_ed_asset_library_enumerate_assets(cx_cmp_list_assets_asset_library_enumerate_cb, CX_NULL);
+	cx_ed_world_editor_init(cx_app_primary_window(), "testworld");
+	b_is_world_editor_open = CX_TRUE;
 
 	return 0;
 }
@@ -89,7 +111,7 @@ void cx_ed_app_update(double frame_delta_time) {
 
 void cx_ed_app_draw(const struct cx_gfx_framebuffer* p_frambuffer) {
 	if (b_is_world_editor_open) {
-		cx_ed_world_editor_draw(p_frambuffer, 1920, 1080);
+		cx_ed_world_editor_draw(p_frambuffer, 960, 640);
 	}
 }
 
@@ -130,18 +152,28 @@ int cx_cmd_import(const struct cx_command_args* p_args, const struct cx_command_
 int cx_ed_app_open_world_editor_command(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 
-	(void)p_args;
 	(void)p_context;
 
 	if (b_is_world_editor_open) {
 		return 0;
 	}
 
-	cx_ed_world_editor_init(cx_app_primary_window());
+	cx_ed_world_editor_init(cx_app_primary_window(), p_args->list->as_str.p);
 
 	b_is_world_editor_open = CX_TRUE;
 	
 	return 0;
+}
+
+static int cx_cmd_save_all(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	(void)p_args;
+	(void)p_context;
+
+	cx_ed_asset_library_save_all_unsaved();
+
+	return CX_SUCCESS;
 }
 
 void cx_ed_rebuild_core_asset_package(void) {
@@ -190,7 +222,7 @@ int cx_ed_rebuild_core_asset_package_command(
 }
 
 int main(int argc, const char** argv) {
-	cx_app_init("cx editor", 1920, 1080, cx_ed_app_init, argc, argv);
+	cx_app_init("cx editor", 960, 640, cx_ed_app_init, argc, argv);
 	cx_app_run(cx_ed_app_update, cx_ed_app_draw);
 	cx_app_shutdown(cx_ed_app_shutdown);
 }
