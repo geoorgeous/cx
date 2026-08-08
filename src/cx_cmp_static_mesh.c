@@ -13,12 +13,18 @@ struct cx_component_type cmp_type_static_mesh = {
 
 int cx_cmp_static_mesh_serialize(const void* p_cmp, struct cx_stream* p_stream) {
 	const struct cx_cmp_static_mesh* p_cmp_static_mesh = p_cmp;
-	return cx_asset_ref_serialize(&p_cmp_static_mesh->asset_ref, p_stream);
+
+	cx_asset_ref_serialize(&p_cmp_static_mesh->asset_ref, p_stream);
+
+	return CX_TRUE;
 }
 
 int cx_cmp_static_mesh_deserialize(struct cx_stream* p_stream, void* p_out_cmp) {
 	struct cx_cmp_static_mesh* p_out_cmp_static_mesh = p_out_cmp;
-	return cx_asset_ref_deserialize(p_stream, &p_out_cmp_static_mesh->asset_ref);
+
+	cx_asset_ref_deserialize(p_stream, &p_out_cmp_static_mesh->asset_ref);
+
+	return CX_TRUE;
 }
 
 void cx_cmp_static_mesh_enumerate_asset_dependencies(
