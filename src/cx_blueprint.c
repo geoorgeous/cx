@@ -222,7 +222,7 @@ int cx_blueprint_serialize(const struct cx_blueprint* p_blueprint, struct cx_str
 
 			CX_LOG_FMT(INFO, STREAM_WRITE,
 				"    Serializing component (%s, data_off=%"CX_PRI_SIZE", %"CX_PRI_SIZE" bytes)...\n",
-				p_node_component->p_type->s_name, p_node_component->data_off, component_data_size);
+				p_node_component->p_type->s_name, p_node_component->data_off, p_node_component->p_type->size);
 
 			cx_component_serialize(
 				p_node->p_component_data + p_node_component->data_off, p_node_component->p_type, p_stream);
