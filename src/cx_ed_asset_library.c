@@ -67,7 +67,7 @@ int cx_ed_asset_library_add_file(const char* s_filepath, struct cx_asset_ref* p_
 static int cx_ed_asset_library_scan_dir_enumerate_cb(struct cx_io_dir_entry* p_entry, void* p_user_ptr) {
 	(void)p_user_ptr;
 
-	if (p_entry->type == CX_IO_DIR_ENTRY_TYPE_DIR) {
+	if (p_entry->type == CX_IO_DIR_ENTRY_TYPE_dir) {
 		return CX_TRUE;
 	}
 

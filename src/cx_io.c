@@ -154,7 +154,7 @@ void cx_io_dir_enumerate(const char* s_dir, cx_io_dir_enumerate_cb_fn f_cb, void
 
 	while(
 		cx_io_dir_next_entry(&dir, &dir_entry) == CX_SUCCESS &&
-		dir_entry.type != CX_IO_DIR_ENTRY_TYPE_EOD) {
+		dir_entry.type != CX_IO_DIR_ENTRY_TYPE_end) {
 		
 		if (!f_cb(&dir_entry, p_user_ptr)) {
 			break;
@@ -175,7 +175,7 @@ void cx_io_dir_enumerate_recursive(const char* s_dir, cx_io_dir_enumerate_cb_fn 
 
 	while(
 		cx_io_dir_next_entry(&dir, &dir_entry) == CX_SUCCESS &&
-		dir_entry.type != CX_IO_DIR_ENTRY_TYPE_EOD) {
+		dir_entry.type != CX_IO_DIR_ENTRY_TYPE_end) {
 
 		if (cx_str_eq(dir_entry.s_name, ".") || cx_str_eq(dir_entry.s_name, "..")) {
 			continue;
@@ -183,7 +183,7 @@ void cx_io_dir_enumerate_recursive(const char* s_dir, cx_io_dir_enumerate_cb_fn 
 
 		f_cb(&dir_entry, p_user_ptr);
 
-		if (dir_entry.type == CX_IO_DIR_ENTRY_TYPE_DIR) {
+		if (dir_entry.type == CX_IO_DIR_ENTRY_TYPE_dir) {
 			char dirpath[256];
 			cx_io_filepath_join(s_dir, dir_entry.s_name, dirpath);
 

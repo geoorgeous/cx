@@ -47,7 +47,7 @@ cx_result cx_io_dir_next_entry(struct cx_io_dir* p_dir, struct cx_io_dir_entry* 
 	if (p_dirent == CX_NULL) {
 		if (errno == 0) {
 			*p_out = (struct cx_io_dir_entry) {
-				.type = CX_IO_DIR_ENTRY_TYPE_EOD
+				.type = CX_IO_DIR_ENTRY_TYPE_end
 			};
 			return CX_SUCCESS;
 		}
@@ -79,9 +79,9 @@ cx_result cx_io_dir_next_entry(struct cx_io_dir* p_dir, struct cx_io_dir_entry* 
 	};
 
 	if (S_ISDIR(st.st_mode)) {
-		p_out->type = CX_IO_DIR_ENTRY_TYPE_DIR;
+		p_out->type = CX_IO_DIR_ENTRY_TYPE_dir;
 	} else if (S_ISREG(st.st_mode)) {
-		p_out->type = CX_IO_DIR_ENTRY_TYPE_FILE;
+		p_out->type = CX_IO_DIR_ENTRY_TYPE_file;
 	}
 
 	return CX_SUCCESS;

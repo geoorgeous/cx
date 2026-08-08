@@ -28,9 +28,9 @@ struct cx_io_dir {
 };
 
 enum cx_io_dir_entry_type {
-	CX_IO_DIR_ENTRY_TYPE_EOD, // End of directory
-	CX_IO_DIR_ENTRY_TYPE_FILE,
-	CX_IO_DIR_ENTRY_TYPE_DIR
+	CX_IO_DIR_ENTRY_TYPE_end,
+	CX_IO_DIR_ENTRY_TYPE_file,
+	CX_IO_DIR_ENTRY_TYPE_dir
 };
 
 struct cx_io_dir_entry {
