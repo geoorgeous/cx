@@ -6,6 +6,7 @@
 #include "cx_io.h"
 #include "cx_error.h"
 #include "cx_logging.h"
+#include "cx_str.h"
 
 enum cx_error cx_io_file_read_all(const char* s_filepath, void** pp_out_buf, size_t* p_out_size) {
 	CX_LOG_FMT(INFO, IO, "Reading file from disk '%s'...\n", s_filepath);
@@ -62,6 +63,19 @@ void cx_io_file_free(void* p_file_read_all_result) {
 	free(p_file_read_all_result);
 }
 
+void cx_io_filepath_dir(const char* s_filepath, size_t* p_out_dir_len) {
+	const char* p_fwd = strrchr(s_filepath, '/');
+	const char* p_bwd = strrchr(s_filepath, '\\');
+	const char* p_sep = (p_fwd > p_bwd) ? p_fwd : p_bwd;
+
+	if (p_sep == CX_NULL) {
+		*p_out_dir_len = 0;
+		return;
+	}
+
+	*p_out_dir_len = (size_t)(p_sep - s_filepath);
+}
+
 void cx_io_filepath_stem(const char* s_filepath, const char** pp_out_stem_start, size_t* p_out_stem_len) {
 	const char* p_fwd = strrchr(s_filepath, '/');
 	const char* p_bwd = strrchr(s_filepath, '\\');
@@ -93,6 +107,14 @@ void cx_io_filepath_stem_cpy(const char* s_filename, char* s_out, size_t* p_out_
 	strncpy(s_out, p_filepath_stem, *p_out_len);
 }
 
+void cx_io_filepath_join(const char* s_a, const char* s_b, char* s_out) {
+	char* p = cx_stpcpy(s_out, s_a);
+	if (p != s_out && p[-1] != '/') {
+		*p++ = '/';
+	}
+	strcpy(p, s_b);
+}
+
 int cx_io_filepath_ext(const char* s_filepath, const char** pp_out_ext_start, size_t* p_out_ext_len) {
 	const char* p_dot = strrchr(s_filepath, '.');
 
@@ -120,3 +142,60 @@ int cx_io_filepath_is_dir(const char* s_filepath) {
 	struct stat st;
 	return stat(s_filepath, &st) == 0 && S_ISDIR(st.st_mode);
 }
+
+void cx_io_dir_enumerate(const char* s_dir, cx_io_dir_enumerate_cb_fn f_cb, void* p_user_ptr) {
+	struct cx_io_dir dir;
+
+	if (cx_io_dir_open(s_dir, &dir) != CX_SUCCESS) {
+		return;
+	}
+
+	struct cx_io_dir_entry dir_entry;
+
+	while(
+		cx_io_dir_next_entry(&dir, &dir_entry) == CX_SUCCESS &&
+		dir_entry.type != CX_IO_DIR_ENTRY_TYPE_EOD) {
+		
+		if (!f_cb(&dir_entry, p_user_ptr)) {
+			break;
+		}
+	}
+}
+
+void cx_io_dir_enumerate_recursive(const char* s_dir, cx_io_dir_enumerate_cb_fn f_cb, void* p_user_ptr) {
+	struct cx_io_dir dir;
+
+	if (cx_io_dir_open(s_dir, &dir) != CX_SUCCESS) {
+		return;
+	}
+
+	CX_LOG_FMT(INFO, IO, "Enumerating directory '%s'\n", s_dir);
+
+	struct cx_io_dir_entry dir_entry;
+
+	while(
+		cx_io_dir_next_entry(&dir, &dir_entry) == CX_SUCCESS &&
+		dir_entry.type != CX_IO_DIR_ENTRY_TYPE_EOD) {
+
+		if (cx_str_eq(dir_entry.s_name, ".") || cx_str_eq(dir_entry.s_name, "..")) {
+			continue;
+		}
+
+		f_cb(&dir_entry, p_user_ptr);
+
+		if (dir_entry.type == CX_IO_DIR_ENTRY_TYPE_DIR) {
+			char dirpath[256];
+			cx_io_filepath_join(s_dir, dir_entry.s_name, dirpath);
+
+			cx_io_dir_enumerate_recursive(dirpath, f_cb, p_user_ptr);
+		}
+	}
+
+	cx_io_dir_close(&dir);
+}
+
+#ifdef PLATFORM_WIN32
+#include "cx_io.win32.c"
+#else
+#include "cx_io.posix.c"
+#endif
