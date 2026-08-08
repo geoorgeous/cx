@@ -54,7 +54,7 @@ uint16_t cx_world_entity_create(struct cx_world* p_world);
 
 void cx_world_entity_destroy(struct cx_world* p_world, uint16_t entity_id);
 
-int cx_world_entity_is_valid(const struct cx_world* p_world, uint16_t entity_id);
+int cx_world_entity_is_alive(const struct cx_world* p_world, uint16_t entity_id);
 
 struct transform* cx_world_entity_get_transform(struct cx_world* p_world, uint16_t entity_id);
 

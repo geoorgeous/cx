@@ -110,10 +110,10 @@ void cx_world_entity_destroy(struct cx_world* p_world, uint16_t entity_id) {
 	p_world->free_entities[p_world->num_free_entities++] = entity_id;
 }
 
-int cx_world_entity_is_valid(const struct cx_world* p_world, uint16_t entity_id) {
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
-
-	return p_world->entities[entity_id].b_alive;
+int cx_world_entity_is_alive(const struct cx_world* p_world, uint16_t entity_id) {
+	return
+		entity_id < CX_WORLD_MAX_ENTITIES &&
+		p_world->entities[entity_id].b_alive;
 }
 
 struct transform* cx_world_entity_get_transform(struct cx_world* p_world, uint16_t entity_id) {
@@ -156,7 +156,7 @@ void* cx_world_component_add(
 
 	if (dense_index < p_pool->count && p_pool->p_dense_entities[dense_index] == entity_id) {
 		// already has this component
-		return 0;
+		return CX_NULL;
 	}
 
 	p_pool->sparse[entity_id] = p_pool->count;
