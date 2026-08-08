@@ -15,6 +15,7 @@
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_object_id_capturer.h"
+#include "cx_str.h"
 #include "cx_var.h"
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
@@ -102,59 +103,29 @@ int cx_cmd_world_editor_save_world_blueprint(
 int cx_cmd_world_editor_spawn_blueprint(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
-int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
-int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
-int cx_cmd_ent_rot(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
-int cx_cmd_ent_parent(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
-int cx_cmd_ent_clone(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
-int cx_cmd_ent_destroy(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+cx_result cx_ed_world_editor_entity_new(uint16_t* p_out_entity_id);
+int cx_cmd_world_editor_entity_new(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
-// CREATE ENTITY
+cx_result cx_ed_world_editor_entity_destroy(uint16_t entity_id);
+int cx_cmd_world_editor_entity_destroy(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
-int cx_ed_create_entity_command(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx);
+cx_result cx_ed_world_editor_entity_clone(uint16_t entity_id);
+int cx_cmd_world_editor_entity_clone(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
-CX_ACTION_DEF(create_entity,
-	struct cx_world* p_world;
-	float position[3];
-	uint16_t created_entity_id;
-);
+cx_result cx_ed_world_editor_entity_set_parent(uint16_t entity_id, uint16_t parent_entity_id);
+int cx_cmd_world_editor_entity_set_parent(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
-void cx_ed_action_create_entity_do(void* p_ctx) {
-	struct cx_ed_action_create_entity_ctx* p_c = p_ctx;
-	p_c->created_entity_id = cx_world_entity_create(p_c->p_world);
-	struct transform* p_t = cx_world_entity_get_transform(p_c->p_world, p_c->created_entity_id);
-	transform_set_world_position(p_t, p_c->position);
-}
+cx_result cx_ed_world_editor_entity_add_component(uint16_t entity_id, const struct cx_component_type* p_type);
+int cx_cmd_world_editor_entity_add_component(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
-void cx_ed_action_create_entity_undo(void* p_ctx) {
-	struct cx_ed_action_create_entity_ctx* p_c = p_ctx;
-	cx_world_entity_destroy(p_c->p_world, p_c->created_entity_id);
-}
-
-int cx_ed_create_entity_command(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
-	(void)p_ctx;
-	const double x = p_args->count > 0 ? p_args->list[0].as_float : 0;
-	const double y = p_args->count > 1 ? p_args->list[1].as_float : 0;
-	const double z = p_args->count > 2 ? p_args->list[2].as_float : 0;
-
-	struct cx_ed_action_create_entity_ctx ctx = (struct cx_ed_action_create_entity_ctx) {
-		.p_world = &ed.world,
-		.position = { 
-			(float)x,
-			(float)y,
-			(float)z
-		}
-	};
-
-	CX_ACTION_EXECUTE(create_entity, &ctx);
-
-	struct cx_flog_builder flog = ed.flog_builder;
-
-	cx_flog_append_fmt(&flog, "Created new entity (%d) at [%g, %g, %g]\n", ctx.created_entity_id, x, y, z);
-	cx_flog_end(p_ctx->p_flogger, &flog);
-	
-	return 1;
-}
+cx_result cx_ed_world_editor_entity_remove_component(uint16_t entity_id, const struct cx_component_type* p_type);
+int cx_cmd_world_editor_entity_remove_component(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 // SET ENTITY TRANSFORM
 
@@ -214,11 +185,39 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 		cx_cmd_world_editor_spawn_blueprint, CX_NULL,
 		CX_CONSOLE_COMMAND_PARAM(STRING("blueprint", "The blueprint asset's ID or name"), REQUIRED));
 
-	CX_NEW_CONSOLE_COMMAND("w.newentity", "Create a new entity", cx_ed_create_entity_command, CX_NULL,
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("x", "Spawn position X"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("y", "Spawn position Y"), OPTIONAL),
-		CX_CONSOLE_COMMAND_PARAM(FLOAT("z", "Spawn position Z"), OPTIONAL));
+	CX_NEW_CONSOLE_COMMAND(
+		"e.new",
+		"Create a new entity", cx_cmd_world_editor_entity_new, CX_NULL,
+		CX_CONSOLE_COMMAND_NO_PARAMS);
+
+	CX_NEW_CONSOLE_COMMAND(
+		"e.destroy",
+		"Destroy an entity", cx_cmd_world_editor_entity_destroy, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to destroy"), REQUIRED));
+
+	CX_NEW_CONSOLE_COMMAND(
+		"e.clone",
+		"Clone an existing entity", cx_cmd_world_editor_entity_clone, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to destroy"), REQUIRED));
 	
+	CX_NEW_CONSOLE_COMMAND(
+		"e.parent",
+		"Set the parent of an entity", cx_cmd_world_editor_entity_set_parent, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to asign the parent to"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(STRING("parent", "The parent to asign to the entity"), REQUIRED));
+
+	CX_NEW_CONSOLE_COMMAND(
+		"e.cmp.add",
+		"Add a component to an entity", cx_cmd_world_editor_entity_add_component, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to add the component to"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(STRING("component", "The name of the component type to add"), REQUIRED));
+
+	CX_NEW_CONSOLE_COMMAND(
+		"e.cmp.remove",
+		"Remove a component from an entity", cx_cmd_world_editor_entity_remove_component, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to remove the component from"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(STRING("component", "The name of the component type to remove"), REQUIRED));
+
 	void* p_vsource;
 	void* p_fsource;
 	
@@ -760,20 +759,178 @@ int cx_cmd_world_editor_spawn_blueprint(
 	return 0;
 }
 
-int cx_cmd_ent_pos(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+cx_result cx_ed_world_editor_entity_new(uint16_t* p_out_entity_id) {
+	*p_out_entity_id = cx_world_entity_create(&ed.world);
+	return CX_SUCCESS;
 }
 
-int cx_cmd_ent_scale(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+int cx_cmd_world_editor_entity_new(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+	
+	(void)p_args;
+
+	uint16_t new_entity_id;
+	cx_ed_world_editor_entity_new(&new_entity_id);
+
+	char flog_buf[128];
+
+	struct cx_flog_builder flog_builder = {
+		.p_buf = flog_buf
+	};
+
+	cx_flog_append_fmt(&flog_builder, "New entity created: id=%u", new_entity_id);
+	cx_flog_end(p_context->p_flogger, &flog_builder);
+
+	return CX_SUCCESS;
 }
 
-int cx_cmd_ent_rot(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+cx_result cx_ed_world_editor_entity_destroy(uint16_t entity_id) {
+	cx_world_entity_destroy(&ed.world, entity_id);
+	return CX_SUCCESS;
 }
 
-int cx_cmd_ent_parent(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+static uint16_t cx_ed_world_editor_get_entity_id_from_cmd_arg(
+	const union cx_var_value* p_arg, struct cx_flogger* p_flogger, char* p_flog_buf) {
+
+	struct cx_flog_builder flog_builer = { .p_buf = p_flog_buf };
+
+	const char* p_arg_str = p_arg->as_str.p;
+
+	if (cx_strncmp(p_arg_str, "@", p_arg->as_str.len) == 0) {
+		if (ed.selected_entity_id == CX_ENTITY_ID_INVALID) {
+			cx_flog_append(&flog_builer, "No entity selected");
+			cx_flog_end(p_flogger, &flog_builer);
+		}
+		return ed.selected_entity_id;
+	}
+
+	char* p;
+	unsigned long num = strtoul(p_arg_str, &p, 10);
+
+	if ((size_t)(p - p_arg_str) < p_arg->as_str.len ||
+		num >= CX_WORLD_MAX_ENTITIES ||
+		!cx_world_entity_is_alive(&ed.world, (uint16_t)num)) {
+
+		cx_flog_append_fmt(&flog_builer, "Invalid entity id: %u", num);
+		cx_flog_end(p_flogger, &flog_builer);
+
+		return CX_ENTITY_ID_INVALID;
+	}
+
+	return (uint16_t)num;
 }
 
-int cx_cmd_ent_clone(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+int cx_cmd_world_editor_entity_destroy(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	char flog_buf[128];
+
+	uint16_t entity_id =
+		cx_ed_world_editor_get_entity_id_from_cmd_arg(&p_args->list[0], p_context->p_flogger, flog_buf);
+
+	if (entity_id == CX_ENTITY_ID_INVALID) {
+		return CX_ERROR_NOT_FOUND;
+	}
+
+	cx_ed_world_editor_entity_destroy(entity_id);
+
+	return CX_SUCCESS;
 }
 
-int cx_cmd_ent_destroy(const struct cx_command_args* p_args, const struct cx_command_context* p_ctx) {
+cx_result cx_ed_world_editor_entity_clone(uint16_t entity_id) {
+	return CX_SUCCESS;
+}
+
+int cx_cmd_world_editor_entity_clone(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	return CX_SUCCESS;
+}
+
+cx_result cx_ed_world_editor_entity_set_parent(uint16_t entity_id, uint16_t parent_entity_id) {
+	return CX_SUCCESS;
+}
+
+int cx_cmd_world_editor_entity_set_parent(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	return CX_SUCCESS;
+}
+
+cx_result cx_ed_world_editor_entity_add_component(uint16_t entity_id, const struct cx_component_type* p_type) {
+	if (cx_world_component_add(&ed.world, entity_id, p_type)) {
+		return CX_SUCCESS;
+	}
+	return CX_ERROR_ALREADY_EXISTS;
+}
+
+int cx_cmd_world_editor_entity_add_component(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	char flog_buf[128];
+
+	uint16_t entity_id =
+		cx_ed_world_editor_get_entity_id_from_cmd_arg(&p_args->list[0], p_context->p_flogger, flog_buf);
+
+	if (entity_id == CX_ENTITY_ID_INVALID) {
+		return CX_ERROR_NOT_FOUND;
+	}
+
+	struct cx_flog_builder flog_builder = { .p_buf = flog_buf };
+
+	const struct cx_component_type* p_type;
+	if (!cx_component_find_type(p_args->list[1].as_str.p, &p_type)) {
+		cx_flog_append_fmt(&flog_builder, "Component type '%s' not found", p_args->list[1].as_str.p);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_NOT_FOUND;
+	}
+	
+	if (cx_world_component_has(&ed.world, entity_id, p_type)) {
+		cx_flog_append_fmt(&flog_builder, "Entity already has '%s' component", p_args->list[1].as_str.p);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_INVALID_ARG;
+	}
+
+	cx_flog_append_fmt(&flog_builder, "Component '%s' added", p_args->list[1].as_str.p);
+	cx_flog_end(p_context->p_flogger, &flog_builder);
+
+	return cx_ed_world_editor_entity_add_component(entity_id, p_type);
+}
+
+cx_result cx_ed_world_editor_entity_remove_component(uint16_t entity_id, const struct cx_component_type* p_type) {
+	cx_world_component_remove(&ed.world, entity_id, p_type);
+	return CX_SUCCESS;
+}
+
+int cx_cmd_world_editor_entity_remove_component(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	char flog_buf[128];
+
+	uint16_t entity_id =
+		cx_ed_world_editor_get_entity_id_from_cmd_arg(&p_args->list[0], p_context->p_flogger, flog_buf);
+
+	if (entity_id == CX_ENTITY_ID_INVALID) {
+		return CX_ERROR_NOT_FOUND;
+	}
+
+	struct cx_flog_builder flog_builder = { .p_buf = flog_buf };
+
+	const struct cx_component_type* p_type;
+	if (!cx_component_find_type(p_args->list[1].as_str.p, &p_type)) {
+		cx_flog_append_fmt(&flog_builder, "Component type '%s' not found", p_args->list[1].as_str.p);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_NOT_FOUND;
+	}
+	
+	if (!cx_world_component_has(&ed.world, entity_id, p_type)) {
+		cx_flog_append_fmt(&flog_builder, "Entity doesn't have a '%s' component", p_args->list[1].as_str.p);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_INVALID_ARG;
+	}
+
+	cx_flog_append_fmt(&flog_builder, "Component '%s' removed", p_args->list[1].as_str.p);
+	cx_flog_end(p_context->p_flogger, &flog_builder);
+
+	return cx_ed_world_editor_entity_remove_component(entity_id, p_type);
 }
