@@ -25,7 +25,11 @@ int cx_image_deserialize(struct cx_stream* p_stream, struct cx_image* p_out_imag
 	cx_stream_deserialize_uint8(p_stream, &temp);
 	p_out_image->pixel_data_format.pixel_type = (enum cx_pixel_type)temp;
 
-	cx_stream_deserialize_bytes(p_stream, cx_image_pixel_data_size(p_out_image), p_out_image->p_pixel_data);
+	const size_t pixel_data_size = cx_image_pixel_data_size(p_out_image);
+
+	p_out_image->p_pixel_data = CX_MALLOC(pixel_data_size);
+
+	cx_stream_deserialize_bytes(p_stream, pixel_data_size, p_out_image->p_pixel_data);
 
 	return CX_TRUE;
 }
