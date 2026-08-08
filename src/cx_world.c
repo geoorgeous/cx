@@ -100,6 +100,10 @@ uint16_t cx_world_entity_create(struct cx_world* p_world) {
 void cx_world_entity_destroy(struct cx_world* p_world, uint16_t entity_id) {
 	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
 
+	if (!p_world->entities[entity_id].b_alive) {
+		return;
+	}
+
 	for (uint16_t i = 0; i < p_world->num_component_pools; ++i) {
 		cx_world_component_remove(p_world, entity_id, p_world->p_component_pools[i].p_type);
 	}
