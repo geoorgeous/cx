@@ -162,10 +162,11 @@ debug-run:
 	@$(MAKE) run MODE=debug
 
 # build debug target, run through gdb, and show backtrace when gdb breaks
+# (`set confirm off` disabled confirmation checks inside gdb)
 
 debug-gdb:
 	@$(MAKE) debug
-	gdb -ex run -ex bt --args ./$(TARGET_OUTPUT)
+	gdb -ex set confirm off -ex run -ex bt --args ./$(TARGET_OUTPUT)
 
 # generate compile_commands.json compilation database for clangd lsp tooling
 
