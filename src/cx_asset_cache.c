@@ -111,6 +111,7 @@ void* cx_asset_cache_acquire(struct cx_asset_ref* p_ref) {
 		}
 
 		if (!b_result) {
+			CX_FREE(p_cache_entry->p_asset);
 			p_cache_entry->ref_count--;
 			return CX_NULL;
 		}
@@ -130,7 +131,7 @@ void* cx_asset_cache_acquire(struct cx_asset_ref* p_ref) {
 void cx_asset_cache_release(struct cx_asset_ref* p_ref) {
 	const cx_asset_id asset_id = p_ref->asset_id;
 
-	*p_ref = (struct cx_asset_ref){0};
+	*p_ref = (struct cx_asset_ref){ .asset_id = asset_id };
 
 	struct hashtable_itr itr;
 	if (!hashtable_i_find(&cache.assets, asset_id, &itr)) {
