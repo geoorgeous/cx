@@ -28,12 +28,12 @@ enum cx_var_parse_result cx_var_parse(
 	switch (p_var_desc->type) {
 		case CX_VAR_TYPE_bool: {
 
-			if (cx_strcmp_n("true", s_arg, arg_len) == 0 || cx_strcmp_n("1", s_arg, arg_len) == 0) {
+			if (cx_strncmp("true", s_arg, arg_len) == 0 || cx_strncmp("1", s_arg, arg_len) == 0) {
 				p_out->b_as_bool = 1;
 				break;
 			}
 
-			if (cx_strcmp_n("false", s_arg, arg_len) == 0 || cx_strcmp_n("0", s_arg, arg_len) == 0) {
+			if (cx_strncmp("false", s_arg, arg_len) == 0 || cx_strncmp("0", s_arg, arg_len) == 0) {
 				p_out->b_as_bool = 0;
 				break;
 			}
@@ -105,7 +105,7 @@ enum cx_var_parse_result cx_var_parse(
 			int b_found_match = 0;
 			for (size_t i = 0; i < p_var_desc->type_metadata.enum_map.num_entries; ++i) {
 				const struct cx_var_enum_map_entry* p_e = &p_var_desc->type_metadata.enum_map.p_entries[i];
-				if ((b_is_int && e == p_e->value) || cx_strcmp_n(p_e->s_name, s_arg, arg_len) == 0) {
+				if ((b_is_int && e == p_e->value) || cx_strncmp(p_e->s_name, s_arg, arg_len) == 0) {
 					p_out->p_as_enum = p_e;;
 					b_found_match = 1;
 					break;

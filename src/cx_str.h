@@ -33,13 +33,13 @@ static inline int cx_str_icmp(const char* s_a, const char* s_b) {
 	return tolower((unsigned char)*s_a) - tolower((unsigned char)*s_b);
 }
 
-static inline int cx_strcmp_n(const char* s_a, const char* p_b, size_t len) {
-	while(len-- && *s_a && *s_a == *p_b) {
+static inline int cx_strncmp(const char* s_a, const char* p_b, size_t n) {
+	while(--n && *s_a && *s_a == *p_b) {
 		s_a++;
 		p_b++;
 	}
 
-	return (unsigned char)(*s_a) - (unsigned char)((len != ((size_t)-1)) ? *p_b : '\0');
+	return (unsigned char)(*s_a) - (unsigned char)((n != ((size_t)-1)) ? *p_b : '\0');
 }
 
 static inline char* cx_stpcpy(char* p_dst, const char* s_src) {
