@@ -1,6 +1,22 @@
+#include <stddef.h>
+
 #include "cx_asset.h"
 #include "cx_cmp_static_mesh.h"
 #include "cx_macro.h"
+
+#define CX_REFLECT_FIELD(STRUCT_TYPE, NAME, TYPE) {\
+		.s_name = #NAME,\
+		.type = CX_ED_REFLECT_TYPE_##TYPE,\
+		.offset = offsetof(STRUCT_TYPE, NAME)\
+	}
+
+static const struct cx_ed_reflect_field fields[] = {
+	{
+		.s_name = "ref",
+		.type = CX_ED_REFLECT_TYPE_int32,
+		.offset = offsetof(struct cx_cmp_static_mesh, asset_ref)
+	}
+};
 
 struct cx_component_type cmp_type_static_mesh = {
 	.s_name = "static_mesh",
@@ -8,7 +24,13 @@ struct cx_component_type cmp_type_static_mesh = {
 	.f_deserialize = cx_cmp_static_mesh_deserialize,
 	.f_enumerate_asset_dependencies = cx_cmp_static_mesh_enumerate_asset_dependencies,
 	.size = sizeof(struct cx_cmp_static_mesh),
-	.alignment = CX_ALIGNOF(struct cx_cmp_static_mesh)
+	.alignment = CX_ALIGNOF(struct cx_cmp_static_mesh),
+	.reflect = {
+		.s_name = "static_mesh",
+		.size = sizeof(struct cx_cmp_static_mesh),
+		.p_fields = fields,
+		.num_fields = 1
+	}
 };
 
 int cx_cmp_static_mesh_serialize(const void* p_cmp, struct cx_stream* p_stream) {

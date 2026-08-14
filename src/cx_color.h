@@ -37,6 +37,13 @@ struct cx_color_u8 {
 	uint8_t rgba[4];
 };
 
+static inline void cx_color_f32_cpy(const struct cx_color* p_color, struct cx_color* p_out) {
+	CX_COLOR_R(*p_out) = CX_COLOR_R(*p_color);
+	CX_COLOR_G(*p_out) = CX_COLOR_G(*p_color);
+	CX_COLOR_B(*p_out) = CX_COLOR_B(*p_color);
+	CX_COLOR_A(*p_out) = CX_COLOR_A(*p_color);
+}
+
 static inline void cx_color_u8_from_f32(const struct cx_color* p_color, struct cx_color_u8* p_out) {
 	*p_out = (struct cx_color_u8) {
 		.rgba = {

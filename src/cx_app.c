@@ -204,8 +204,6 @@ int cx_app_init(
 		struct cx_image font_atlas_image;
 		cx_font_create_atlas(p_font, &font_atlas_image, &cx_app.console_font_glyph_atlas_layout);
 
-		cx_font_free_glyph_bitmap_buffer(p_font);
-
 		cx_gfx_texture_create(
 			&cx_app.console_font_glyph_atlas_texture,
 			font_atlas_image.width, font_atlas_image.height,

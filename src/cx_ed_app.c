@@ -11,6 +11,10 @@
 #include "cx_ed_world_editor.h"
 #include "cx_macro.h"
 
+// Camera
+// Controller/mover component
+// Player controller component: hands off input to the controller component
+
 static int cx_ed_app_init(int argc, const char** argv);
 static void cx_ed_app_update(double);
 static void cx_ed_app_draw(const struct cx_gfx_framebuffer*);

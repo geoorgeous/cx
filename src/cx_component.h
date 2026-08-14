@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "cx_asset_defs.h"
+#include "cx_ed_reflect.h"
 #include "cx_stream_serialization.h"
 
 #define CX_LOG_CAT_COMPONENT "components"
@@ -26,6 +27,7 @@ struct cx_component_type {
 	cx_component_serialize_fn f_serialize;
 	cx_component_deserialize_fn f_deserialize;
 	cx_component_enumerate_asset_dependencies_fn f_enumerate_asset_dependencies;
+	struct cx_ed_reflect_struct reflect;
 };
 
 void cx_component_register_type(struct cx_component_type* p_type);

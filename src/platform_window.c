@@ -7,6 +7,16 @@ void platform_window_get_mouse_client_coords(const struct platform_window* p_win
 	*p_y = p_window->mouse_pos_[1];
 }
 
+void platform_window_get_mouse_client_coord_scaled(
+	const struct platform_window* p_window, unsigned int width, unsigned int height, int* p_out_x, int* p_out_y) {
+
+	float sx, sy;
+	platform_window_normalize_client_coords(p_window, p_window->mouse_pos_[0], p_window->mouse_pos_[1], &sx, &sy);
+
+	*p_out_x = (int)((float)width * sx);
+	*p_out_y = (int)((float)height * sy);
+}
+
 void platform_window_normalize_client_coords(
 	const struct platform_window* p_window,
 	int client_x, int client_y,

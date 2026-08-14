@@ -52,6 +52,9 @@ void platform_window_size(const struct platform_window* p_window, unsigned int* 
 
 void platform_window_get_mouse_client_coords(const struct platform_window* p_window, int* p_client_x, int* p_client_y);
 
+void platform_window_get_mouse_client_coord_scaled(
+	const struct platform_window* p_window, unsigned int width, unsigned int height, int* p_out_x, int* p_out_y);
+
 void platform_window_normalize_client_coords(
 	const struct platform_window* p_window,
 	int client_x, int client_y,

@@ -11,6 +11,7 @@
 #include "cx_ed_action.h"
 #include "cx_ed_asset_library.h"
 #include "cx_ed_transform_gizmo.h"
+#include "cx_ed_ui.h"
 #include "cx_ed_world_editor.h"
 #include "cx_io.h"
 #include "cx_macro.h"
@@ -88,7 +89,14 @@ static struct {
 		float projection_matrix[16];
 		float view_matrix[16];
 	} camera;
+
+	struct cx_ed_ui ui;
+	char ui_textbox_buf[255];
 } ed;
+
+static void cx_ed_world_editor_ui_click_cb(void* p_user_ptr) {
+	CX_LOG(INFO, ED_WORLD_EDITOR, "ui click\n");
+}
 
 // COMMANDS
 
@@ -125,6 +133,9 @@ int cx_cmd_world_editor_entity_add_component(
 
 cx_result cx_ed_world_editor_entity_remove_component(uint16_t entity_id, const struct cx_component_type* p_type);
 int cx_cmd_world_editor_entity_remove_component(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
+
+int cx_cmd_world_editor_entity_component_set(
 	const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 // SET ENTITY TRANSFORM
@@ -218,6 +229,16 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to remove the component from"), REQUIRED),
 		CX_CONSOLE_COMMAND_PARAM(STRING("component", "The name of the component type to remove"), REQUIRED));
 
+	// e.cmp.set 78 static_mesh ref 0x??????
+
+	CX_NEW_CONSOLE_COMMAND(
+		"e.cmp.set",
+		"Set component field value", cx_cmd_world_editor_entity_component_set, CX_NULL,
+		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to modify"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(STRING("component", "Component name"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(STRING("field", "Field name"), REQUIRED),
+		CX_CONSOLE_COMMAND_PARAM(STRING("value", "The name of the component type to remove"), REQUIRED));
+
 	void* p_vsource;
 	void* p_fsource;
 	
@@ -301,6 +322,12 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
 	input_event_subscribe(INPUT_EVENT_key, cx_ed_world_editor_on_key, 0);
+
+	unsigned window_width, window_height;
+	platform_window_size(p_window, &window_width, &window_height);
+
+	cx_ed_ui_init(window_width, window_height, &ed.ui);
+	strcpy(ed.ui_textbox_buf, "hello");
 
 	cx_ed_world_editor_load_world_from_world_blueprint(s_world_blueprint_asset_name);
 }
@@ -457,6 +484,44 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	}
 
 	cx_world_compute_transforms(&ed.world);
+
+	// ui
+
+	cx_ed_ui_window_begin(&ed.ui, "test_window", "test window", 100, 100, 450, 800);
+		cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+			cx_ed_ui_column_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+				cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 128, 32, CX_NULL);
+			cx_ed_ui_column_end(&ed.ui);
+			cx_ed_ui_column_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+				cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+					cx_ed_ui_image(&ed.ui, "image0", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, CX_NULL, 64, 32, CX_NULL);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+				cx_ed_ui_row_end(&ed.ui);
+				cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+				cx_ed_ui_row_end(&ed.ui);
+				cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
+				cx_ed_ui_row_end(&ed.ui);
+			cx_ed_ui_column_end(&ed.ui);
+		cx_ed_ui_row_end(&ed.ui);
+		cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
+			cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 300, 300, CX_NULL);
+		cx_ed_ui_row_end(&ed.ui);
+		cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_center);
+			cx_ed_ui_label(&ed.ui, CX_NULL, CX_NULL, "@@@ WWWW XXXX hello george !!!!! ||||||", CX_NULL, CX_NULL);
+			cx_ed_ui_button(&ed.ui, "button0", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, "BUTTON");
+		cx_ed_ui_row_end(&ed.ui);
+		cx_ed_ui_button(&ed.ui, "button1", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, "HEHEHEHEHE");
+		cx_ed_ui_textbox(&ed.ui, "textbox0", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, ed.ui_textbox_buf, sizeof(ed.ui_textbox_buf));
+	cx_ed_ui_window_end(&ed.ui);
+
+	cx_ed_ui_end_frame(&ed.ui, ed.p_window);
 }
 
 void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
@@ -546,6 +611,16 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 			&render_command_buffer);
 		render_command_buffer.num = 0;
 	}
+
+	// UI
+	
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	cx_ed_ui_draw(&ed.ui);
 
 	// OBJECT PICKER
 
@@ -731,7 +806,6 @@ int cx_cmd_world_editor_save_world_blueprint(
 		cx_flog_append(&flog, "File already exists\n");
 		cx_flog_end(p_context->p_flogger, &flog);
 	}
-
 
 	return result;
 }
@@ -933,4 +1007,68 @@ int cx_cmd_world_editor_entity_remove_component(
 	cx_flog_end(p_context->p_flogger, &flog_builder);
 
 	return cx_ed_world_editor_entity_remove_component(entity_id, p_type);
+}
+
+	//CX_NEW_CONSOLE_COMMAND(
+	//	"e.cmp.set",
+	//	"Set component field value", cx_cmd_world_editor_entity_component_set, CX_NULL,
+	//	CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to modify"), REQUIRED),
+	//	CX_CONSOLE_COMMAND_PARAM(STRING("component", "Component name"), REQUIRED),
+	//	CX_CONSOLE_COMMAND_PARAM(STRING("field", "Field name"), REQUIRED),
+	//	CX_CONSOLE_COMMAND_PARAM(STRING("value", "The name of the component type to remove"), REQUIRED));
+
+
+
+// e.cmp.set 0xXXXXXX component field <VAL>
+
+// e.cmp.set <id> <component> <struct> 
+
+// e.cmp.set <id> static_mesh material albedo_texture <asset>
+
+int cx_cmd_world_editor_entity_component_set(
+	const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
+
+	char flog_buf[128];
+
+	uint16_t entity_id =
+		cx_ed_world_editor_get_entity_id_from_cmd_arg(&p_args->list[0], p_context->p_flogger, flog_buf);
+
+	if (entity_id == CX_ENTITY_ID_INVALID) {
+		return CX_ERROR_NOT_FOUND;
+	}
+
+	struct cx_flog_builder flog_builder = { .p_buf = flog_buf };
+
+	const struct cx_component_type* p_type;
+	if (!cx_component_find_type(p_args->list[1].as_str.p, &p_type)) {
+		cx_flog_append_fmt(&flog_builder, "Component type '%s' not found", p_args->list[1].as_str.p);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_NOT_FOUND;
+	}
+	
+	void* p_component = cx_world_component_find(&ed.world, entity_id, p_type);
+
+	if (p_component == CX_NULL) {
+		cx_flog_append_fmt(&flog_builder, "Entity doesn't have a '%s' component", p_args->list[1].as_str.p);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_INVALID_ARG;
+	}
+
+	const struct cx_ed_reflect_field* p_field;
+	if (!cx_ed_reflect_find_field(&p_type->reflect, p_args->list[2].as_str.p, &p_field)) {
+		cx_flog_append_fmt(&flog_builder, "Cannot find field '%s' on %s component",
+			p_args->list[2].as_str.p, p_type->s_name);
+		cx_flog_end(p_context->p_flogger, &flog_builder);
+		return CX_ERROR_NOT_FOUND;
+	}
+
+	switch (p_field->type) {
+		case CX_ED_REFLECT_TYPE_uint8: {
+			break;
+		}
+	}
+
+	void* p_field_data = cx_ed_reflect_field_address(p_component, p_field);
+
+	return CX_SUCCESS;
 }

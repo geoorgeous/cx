@@ -215,12 +215,15 @@ void* cx_world_component_find(
 	uint16_t entity_id,
 	const struct cx_component_type* p_component_type) {
 
-	CX_ASSERT_MSG_FMT(entity_id < CX_WORLD_MAX_ENTITIES, WORLD, "Invalid entity id: %u", entity_id);
+	if (cx_world_entity_is_alive(p_world, entity_id)) {
+		return CX_NULL;
+	}
 	
 	const uint16_t pool_id = p_world->component_type_pool_ids[p_component_type->runtime_id];
 
-	CX_ASSERT_MSG_FMT(pool_id < CX_COMPONENT_MAX_TYPES, WORLD, "World does not contain a pool for component type '%s'",
-		p_component_type->s_name);
+	if (pool_id >= CX_COMPONENT_MAX_TYPES) {
+		return CX_NULL;
+	}
 
 	const struct cx_component_pool* p_pool = p_world->p_component_pools + pool_id;
 
