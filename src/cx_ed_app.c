@@ -224,9 +224,14 @@ int cx_ed_rebuild_core_asset_package_command(
 	cx_ed_rebuild_core_asset_package();
 	return 0;
 }
-
 int main(int argc, const char** argv) {
-	cx_app_init("cx editor", 960, 640, cx_ed_app_init, argc, argv);
+	cx_app_init(
+		"cx editor"
+#ifndef NDEBUG
+		" (debug)"
+#endif
+		, 960, 640, cx_ed_app_init, argc, argv);
+
 	cx_app_run(cx_ed_app_update, cx_ed_app_draw);
 	cx_app_shutdown(cx_ed_app_shutdown);
 }
