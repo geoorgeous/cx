@@ -3,7 +3,8 @@ LDLIBS      := m
 SRC_DIR     := src
 TARGET      ?= runtime
 MODE        ?= debug
-BUILD_DIR   := build/$(TARGET)/$(MODE)
+BUILD_DIR_ROOT ?= build
+BUILD_DIR   := $(BUILD_DIR_ROOT)/$(TARGET)/$(MODE)
 OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
 JOBS        ?= 8
@@ -14,8 +15,6 @@ ifeq ($(TARGET),runtime)
 else ifeq ($(TARGET),editor)
 	TARGET_NAME ?= cx-ed
 endif
-
-TARGET_OUTPUT := $(BIN_DIR)/$(TARGET_NAME)
 
 # Platform specific configuration
 ifeq ($(OS),Windows_NT)
@@ -29,6 +28,8 @@ else
 	CMD_RMDIR    := rm -rf
 	LDLIBS       += GL X11
 endif
+
+TARGET_OUTPUT := $(BIN_DIR)/$(TARGET_NAME)
 
 CFLAGS += \
 	-ffp-contract=off \
@@ -90,8 +91,6 @@ CFLAGS_debug += \
 	-ggdb \
 	-O0
 
-LDFLAGS +=
-
 LDFLAGS_release += \
 	-flto \
 	-s \
@@ -139,40 +138,64 @@ $(OBJ_DIR):
 $(BIN_DIR):
 	@$(CMD_MKDIR) $(BIN_DIR)
 
-.PHONY: all clean run release release-run debug-run gdb compile_commands
+.PHONY: \
+	all build run gdb clean \
+	release debug release-run debug-run debug-gdb \
+	ed-release ed-debug ed-release-run ed-debug-run ed-debug-gdb \
+	compile_commands
 
-all: $(TARGET_OUTPUT)
+all: release ed-release
 
-clean:
-	@$(CMD_RMDIR) build
+build: $(TARGET_OUTPUT)
 
-run: $(TARGET_OUTPUT)
+run: build
 	@./$(TARGET_OUTPUT)
-
-release:
-	@$(MAKE) MODE=release all
-
-release-run:
-	@$(MAKE) run MODE=release
-
-debug:
-	@$(MAKE) MODE=debug all
-
-debug-run:
-	@$(MAKE) run MODE=debug
 
 # build debug target, run through gdb, and show backtrace when gdb breaks
 # (`set confirm off` disabled confirmation checks inside gdb)
 
-debug-gdb:
-	@$(MAKE) debug
+gdb: build
 	gdb -ex "set confirm off" -ex run -ex bt --args ./$(TARGET_OUTPUT)
+
+clean:
+	@$(CMD_RMDIR) $(BUILD_DIR_ROOT)
+
+release:
+	@$(MAKE) build TARGET=runtime MODE=release
+
+debug:
+	@$(MAKE) build TARGET=runtime MODE=debug
+
+release-run:
+	@$(MAKE) run TARGET=runtime MODE=release
+
+debug-run:
+	@$(MAKE) run TARGET=runtime MODE=debug
+
+debug-gdb:
+	@$(MAKE) gdb TARGET=runtime MODE=debug
+
+ed-release:
+	@$(MAKE) build TARGET=editor MODE=release
+
+ed-debug:
+	@$(MAKE) build TARGET=editor MODE=debug
+
+ed-release-run:
+	@$(MAKE) run TARGET=editor MODE=release
+
+ed-debug-run:
+	@$(MAKE) run TARGET=editor MODE=debug
+
+ed-debug-gdb:
+	@$(MAKE) gdb TARGET=editor MODE=debug
 
 # generate compile_commands.json compilation database for clangd lsp tooling
 
 compile_commands:
-	@bear -- make clean debug
-	@bear --append -- make TARGET=editor debug
+	@$(MAKE) clean
+	@bear -- $(MAKE) debug
+	@bear --append -- $(MAKE) ed-debug
 
 # dependency includes
 
