@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "keys.h"
+#include "cx_keys.h"
 #include "mouse_buttons.h"
 
 #define CX_LOG_CAT_INPUT "input"
@@ -28,7 +28,7 @@ enum input_event {
 };
 
 struct input_event_data_key {
-	enum key     key;
+	enum cx_key  key;
 	int          b_is_down;
 	unsigned int mods;
 };
@@ -56,9 +56,9 @@ struct input_event_data_char {
 };
 
 void input_init(void);
-int  input_frame_is_key_down(enum key key);
-int  input_frame_is_key_pressed(enum key key);
-int  input_frame_is_key_released(enum key key);
+int  input_frame_is_key_down(enum cx_key key);
+int  input_frame_is_key_pressed(enum cx_key key);
+int  input_frame_is_key_released(enum cx_key key);
 int  input_frame_is_mouse_button_down(enum mouse_button mouse_button);
 int  input_frame_is_mouse_button_pressed(enum mouse_button mouse_button);
 int  input_frame_is_mouse_button_released(enum mouse_button mouse_button);

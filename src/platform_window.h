@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 #include "cx_error.h"
+#include "cx_keys.h"
 #include "cx_macro.h"
-#include "keys.h"
 #include "mouse_buttons.h"
 
 #define CX_LOG_CAT_PLATFORM_WINDOW "platform:window"
@@ -19,7 +19,7 @@ struct platform_window {
 	void* p_callback_on_focus_change_user_ptr_;
 	void(*f_callback_on_resize_)(struct platform_window*, void*, uint32_t, uint32_t);
 	void* p_callback_on_resize_user_ptr_;
-	void(*f_callback_on_key_)(struct platform_window*, void*, enum key, int, unsigned int);
+	void(*f_callback_on_key_)(struct platform_window*, void*, enum cx_key, int, unsigned int);
 	void* p_callback_on_key_user_ptr_;
 	void(*f_callback_on_mouse_button_)(struct platform_window*, void*, enum mouse_button, int, unsigned int);
 	void* p_callback_on_mouse_button_user_ptr_;
@@ -88,7 +88,7 @@ void platform_window_set_on_resize_callback(
 
 void platform_window_set_on_key_callback(
 	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, enum key, int, unsigned int),
+	void(*f_callback)(struct platform_window*, void*, enum cx_key, int, unsigned int),
 	void* p_user_ptr);
 
 void platform_window_set_on_mouse_button_callback(

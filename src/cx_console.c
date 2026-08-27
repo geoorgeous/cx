@@ -4,11 +4,11 @@
 
 #include "cx_command.h"
 #include "cx_console.h"
+#include "cx_keys.h"
 #include "cx_logging.h"
 #include "cx_str.h"
 #include "cx_var.h"
 #include "input.h"
-#include "keys.h"
 
 #define CX_CONSOLE_LOG_LINE_BREAK "------------------------------------------------------------"
 
@@ -139,7 +139,7 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 	}
 
 	switch (p_e->key) {
-		case KEY_left: {
+		case CX_KEY_left: {
 			if (p_e->mods & INPUT_MOD_ctrl) {
 				cx_text_edit_cursor_prev_word(&p_console->input.text);
 			} else {
@@ -147,7 +147,7 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			}
 			break;
 		}
-		case KEY_right: {
+		case CX_KEY_right: {
 			if (p_e->mods & INPUT_MOD_ctrl) {
 				cx_text_edit_cursor_next_word(&p_console->input.text);
 			} else {
@@ -155,31 +155,31 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			}
 			break;
 		}
-		case KEY_up: {
+		case CX_KEY_up: {
 			cx_console_history_set(p_console, p_console->history.index + 1);
 			break;
 		}
-		case KEY_down: {
+		case CX_KEY_down: {
 			cx_console_history_set(p_console, p_console->history.index - 1);
 			break;
 		}
-		case KEY_backspace: {
+		case CX_KEY_backspace: {
 			cx_text_edit_delete(&p_console->input.text, -1);
 			break;
 		}
-		case KEY_delete: {
+		case CX_KEY_delete: {
 			cx_text_edit_delete(&p_console->input.text, 1);
 			break;
 		}
-		case KEY_home: {
+		case CX_KEY_home: {
 			cx_text_edit_cursor_set(&p_console->input.text, 0);
 			break;
 		}
-		case KEY_end: {
+		case CX_KEY_end: {
 			cx_text_edit_cursor_set(&p_console->input.text, p_console->input.text.len);
 			break;
 		}
-		case KEY_enter: {
+		case CX_KEY_enter: {
 			cx_alloc_ring_push(
 				&p_console->history.ring,
 				p_console->input.text.p_buf,
@@ -193,10 +193,10 @@ void cx_console_on_key(const void* p_event, void* p_user_ptr) {
 			cx_text_edit_clear(&p_console->input.text);
 			break;
 		}
-		case KEY_tab: {
+		case CX_KEY_tab: {
 			break;
 		}
-		case KEY_escape: {
+		case CX_KEY_escape: {
 			cx_console_set_is_input_enabled(p_console, 0);
 		}
 		default: break;

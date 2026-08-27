@@ -40,8 +40,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cx_keys.h"
 #include "cx_text_edit.h"
-#include "keys.h"
 #include "mouse_buttons.h"
 
 #define CX_ED_UI_MAX_ID_LEN 32
@@ -127,7 +127,7 @@ typedef void(*cx_ed_ui_mouse_enter_cb_fn)(void* p_user_ptr);
 typedef void(*cx_ed_ui_mouse_exit_cb_fn)(void* p_user_ptr);
 typedef void(*cx_ed_ui_mouse_move_cb_fn)(int, int, void* p_user_ptr);
 typedef void(*cx_ed_ui_mouse_button_cb_fn)(enum mouse_button, int, void*);
-typedef void(*cx_ed_ui_key_cb_fn)(enum key, int, void*);
+typedef void(*cx_ed_ui_key_cb_fn)(enum cx_key, int, void*);
 typedef void(*cx_ed_ui_click_cb_fn)(void*);
 typedef void(*cx_ed_ui_text_input_cb_fn)(const char*, void*);
 typedef void(*cx_ed_ui_focus_enter_cb_fn)(void*);
@@ -213,7 +213,7 @@ struct cx_ed_ui_input_event {
 			unsigned int mods;
 		} mouse_button;
 		struct {
-			enum key key;
+			enum cx_key key;
 			int b_is_down;
 			unsigned int mods;
 		} key;

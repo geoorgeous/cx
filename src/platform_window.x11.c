@@ -12,12 +12,11 @@
 #include "cx_error.h"
 #include "platform_window.h"
 #include "input.h"
-#include "keys.h"
 #include "platform_window.x11.h"
 
 static enum cx_error x11_init_connection(void);
 static void          x11_close_connection(void);
-static enum key      x11_keycode_to_key(unsigned int keycode);
+static enum cx_key   x11_keycode_to_key(unsigned int keycode);
 static unsigned int  x11_mods_to_input_mods(unsigned int mods);
 static char          x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
 static int           x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
@@ -466,74 +465,74 @@ void x11_close_connection(void) {
 	CX_LOG(INFO, PLATFORM_WINDOW, "Connection to X server closed\n");
 }
 
-enum key x11_keycode_to_key(unsigned int keycode) {
+enum cx_key x11_keycode_to_key(unsigned int keycode) {
 	CX_DBG(CX_LOG_FMT(TRACE, PLATFORM_WINDOW, "keycode=%u\n", keycode));
 
 	switch (keycode) {
-		case  9:  return KEY_escape;
-		case 10:  return KEY_1;
-		case 11:  return KEY_2;
-		case 12:  return KEY_3;
-		case 13:  return KEY_4;
-		case 14:  return KEY_5;
-		case 15:  return KEY_6;
-		case 16:  return KEY_7;
-		case 17:  return KEY_8;
-		case 18:  return KEY_9;
-		case 19:  return KEY_0;
-		case 22:  return KEY_backspace;
-		case 23:  return KEY_tab;
-		case 24:  return KEY_q;
-		case 25:  return KEY_w;
-		case 26:  return KEY_e;
-		case 27:  return KEY_r;
-		case 28:  return KEY_t;
-		case 29:  return KEY_y;
-		case 30:  return KEY_u;
-		case 31:  return KEY_i;
-		case 32:  return KEY_o;
-		case 33:  return KEY_p;
-		case 36:  return KEY_enter;
-		case 37:  return KEY_ctrl_left;
-		case 38:  return KEY_a;
-		case 39:  return KEY_s;
-		case 40:  return KEY_d;
-		case 41:  return KEY_f;
-		case 42:  return KEY_g;
-		case 43:  return KEY_h;
-		case 44:  return KEY_j;
-		case 45:  return KEY_k;
-		case 46:  return KEY_l;
-		case 49:  return KEY_grave;
-		case 50:  return KEY_shift_left;
-		case 52:  return KEY_z;
-		case 53:  return KEY_x;
-		case 54:  return KEY_c;
-		case 55:  return KEY_v;
-		case 56:  return KEY_b;
-		case 57:  return KEY_n;
-		case 58:  return KEY_m;
-		case 65:  return KEY_space;
-		case 67:  return KEY_f1;
-		case 68:  return KEY_f2;
-		case 69:  return KEY_f3;
-		case 70:  return KEY_f4;
-		case 71:  return KEY_f5;
-		case 72:  return KEY_f6;
-		case 73:  return KEY_f7;
-		case 74:  return KEY_f8;
-		case 75:  return KEY_f9;
-		case 76:  return KEY_f10;
-		case 95:  return KEY_f11;
-		case 96:  return KEY_f12;
-		case 110: return KEY_home;
-		case 111: return KEY_up;
-		case 113: return KEY_left;
-		case 114: return KEY_right;
-		case 115: return KEY_end;
-		case 116: return KEY_down;
-		case 119: return KEY_delete;
-		default:  return KEY_unknown;
+		case  9:  return CX_KEY_escape;
+		case 10:  return CX_KEY_1;
+		case 11:  return CX_KEY_2;
+		case 12:  return CX_KEY_3;
+		case 13:  return CX_KEY_4;
+		case 14:  return CX_KEY_5;
+		case 15:  return CX_KEY_6;
+		case 16:  return CX_KEY_7;
+		case 17:  return CX_KEY_8;
+		case 18:  return CX_KEY_9;
+		case 19:  return CX_KEY_0;
+		case 22:  return CX_KEY_backspace;
+		case 23:  return CX_KEY_tab;
+		case 24:  return CX_KEY_q;
+		case 25:  return CX_KEY_w;
+		case 26:  return CX_KEY_e;
+		case 27:  return CX_KEY_r;
+		case 28:  return CX_KEY_t;
+		case 29:  return CX_KEY_y;
+		case 30:  return CX_KEY_u;
+		case 31:  return CX_KEY_i;
+		case 32:  return CX_KEY_o;
+		case 33:  return CX_KEY_p;
+		case 36:  return CX_KEY_enter;
+		case 37:  return CX_KEY_ctrl_left;
+		case 38:  return CX_KEY_a;
+		case 39:  return CX_KEY_s;
+		case 40:  return CX_KEY_d;
+		case 41:  return CX_KEY_f;
+		case 42:  return CX_KEY_g;
+		case 43:  return CX_KEY_h;
+		case 44:  return CX_KEY_j;
+		case 45:  return CX_KEY_k;
+		case 46:  return CX_KEY_l;
+		case 49:  return CX_KEY_grave;
+		case 50:  return CX_KEY_shift_left;
+		case 52:  return CX_KEY_z;
+		case 53:  return CX_KEY_x;
+		case 54:  return CX_KEY_c;
+		case 55:  return CX_KEY_v;
+		case 56:  return CX_KEY_b;
+		case 57:  return CX_KEY_n;
+		case 58:  return CX_KEY_m;
+		case 65:  return CX_KEY_space;
+		case 67:  return CX_KEY_f1;
+		case 68:  return CX_KEY_f2;
+		case 69:  return CX_KEY_f3;
+		case 70:  return CX_KEY_f4;
+		case 71:  return CX_KEY_f5;
+		case 72:  return CX_KEY_f6;
+		case 73:  return CX_KEY_f7;
+		case 74:  return CX_KEY_f8;
+		case 75:  return CX_KEY_f9;
+		case 76:  return CX_KEY_f10;
+		case 95:  return CX_KEY_f11;
+		case 96:  return CX_KEY_f12;
+		case 110: return CX_KEY_home;
+		case 111: return CX_KEY_up;
+		case 113: return CX_KEY_left;
+		case 114: return CX_KEY_right;
+		case 115: return CX_KEY_end;
+		case 116: return CX_KEY_down;
+		case 119: return CX_KEY_delete;
+		default:  return CX_KEY_unknown;
 	}
 }
 

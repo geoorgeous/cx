@@ -11,7 +11,7 @@ struct mouse_button_state {
 };
 
 struct input_frame_state {
-	struct key_state          keys[KEY_MAX_];
+	struct key_state          keys[CX_KEY_MAX_];
 	struct mouse_button_state mouse_button[MOUSE_BUTTON_MAX_];
 	int                       mouse_delta[2];
 	int                       scroll_delta[2];
@@ -35,20 +35,20 @@ void input_init(void) {
 	input_event_subscribe(INPUT_EVENT_scroll, input_on_scroll, &input);
 }
 
-int input_frame_is_key_down(enum key key) {
-	CX_ASSERT(key >= 0 && key < KEY_MAX_, INPUT);
+int input_frame_is_key_down(enum cx_key key) {
+	CX_ASSERT(key >= 0 && key < CX_KEY_MAX_, INPUT);
 	return input.frame.keys[key].b_is_down;
 }
 
-int input_frame_is_key_pressed(enum key key) {
-	CX_ASSERT(key >= 0 && key < KEY_MAX_, INPUT);
+int input_frame_is_key_pressed(enum cx_key key) {
+	CX_ASSERT(key >= 0 && key < CX_KEY_MAX_, INPUT);
 	return
 		input.frame.keys[key].b_is_down &&
 		!input.frame_old.keys[key].b_is_down;
 }
 
-int input_frame_is_key_released(enum key key) {
-	CX_ASSERT(key >= 0 && key < KEY_MAX_, INPUT);
+int input_frame_is_key_released(enum cx_key key) {
+	CX_ASSERT(key >= 0 && key < CX_KEY_MAX_, INPUT);
 	return
 		!input.frame.keys[key].b_is_down &&
 		input.frame_old.keys[key].b_is_down;
@@ -106,7 +106,7 @@ void input_event_broadcast(enum input_event event, const void* p_event_data) {
 void input_on_key(const void* p_e, void* p_user_ptr) {
 	const struct input_event_data_key* p_key_event = p_e;
 
-	if (p_key_event->key < 0 || p_key_event->key >= KEY_MAX_) {
+	if (p_key_event->key < 0 || p_key_event->key >= CX_KEY_MAX_) {
 		return;
 	}
 

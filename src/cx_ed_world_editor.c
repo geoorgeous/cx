@@ -339,22 +339,22 @@ void cx_ed_world_editor_shutdown(void) {
 void cx_ed_world_editor_update(double dt_seconds) {
 	float move_direction[3] = {0};
 	if (!cx_console_get()->b_is_input_enabled) {
-		if (input_frame_is_key_down(KEY_a)) {
+		if (input_frame_is_key_down(CX_KEY_a)) {
 			move_direction[0] -= 1;
 		}
-		if (input_frame_is_key_down(KEY_d)) {
+		if (input_frame_is_key_down(CX_KEY_d)) {
 			move_direction[0] += 1;
 		}
-		if (input_frame_is_key_down(KEY_s)) {
+		if (input_frame_is_key_down(CX_KEY_s)) {
 			move_direction[2] += 1;
 		}
-		if (input_frame_is_key_down(KEY_w)) {
+		if (input_frame_is_key_down(CX_KEY_w)) {
 			move_direction[2] -= 1;
 		}
-		if (input_frame_is_key_down(KEY_space)) {
+		if (input_frame_is_key_down(CX_KEY_space)) {
 			move_direction[1] += 1;
 		}
-		if (input_frame_is_key_down(KEY_c)) {
+		if (input_frame_is_key_down(CX_KEY_c)) {
 			move_direction[1] -= 1;
 		}
 
@@ -378,7 +378,7 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	matrix_multiply(pitch_rotation_matrix, yaw_rotation_matrix, rotation_matrix);
 
 	if (!vec3_is_zero(move_direction)) {
-		const float speed = input_frame_is_key_down(KEY_shift_left) ? 50.f : 7.f;
+		const float speed = input_frame_is_key_down(CX_KEY_shift_left) ? 50.f : 7.f;
 		float offset[4] = { 0, 0, 0, 1 };
 
 		vec3_norm(move_direction, move_direction);
@@ -473,11 +473,11 @@ void cx_ed_world_editor_update(double dt_seconds) {
 				.transform = t
 			}));
 		} else {
-			if (input_frame_is_key_pressed(KEY_e)) {
+			if (input_frame_is_key_pressed(CX_KEY_e)) {
 				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_translate;
-			} else if (input_frame_is_key_pressed(KEY_r)) {
+			} else if (input_frame_is_key_pressed(CX_KEY_r)) {
 				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_rotate;
-			} else if (input_frame_is_key_pressed(KEY_t)) {
+			} else if (input_frame_is_key_pressed(CX_KEY_t)) {
 				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_scale;
 			}
 		}
@@ -658,10 +658,10 @@ void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
 		return;
 	}
 
-	if (p_key_event->key == KEY_z && p_key_event->mods & INPUT_MOD_ctrl) {
+	if (p_key_event->key == CX_KEY_z && p_key_event->mods & INPUT_MOD_ctrl) {
 		cx_ed_action_history_undo(&ed.action_history);
 	}
-	else if (p_key_event->key == KEY_y && p_key_event->mods & INPUT_MOD_ctrl) {
+	else if (p_key_event->key == CX_KEY_y && p_key_event->mods & INPUT_MOD_ctrl) {
 		cx_ed_action_history_redo(&ed.action_history);
 	}
 }

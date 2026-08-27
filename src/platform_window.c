@@ -91,7 +91,7 @@ void platform_window_set_on_resize_callback(
 
 void platform_window_set_on_key_callback(
 	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, enum key, int, unsigned int),
+	void(*f_callback)(struct platform_window*, void*, enum cx_key, int, unsigned int),
 	void* p_user_ptr) {
 	
 	p_window->f_callback_on_key_ = f_callback;
