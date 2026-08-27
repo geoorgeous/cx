@@ -100,7 +100,7 @@ void platform_window_set_on_key_callback(
 
 void platform_window_set_on_mouse_button_callback(
 	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, enum mouse_button, int, unsigned int),
+	void(*f_callback)(struct platform_window*, void*, enum cx_mouse_button, int, unsigned int),
 	void* p_user_ptr) {
 	
 	p_window->f_callback_on_mouse_button_ = f_callback;

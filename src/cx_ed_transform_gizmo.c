@@ -3,10 +3,10 @@
 #include "cx_cmp_static_mesh.h"
 #include "cx_ed_transform_gizmo.h"
 #include "cx_gfx_mesh.h"
+#include "cx_mouse_buttons.h"
 #include "cx_object_id_capturer.h"
 #include "input.h"
 #include "matrix.h"
-#include "mouse_buttons.h"
 #include "static_mesh.h"
 #include "vector.h"
 
@@ -280,7 +280,7 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 		if (b_mouse_on_gizmo) {
 			p_gizmo->active_control_id = object_id_under_cursor;
 
-			if (input_frame_is_mouse_button_pressed(MOUSE_BUTTON_left)) {
+			if (input_frame_is_mouse_button_pressed(CX_MOUSE_BUTTON_left)) {
 				p_gizmo->drag_state.initial_target_transform = *p_target_transform;
 
 				float control_drag_plane_normal[3];
@@ -315,7 +315,7 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 			p_view_pos, p_cursor_world_ray,
 			p_out_transform);
 
-		if (input_frame_is_mouse_button_released(MOUSE_BUTTON_left)) {
+		if (input_frame_is_mouse_button_released(CX_MOUSE_BUTTON_left)) {
 			p_gizmo->interaction_state = CX_TRANSFORM_GIZMO_INTERACTION_STATE_ended;
 		}
 	} else {

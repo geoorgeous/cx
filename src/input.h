@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "cx_keys.h"
-#include "mouse_buttons.h"
+#include "cx_mouse_buttons.h"
 
 #define CX_LOG_CAT_INPUT "input"
 
@@ -34,10 +34,10 @@ struct input_event_data_key {
 };
 
 struct input_event_data_mouse_button {
-	enum mouse_button button;
-	int               b_is_down;
-	int               client_pos[2];
-	unsigned int      mods;
+	enum cx_mouse_button button;
+	int                  b_is_down;
+	int                  client_pos[2];
+	unsigned int         mods;
 };
 
 struct input_event_data_mouse_move {
@@ -59,9 +59,9 @@ void input_init(void);
 int  input_frame_is_key_down(enum cx_key key);
 int  input_frame_is_key_pressed(enum cx_key key);
 int  input_frame_is_key_released(enum cx_key key);
-int  input_frame_is_mouse_button_down(enum mouse_button mouse_button);
-int  input_frame_is_mouse_button_pressed(enum mouse_button mouse_button);
-int  input_frame_is_mouse_button_released(enum mouse_button mouse_button);
+int  input_frame_is_mouse_button_down(enum cx_mouse_button mouse_button);
+int  input_frame_is_mouse_button_pressed(enum cx_mouse_button mouse_button);
+int  input_frame_is_mouse_button_released(enum cx_mouse_button mouse_button);
 void input_frame_mouse_delta(int* p_x, int* p_y);
 void input_frame_scroll_delta(int* p_x, int* p_y);
 void input_frame_reset(void);

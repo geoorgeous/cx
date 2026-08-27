@@ -22,6 +22,7 @@
 #include "cx_image.h"
 #include "cx_keys.h"
 #include "cx_logging.h"
+#include "cx_mouse_buttons.h"
 #include "cx_pixel_format.h"
 #include "cx_platform_time.h"
 #include "cx_text_mesher.h"
@@ -33,7 +34,6 @@
 #include "input.h"
 #include "material.h"
 #include "matrix.h"
-#include "mouse_buttons.h"
 #include "platform_window.h"
 #include "static_mesh.h"
 
@@ -58,7 +58,7 @@ static struct {
 static void platform_window_on_created(struct platform_window*, void*);
 static void platform_window_on_close(struct platform_window*, void*);
 static void platform_window_on_key(struct platform_window*, void*, enum cx_key, int, unsigned int);
-static void platform_window_on_mouse_button(struct platform_window*, void*, enum mouse_button, int, unsigned int);
+static void platform_window_on_mouse_button(struct platform_window*, void*, enum cx_mouse_button, int, unsigned int);
 static void platform_window_on_mouse_move(struct platform_window*, void*, int, int, unsigned int);
 static void platform_window_on_char(struct platform_window*, void*, unsigned int);
 
@@ -364,7 +364,7 @@ void platform_window_on_key(
 void platform_window_on_mouse_button(
 	struct platform_window* p_window,
 	void* p_user_ptr,
-	enum mouse_button button,
+	enum cx_mouse_button button,
 	int b_is_down,
 	unsigned int mods) {
 

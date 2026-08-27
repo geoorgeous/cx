@@ -302,18 +302,18 @@ void platform_window_poll_events(struct platform_window* p_window) {
 				const unsigned int input_mods = x11_mods_to_input_mods(event.xbutton.state);
 
 				if (p_window->f_callback_on_mouse_button_) {
-					enum mouse_button btn = MOUSE_BUTTON_MAX_;
+					enum cx_mouse_button btn = CX_MOUSE_BUTTON_MAX_;
 
 					switch (event.xbutton.button) {
-						case Button1: btn = MOUSE_BUTTON_left; break;
-						case Button2: btn = MOUSE_BUTTON_middle; break;
-						case Button3: btn = MOUSE_BUTTON_right; break;
-						case 8:       btn = MOUSE_BUTTON_extra1; break;
-						case 9:       btn = MOUSE_BUTTON_extra2; break;
+						case Button1: btn = CX_MOUSE_BUTTON_left; break;
+						case Button2: btn = CX_MOUSE_BUTTON_middle; break;
+						case Button3: btn = CX_MOUSE_BUTTON_right; break;
+						case 8:       btn = CX_MOUSE_BUTTON_extra1; break;
+						case 9:       btn = CX_MOUSE_BUTTON_extra2; break;
 						default: break;
 					}
 
-					if (btn != MOUSE_BUTTON_MAX_) {
+					if (btn != CX_MOUSE_BUTTON_MAX_) {
 					p_window->f_callback_on_mouse_button_(
 						p_window, 
 						p_window->p_callback_on_mouse_button_user_ptr_, 

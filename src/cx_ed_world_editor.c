@@ -358,7 +358,7 @@ void cx_ed_world_editor_update(double dt_seconds) {
 			move_direction[1] -= 1;
 		}
 
-		if (input_frame_is_mouse_button_down(MOUSE_BUTTON_right)) {
+		if (input_frame_is_mouse_button_down(CX_MOUSE_BUTTON_right)) {
 			int mouse_delta_x;
 			int mouse_delta_y;
 			input_frame_mouse_delta(&mouse_delta_x, &mouse_delta_y);
@@ -430,7 +430,7 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	}
 
 	if (ed.gizmo.interaction_state != CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress &&
-		input_frame_is_mouse_button_released(MOUSE_BUTTON_left)) {
+		input_frame_is_mouse_button_released(CX_MOUSE_BUTTON_left)) {
 		
 		ed.selected_entity_id = ed.entity_id_at_cursor;
 	}

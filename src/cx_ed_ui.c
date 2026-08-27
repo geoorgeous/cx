@@ -885,7 +885,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 					p_interaction_hovered_new->callbacks.f_mouse_button_cb != CX_NULL) {
 
 					p_interaction_hovered_new->callbacks.f_mouse_button_cb(
-						(enum mouse_button)i,
+						(enum cx_mouse_button)i,
 						p_e->data.mouse_button.b_is_down,
 						p_interaction_hovered_new->callbacks.p_user_ptr);
 				}
@@ -970,7 +970,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 	cx_ed_ui_persistent_state_pool_remove_inactive(&p_ui->window_pool);
 	cx_ed_ui_persistent_state_pool_remove_inactive(&p_ui->interaction_pool);
 
-	for (uint16_t i = 0; i < MOUSE_BUTTON_MAX_; ++i) {
+	for (uint16_t i = 0; i < CX_MOUSE_BUTTON_MAX_; ++i) {
 		if (p_ui->interaction_pressed[i] != CX_ED_UI_INTERACTION_NONE &&
 			!p_ui->interactions[p_ui->interaction_pressed[i]].pool_slot.b_is_occupied) {
 			p_ui->interaction_pressed[i] = CX_ED_UI_INTERACTION_NONE;
@@ -978,7 +978,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 	}
 
 	cx_ed_ui_process_interaction_hovered(p_ui, p_ui->interaction_hovered);
-	cx_ed_ui_process_interaction_pressed(p_ui, p_ui->interaction_pressed[MOUSE_BUTTON_left]);
+	cx_ed_ui_process_interaction_pressed(p_ui, p_ui->interaction_pressed[CX_MOUSE_BUTTON_left]);
 	cx_ed_ui_process_interaction_focused(p_ui, p_ui->interaction_focused);
 }
 

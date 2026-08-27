@@ -12,7 +12,7 @@ struct mouse_button_state {
 
 struct input_frame_state {
 	struct key_state          keys[CX_KEY_MAX_];
-	struct mouse_button_state mouse_button[MOUSE_BUTTON_MAX_];
+	struct mouse_button_state mouse_button[CX_MOUSE_BUTTON_MAX_];
 	int                       mouse_delta[2];
 	int                       scroll_delta[2];
 };
@@ -54,20 +54,20 @@ int input_frame_is_key_released(enum cx_key key) {
 		input.frame_old.keys[key].b_is_down;
 }
 
-int input_frame_is_mouse_button_down(enum mouse_button mouse_button) {
-	CX_ASSERT(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_MAX_, INPUT);
+int input_frame_is_mouse_button_down(enum cx_mouse_button mouse_button) {
+	CX_ASSERT(mouse_button >= 0 && mouse_button < CX_MOUSE_BUTTON_MAX_, INPUT);
 	return input.frame.mouse_button[mouse_button].b_is_down;
 }
 
-int input_frame_is_mouse_button_pressed(enum mouse_button mouse_button) {
-	CX_ASSERT(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_MAX_, INPUT);
+int input_frame_is_mouse_button_pressed(enum cx_mouse_button mouse_button) {
+	CX_ASSERT(mouse_button >= 0 && mouse_button < CX_MOUSE_BUTTON_MAX_, INPUT);
 	return
 		input.frame.mouse_button[mouse_button].b_is_down &&
 		!input.frame_old.mouse_button[mouse_button].b_is_down;
 }
 
-int input_frame_is_mouse_button_released(enum mouse_button mouse_button) {
-	CX_ASSERT(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_MAX_, INPUT);
+int input_frame_is_mouse_button_released(enum cx_mouse_button mouse_button) {
+	CX_ASSERT(mouse_button >= 0 && mouse_button < CX_MOUSE_BUTTON_MAX_, INPUT);
 	return
 		!input.frame.mouse_button[mouse_button].b_is_down &&
 		input.frame_old.mouse_button[mouse_button].b_is_down;
@@ -117,7 +117,7 @@ void input_on_key(const void* p_e, void* p_user_ptr) {
 
 void input_on_mouse_button(const void* p_e, void* p_user_ptr) {
 	const struct input_event_data_mouse_button* p_mouse_button_event = p_e;
-	CX_ASSERT(p_mouse_button_event->button >= 0 && p_mouse_button_event->button < MOUSE_BUTTON_MAX_, INPUT);
+	CX_ASSERT(p_mouse_button_event->button >= 0 && p_mouse_button_event->button < CX_MOUSE_BUTTON_MAX_, INPUT);
 	
 	struct input* p_input = p_user_ptr;
 
