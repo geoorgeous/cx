@@ -57,8 +57,8 @@
 struct cx_color;
 struct cx_font_render_data;
 struct cx_gfx_texture;
+struct cx_platform_window;
 struct cx_texture;
-struct platform_window;
 
 enum cx_ed_ui_layout_type {
 	CX_ED_UI_LAYOUT_TYPE_row,
@@ -315,7 +315,7 @@ void cx_ed_ui_textbox(
 /* dropdown box */
 /* checkbox */
 
-void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_window);
+void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct cx_platform_window* p_window);
 
 void cx_ed_ui_draw(struct cx_ed_ui* p_ui);
 

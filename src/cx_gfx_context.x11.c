@@ -8,8 +8,8 @@
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_logging.h"
-#include "platform_window.h"
-#include "platform_window.x11.h"
+#include "cx_platform_window.h"
+#include "cx_platform_window.x11.h"
 
 #define GLX_MIN_VERSION_MAJOR 1
 #define GLX_MIN_VERSION_MINOR 2
@@ -93,17 +93,17 @@ static void gl_debug_message_callback(
 	} while(0)
 	
 struct gl_context_nix_x11_internals {
-	const struct platform_window* p_window;
+	const struct cx_platform_window* p_window;
 	XVisualInfo*                  p_visualinfo;
 	GLXContext                    context;
 };
 
 cx_result cx_gfx_context_create(
-	const struct platform_window* p_window,
+	const struct cx_platform_window* p_window,
 	struct cx_gfx_context* p_out_context) {
 
 	struct gl_context_nix_x11_internals* p_context_internals = (void*)p_out_context->bytes_;
-	const struct platform_window_nix_x11_internals* p_window_internals = (const void*)p_window->internals_.bytes_;
+	const struct platform_window_x11_internals* p_window_internals = (const void*)p_window->internals_.bytes_;
 	
 	GLint glx_version_major = 0;
 	GLint glx_version_minor = 0;
@@ -192,14 +192,14 @@ cx_result cx_gfx_context_create(
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
 	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-	const struct platform_window_nix_x11_internals* p_window_internals =
+	const struct platform_window_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
 }
 
 cx_result cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
 	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-	const struct platform_window_nix_x11_internals* p_window_internals =
+	const struct platform_window_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
 	return CX_SUCCESS;
@@ -213,7 +213,7 @@ const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_g
 
 cx_result cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
 	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-	const struct platform_window_nix_x11_internals* p_window_internals =
+	const struct platform_window_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
 	return CX_SUCCESS;
@@ -221,7 +221,7 @@ cx_result cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
 
 unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_context) {
 	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-	const struct platform_window_nix_x11_internals* p_platform_window_internals =
+	const struct platform_window_x11_internals* p_platform_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	unsigned int interval;
 	glXQueryDrawable(
@@ -235,7 +235,7 @@ unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_con
 cx_result cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
 	if (f_glXSwapIntervalEXT) {
 		const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
-		const struct platform_window_nix_x11_internals* p_platform_window_internals =
+		const struct platform_window_x11_internals* p_platform_window_internals =
 			(const void*)p_context_internals->p_window->internals_.bytes_;
 		f_glXSwapIntervalEXT(p_platform_window_internals->p_display, p_platform_window_internals->window, (int)interval);
 		CX_LOG_FMT(INFO, GFX_CORE, "Swap interval set to %d\n", interval);

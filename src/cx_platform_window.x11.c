@@ -4,10 +4,10 @@
 #include <X11/XKBlib.h>
 
 #include "cx_dbg.h"
-#include "cx_logging.h"
 #include "cx_input_mods.h"
-#include "platform_window.h"
-#include "platform_window.x11.h"
+#include "cx_logging.h"
+#include "cx_platform_window.h"
+#include "cx_platform_window.x11.h"
 
 static cx_result      x11_init_connection(void);
 static void           x11_close_connection(void);
@@ -21,8 +21,8 @@ static Display* p_x11_display;
 static XIM      x11_input_method;
 static int      num_x11_windows;
 
-cx_result platform_window_create(
-	uint32_t width, uint32_t height, const char* s_title, struct platform_window* p_out_window) {
+cx_result cx_platform_window_create(
+	uint32_t width, uint32_t height, const char* s_title, struct cx_platform_window* p_out_window) {
 
 	cx_result result = x11_init_connection();
 	if (result != CX_SUCCESS) {
@@ -147,10 +147,10 @@ cx_result platform_window_create(
 
 	XSetICFocus(x11_input_ctx);
 
-	*p_out_window = (struct platform_window){0};
+	*p_out_window = (struct cx_platform_window){0};
 
-	struct platform_window_nix_x11_internals* p_internals = (void*)p_out_window->internals_.bytes_;
-	*p_internals = (struct platform_window_nix_x11_internals) {
+	struct platform_window_x11_internals* p_internals = (void*)p_out_window->internals_.bytes_;
+	*p_internals = (struct platform_window_x11_internals) {
 		.p_display = p_x11_display,
 		.window = x11_window,
 		.cmap = x11_cmap,
@@ -171,8 +171,8 @@ cx_result platform_window_create(
 	return CX_SUCCESS;
 }
 
-void platform_window_destroy(struct platform_window* p_window) {
-	struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
+void cx_platform_window_destroy(struct cx_platform_window* p_window) {
+	struct platform_window_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
 	XFree(p_internals->p_visual_info);
 	XDestroyIC(p_internals->input_ctx);
 	XDestroyWindow(p_internals->p_display, p_internals->window);
@@ -185,17 +185,17 @@ void platform_window_destroy(struct platform_window* p_window) {
 		x11_close_connection();
 	}
 	
-	*p_window = (struct platform_window){0};
+	*p_window = (struct cx_platform_window){0};
 }
 
-void platform_window_process_events(struct platform_window* p_window) {
+void cx_platform_window_process_events(struct cx_platform_window* p_window) {
 	p_window->input_state_.text_input_len = 0;
 	p_window->input_state_.scroll_accum_x = 0;
 	p_window->input_state_.scroll_accum_y = 0;
-	p_window->b_was_focus_changed = CX_FALSE;
-	p_window->b_was_resized = CX_FALSE;
+	p_window->b_was_focus_changed_ = CX_FALSE;
+	p_window->b_was_resized_ = CX_FALSE;
 
-	struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
+	struct platform_window_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
 
 	while (p_internals->p_display && XPending(p_internals->p_display) > 0) {
 		XEvent event = {0};
@@ -207,29 +207,29 @@ void platform_window_process_events(struct platform_window* p_window) {
 		
 		switch (event.type) {
 			case DestroyNotify: {
-				platform_window_destroy(p_window);
+				cx_platform_window_destroy(p_window);
 				return;
 			}
 
 			case ClientMessage: {
 				if (event.xclient.data.l[0] == (long)p_internals->wm_delete_window) {
-					platform_window_destroy(p_window);
+					cx_platform_window_destroy(p_window);
 				}
 				return;
 			}
 
 			case FocusIn: {
-				p_window->b_was_focus_changed = CX_TRUE;
+				p_window->b_was_focus_changed_ = CX_TRUE;
 				break;
 			}
 
 			case FocusOut: {
-				p_window->b_was_focus_changed = CX_TRUE;
+				p_window->b_was_focus_changed_ = CX_TRUE;
 				break;
 			}
 
 			case ConfigureNotify: {
-				p_window->b_was_resized = CX_TRUE;
+				p_window->b_was_resized_ = CX_TRUE;
 				break;
 			}
 
@@ -320,7 +320,7 @@ void platform_window_process_events(struct platform_window* p_window) {
 			}
 
 			case Expose: {
-				p_window->b_was_resized = CX_TRUE;
+				p_window->b_was_resized_ = CX_TRUE;
 				break;
 			}
 
@@ -329,8 +329,8 @@ void platform_window_process_events(struct platform_window* p_window) {
 	}
 }
 
-int platform_window_is_open(const struct platform_window* p_window) {
-	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
+int cx_platform_window_is_open(const struct cx_platform_window* p_window) {
+	const struct platform_window_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
 
 	if (p_internals->p_display == 0 || p_internals->window == 0) {
 		return 0;
@@ -340,8 +340,8 @@ int platform_window_is_open(const struct platform_window* p_window) {
 	return XGetWindowAttributes(p_internals->p_display, p_internals->window, &window_attribs) != BadWindow;
 }
 
-int platform_window_is_focused(const struct platform_window* p_window) {
-	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
+int cx_platform_window_is_focused(const struct cx_platform_window* p_window) {
+	const struct platform_window_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
 
 	Window window;
 	int revert_to;
@@ -354,11 +354,11 @@ int platform_window_is_focused(const struct platform_window* p_window) {
 	return window == p_internals->window;
 }
 
-void platform_window_size(
-	const struct platform_window* p_window,
+void cx_platform_window_size(
+	const struct cx_platform_window* p_window,
 	uint32_t* p_out_width, uint32_t* p_out_height) {
 	
-	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
+	const struct platform_window_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
 
 	*p_out_width =
 	*p_out_height = 0;

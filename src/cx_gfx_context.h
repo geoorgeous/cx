@@ -5,13 +5,13 @@
 
 #define CX_LOG_CAT_GFX_CORE "gfx:core"
 
-struct platform_window;
+struct cx_platform_window;
 
 struct cx_gfx_context {
 	char bytes_[24];
 };
 
-cx_result cx_gfx_context_create(const struct platform_window* p_window, struct cx_gfx_context* p_out_context);
+cx_result cx_gfx_context_create(const struct cx_platform_window* p_window, struct cx_gfx_context* p_out_context);
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context);
 

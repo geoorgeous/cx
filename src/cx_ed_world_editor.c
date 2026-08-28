@@ -18,6 +18,7 @@
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_object_id_capturer.h"
+#include "cx_platform_window.h"
 #include "cx_str.h"
 #include "cx_var.h"
 #include "cx_world.h"
@@ -25,7 +26,6 @@
 #include "cx_world_renderer.h"
 #include "matrix.h"
 #include "physics.h"
-#include "platform_window.h"
 #include "vector.h"
 
 #include "gl.h"
@@ -50,7 +50,7 @@
 		P_CTX)
 
 static struct {
-	struct platform_window* p_window;
+	struct cx_platform_window* p_window;
 
 	struct cx_asset_ref world_blueprint_asset_ref;
 
@@ -167,7 +167,7 @@ void cx_ed_action_set_entity_transform_undo(void* p_ctx) {
 uint16_t cx_ed_destroy_entity(uint16_t entity_id);
 uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
 
-void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_world_blueprint_asset_name) {
+void cx_ed_world_editor_init(struct cx_platform_window* p_window, const char* s_world_blueprint_asset_name) {
 	ed.p_window = p_window;
 
 	ed.flog_builder = (struct cx_flog_builder) {
@@ -321,7 +321,7 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
 	unsigned window_width, window_height;
-	platform_window_size(p_window, &window_width, &window_height);
+	cx_platform_window_size(p_window, &window_width, &window_height);
 
 	cx_ed_ui_init(window_width, window_height, &ed.ui);
 	strcpy(ed.ui_textbox_buf, "hello");
@@ -443,7 +443,7 @@ void cx_ed_world_editor_update(double dt_seconds) {
 		matrix_multiply(ed.camera.projection_matrix, ed.camera.view_matrix, projection_view_matrix);
 
 		float cursor_ray[3];
-		platform_window_client_to_world_ray(ed.p_window, projection_view_matrix, mouse_x, mouse_y, cursor_ray);
+		cx_platform_window_client_to_world_ray(ed.p_window, projection_view_matrix, mouse_x, mouse_y, cursor_ray);
 
 		const float gizmo_view_scale = 2.0f / ed.camera.projection_matrix[5];
 		
@@ -645,7 +645,7 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 	cx_input_mouse_position(&mouse_x, &mouse_y);
 
 	float norm_mouse_x, norm_mouse_y;
-	platform_window_normalize_client_coords(ed.p_window, mouse_x, mouse_y, &norm_mouse_x, &norm_mouse_y);
+	cx_platform_window_normalize_client_coords(ed.p_window, mouse_x, mouse_y, &norm_mouse_x, &norm_mouse_y);
 
 	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer, norm_mouse_x, norm_mouse_y);
 }

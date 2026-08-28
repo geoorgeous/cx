@@ -8,9 +8,9 @@
 
 #define CX_LOG_CAT_INPUT "input"
 
-struct platform_window;
+struct cx_platform_window;
 
-void cx_input_sample(const struct platform_window* p_window);
+void cx_input_sample(const struct cx_platform_window* p_window);
 int cx_input_is_key_down(enum cx_key key);
 int cx_input_is_button_down(enum cx_button button);
 void cx_input_mouse_position(int* p_out_x, int* p_out_y);

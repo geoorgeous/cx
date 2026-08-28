@@ -24,6 +24,7 @@
 #include "cx_logging.h"
 #include "cx_pixel_format.h"
 #include "cx_platform_time.h"
+#include "cx_platform_window.h"
 #include "cx_text_mesher.h"
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
@@ -32,12 +33,11 @@
 #include "gl.h"
 #include "material.h"
 #include "matrix.h"
-#include "platform_window.h"
 #include "static_mesh.h"
 
 static struct {
-	struct platform_window window;
-	struct cx_gfx_context  gfx_context;
+	struct cx_platform_window window;
+	struct cx_gfx_context gfx_context;
 
 	struct cx_gfx_framebuffer primary_framebuffer;
 	struct cx_gfx_texture primary_framebuffer_texture_color;
@@ -72,7 +72,7 @@ int cx_app_init(
 
 	srand(time(CX_NULL));
 
-	result = platform_window_create(
+	result = cx_platform_window_create(
 		window_width, window_height,
 		s_name,
 		&cx_app.window);
@@ -217,15 +217,15 @@ int cx_app_init(
 void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_draw) {
 	uint64_t old_frame_start = cx_platform_time_now();
 
-	while (platform_window_is_open(&cx_app.window)) {
+	while (cx_platform_window_is_open(&cx_app.window)) {
 		const uint64_t frame_start = cx_platform_time_now();
 		const double frame_delta_seconds = cx_platform_time_delta_seconds(old_frame_start, frame_start);
 
 		old_frame_start = frame_start;
 
-		platform_window_process_events(&cx_app.window);
+		cx_platform_window_process_events(&cx_app.window);
 
-		if (!platform_window_is_open(&cx_app.window)) {
+		if (!cx_platform_window_is_open(&cx_app.window)) {
 			break;
 		}
 
@@ -236,6 +236,10 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 		}
 
 		cx_console_update(cx_console_get());
+
+		if (cx_platform_window_was_focus_changed(&cx_app.window)) {
+			CX_LAZYLOG_FMT("Window foucs changed: %d\n", cx_platform_window_is_focused(&cx_app.window));
+		}
 
 		f_update(frame_delta_seconds);
 
@@ -277,7 +281,7 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 			// SCREEN QUAD
 			{
 				uint32_t window_size[2];
-				platform_window_size(&cx_app.window, &window_size[0], &window_size[1]);
+				cx_platform_window_size(&cx_app.window, &window_size[0], &window_size[1]);
 
 				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&cx_app.gfx_context));
 
@@ -314,14 +318,14 @@ void cx_app_shutdown(cx_app_shutdown_callback_fn f_shutdown) {
 	CX_LOG(INFO, DONTCARE, "Exiting\n");
 }
 
-struct platform_window* cx_app_primary_window(void) {
+struct cx_platform_window* cx_app_primary_window(void) {
 	return &cx_app.window;
 }
 
 int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {
 	(void)p_args;
 	(void)p_context;
-	platform_window_destroy(&cx_app.window);
+	cx_platform_window_destroy(&cx_app.window);
 	return 0;
 }
 

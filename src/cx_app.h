@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 struct cx_gfx_framebuffer;
-struct platform_window;
+struct cx_platform_window;
 
 typedef int(*cx_app_init_callback_fn)(int argc, const char** argv);
 typedef void(*cx_app_update_callback_fn)(double);
@@ -20,6 +20,6 @@ int cx_app_init(
 	const char** argv);
 void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_draw);
 void cx_app_shutdown(cx_app_shutdown_callback_fn f_shutdown);
-struct platform_window* cx_app_primary_window(void);
+struct cx_platform_window* cx_app_primary_window(void);
 
 #endif

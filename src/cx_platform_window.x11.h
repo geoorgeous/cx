@@ -1,11 +1,11 @@
-#ifndef PLATFORM_WINDOW_NIX_X11_H
-#define PLATFORM_WINDOW_NIX_X11_H
+#ifndef CX_PLATFORM_WINDOW_X11_H
+#define CX_PLATFORM_WINDOW_X11_H
 
 #include <GL/glx.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-struct platform_window_nix_x11_internals {
+struct platform_window_x11_internals {
 	Display*     p_display;
 	Window       window;
 	XIC          input_ctx;

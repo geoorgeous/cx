@@ -16,12 +16,12 @@
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_math.h"
+#include "cx_platform_window.h"
 #include "cx_str.h"
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
 #include "cx_text_mesher.h"
 #include "matrix.h"
-#include "platform_window.h"
 
 #define CX_ED_UI_MAX_INACTIVE_FRAMES 0
 
@@ -791,18 +791,18 @@ void cx_ed_ui_process_interaction_focused(struct cx_ed_ui* p_ui, uint16_t intera
 	}
 }
 
-void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_window) {
+void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct cx_platform_window* p_window) {
 	qsort(p_ui->hitboxes, p_ui->num_hitboxes, sizeof(*p_ui->hitboxes), cx_ed_ui_layout_node_cmp);
 	qsort(p_ui->draw_commands, p_ui->num_draw_commands, sizeof(*p_ui->draw_commands), cx_ed_ui_layout_node_cmp);
 
 	unsigned int window_width, window_height;
-	platform_window_size(p_window, &window_width, &window_height);
+	cx_platform_window_size(p_window, &window_width, &window_height);
 
 	int mouse_x, mouse_y;
 	cx_input_mouse_position(&mouse_x, &mouse_y);
 
 	float sx, sy;
-	platform_window_normalize_client_coords(p_window, mouse_x, mouse_y, &sx, &sy);
+	cx_platform_window_normalize_client_coords(p_window, mouse_x, mouse_y, &sx, &sy);
 
 	mouse_x = (int)((float)window_width * sx);
 	mouse_y = (int)((float)window_height * sy);

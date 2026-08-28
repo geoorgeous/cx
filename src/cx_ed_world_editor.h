@@ -20,10 +20,10 @@
 //  - add entity component
 //  - delete entity component
 
-struct platform_window;
+struct cx_platform_window;
 struct cx_asset_ref;
 
-void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_world_blueprint_asset_name);
+void cx_ed_world_editor_init(struct cx_platform_window* p_window, const char* s_world_blueprint_asset_name);
 
 void cx_ed_world_editor_shutdown(void);
 

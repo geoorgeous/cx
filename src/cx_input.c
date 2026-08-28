@@ -1,15 +1,15 @@
 #include "cx_dbg.h"
 #include "cx_input.h"
 #include "cx_platform_input_state.h"
-#include "platform_window.h"
+#include "cx_platform_window.h"
 
 static const struct cx_platform_input_state* g_p_input_state_present;
 static struct cx_platform_input_state g_input_state_previous;
 static int g_mouse_delta_x;
 static int g_mouse_delta_y;
 
-void cx_input_sample(const struct platform_window* p_window) {
-	g_p_input_state_present = platform_window_input_state(p_window);
+void cx_input_sample(const struct cx_platform_window* p_window) {
+	g_p_input_state_present = cx_platform_window_input_state(p_window);
 
 	g_mouse_delta_x = g_p_input_state_present->mouse_x - g_input_state_previous.mouse_x;
 	g_mouse_delta_y = g_p_input_state_present->mouse_y - g_input_state_previous.mouse_y;
