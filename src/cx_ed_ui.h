@@ -40,8 +40,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cx_buttons.h"
 #include "cx_keys.h"
-#include "cx_mouse_buttons.h"
 #include "cx_text_edit.h"
 
 #define CX_ED_UI_MAX_ID_LEN 32
@@ -126,7 +126,7 @@ struct cx_ed_ui_interactive_widget_record {
 typedef void(*cx_ed_ui_mouse_enter_cb_fn)(void* p_user_ptr);
 typedef void(*cx_ed_ui_mouse_exit_cb_fn)(void* p_user_ptr);
 typedef void(*cx_ed_ui_mouse_move_cb_fn)(int, int, void* p_user_ptr);
-typedef void(*cx_ed_ui_mouse_button_cb_fn)(enum cx_mouse_button, int, void*);
+typedef void(*cx_ed_ui_mouse_button_cb_fn)(enum cx_button, int, void*);
 typedef void(*cx_ed_ui_key_cb_fn)(enum cx_key, int, void*);
 typedef void(*cx_ed_ui_click_cb_fn)(void*);
 typedef void(*cx_ed_ui_text_input_cb_fn)(const char*, void*);
@@ -208,7 +208,7 @@ struct cx_ed_ui_input_event {
 	enum cx_ed_ui_input_event_type type;
 	union {
 		struct {
-			enum cx_mouse_button button;
+			enum cx_button button;
 			int b_is_down;
 			unsigned int mods;
 		} mouse_button;
@@ -246,7 +246,7 @@ struct cx_ed_ui {
 	uint16_t current_window;
 
 	uint16_t interaction_hovered;
-	uint16_t interaction_pressed[CX_MOUSE_BUTTON_MAX_];
+	uint16_t interaction_pressed[CX_BUTTON_MAX_];
 	uint16_t interaction_focused;
 
 	uint32_t canvas_width;

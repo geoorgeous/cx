@@ -1,40 +1,32 @@
 #include <ctype.h>
 #include <GL/glx.h>
 #include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/XKB.h>
-#include <X11/extensions/XKBstr.h>
-#include <X11/keysymdef.h>
+#include <X11/XKBlib.h>
 
 #include "cx_dbg.h"
 #include "cx_logging.h"
-#include "cx_error.h"
+#include "cx_input_mods.h"
 #include "platform_window.h"
-#include "input.h"
 #include "platform_window.x11.h"
 
-static enum cx_error x11_init_connection(void);
-static void          x11_close_connection(void);
-static enum cx_key   x11_keycode_to_key(unsigned int keycode);
-static unsigned int  x11_mods_to_input_mods(unsigned int mods);
-static char          x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
-static int           x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
+static cx_result      x11_init_connection(void);
+static void           x11_close_connection(void);
+static enum cx_key    x11_keycode_to_key(unsigned int keycode);
+static enum cx_button x11_button_to_button(unsigned int button);
+static unsigned int   x11_mods_to_input_mods(unsigned int mods);
+static char           x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event);
+static int            x11_error_handler(Display* p_display, XErrorEvent* p_error_event);
 
 static Display* p_x11_display;
 static XIM      x11_input_method;
 static int      num_x11_windows;
 
-enum cx_error platform_window_create(
-	uint32_t width, uint32_t height,
-	const char* s_title,
-	void(*f_callback_on_created)(struct platform_window*, void*),
-	void* f_callback_on_created_user_ptr,
-	struct platform_window* p_out_window) {
+cx_result platform_window_create(
+	uint32_t width, uint32_t height, const char* s_title, struct platform_window* p_out_window) {
 
-	enum cx_error err = x11_init_connection();
-	if (err != CX_ERROR_none) {
-		return err;
+	cx_result result = x11_init_connection();
+	if (result != CX_SUCCESS) {
+		return result;
 	}
 
 	if (!width) {
@@ -85,7 +77,7 @@ enum cx_error platform_window_create(
 
 	if (!p_chosen_visual_info) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to find required visual info\n"));
-		return CX_ERROR_api_glx;
+		return CX_ERROR_NOT_FOUND;
 	}
 
 	const Colormap x11_cmap = XCreateColormap(p_x11_display, root_window, p_chosen_visual_info->visual, AllocNone);
@@ -126,7 +118,7 @@ enum cx_error platform_window_create(
 	if (!x11_window) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform window\n"));
 
-		return CX_ERROR_api_x11;
+		return CX_ERROR_PLATFORM;
 	}
 
 	XIC x11_input_ctx = XCreateIC(x11_input_method,
@@ -137,7 +129,7 @@ enum cx_error platform_window_create(
 
 	if (!x11_input_ctx) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform input context\n"));
-		return CX_ERROR_api_x11;
+		return CX_ERROR_PLATFORM;
 	}
 
 	XStoreName(p_x11_display, x11_window, s_title);
@@ -155,10 +147,7 @@ enum cx_error platform_window_create(
 
 	XSetICFocus(x11_input_ctx);
 
-	*p_out_window = (struct platform_window) {
-		.f_callback_on_created_ = f_callback_on_created,
-		.p_callback_on_created_user_ptr_ = f_callback_on_created_user_ptr
-	};
+	*p_out_window = (struct platform_window){0};
 
 	struct platform_window_nix_x11_internals* p_internals = (void*)p_out_window->internals_.bytes_;
 	*p_internals = (struct platform_window_nix_x11_internals) {
@@ -179,18 +168,10 @@ enum cx_error platform_window_create(
 
 	++num_x11_windows;
 	
-	if (p_out_window->f_callback_on_created_) {
-		p_out_window->f_callback_on_created_(p_out_window, p_out_window->p_callback_on_created_user_ptr_);
-	}
-
-	return CX_ERROR_none;
+	return CX_SUCCESS;
 }
 
 void platform_window_destroy(struct platform_window* p_window) {
-	if (p_window->f_callback_on_close_) {
-		p_window->f_callback_on_close_(p_window, p_window->p_callback_on_close_user_ptr_);
-	}
-	
 	struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
 	XFree(p_internals->p_visual_info);
 	XDestroyIC(p_internals->input_ctx);
@@ -207,7 +188,11 @@ void platform_window_destroy(struct platform_window* p_window) {
 	*p_window = (struct platform_window){0};
 }
 
-void platform_window_poll_events(struct platform_window* p_window) {
+void platform_window_process_events(struct platform_window* p_window) {
+	p_window->input_state_.text_input_len = 0;
+	p_window->input_state_.scroll_accum_x = 0;
+	p_window->input_state_.scroll_accum_y = 0;
+
 	struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
 
 	while (p_internals->p_display && XPending(p_internals->p_display) > 0) {
@@ -232,160 +217,114 @@ void platform_window_poll_events(struct platform_window* p_window) {
 			}
 
 			case FocusIn: {
-				if (p_window->f_callback_on_focus_change_) {
-					p_window->f_callback_on_focus_change_(
-						p_window,
-						p_window->p_callback_on_focus_change_user_ptr_,
-						1);
-				}
+				// focus change
 				break;
 			}
 
 			case FocusOut: {
-				if (p_window->f_callback_on_focus_change_) {
-					p_window->f_callback_on_focus_change_(
-						p_window, 
-						p_window->p_callback_on_focus_change_user_ptr_,
-						0);
-				}
+				// focus change
 				break;
 			}
 
 			case ConfigureNotify: {
-				if (p_window->f_callback_on_resize_) {
-					p_window->f_callback_on_resize_(
-						p_window,
-						p_window->p_callback_on_resize_user_ptr_,
-						(uint32_t)event.xconfigure.width, 
-						(uint32_t)event.xconfigure.height);
-				}
+				// resized
 				break;
 			}
 
 			case KeyPress: {
-				if (p_window->f_callback_on_key_) {
-					p_window->f_callback_on_key_(
-						p_window,
-						p_window->p_callback_on_key_user_ptr_,
-						x11_keycode_to_key(event.xkey.keycode),
-						1,
-						x11_mods_to_input_mods(event.xkey.state));
-				}
+				const enum cx_key key = x11_keycode_to_key(event.xkey.keycode);
+				
+				struct cx_platform_input_state* p_input_state = &p_window->input_state_;
+				struct cx_platform_input_key_state* p_key_state = &p_input_state->keys[key];
 
-				if (p_window->f_callback_on_char_) {
-					const char c = x11_keypressed_to_utf8(p_internals->input_ctx, &event.xkey);
-					if (c) {
-					p_window->f_callback_on_char_(
-						p_window,
-						p_window->p_callback_on_char_user_ptr_,
-						(unsigned int)c);
-					}
+				if (p_key_state->b_is_down) {
+					p_key_state->repeat_count++;
+				}
+				
+				p_key_state->b_is_down = CX_TRUE;
+
+				const char c = x11_keypressed_to_utf8(p_internals->input_ctx, &event.xkey);
+				if (c) {
+					p_input_state->text_input_buf[p_input_state->text_input_len] = c;
+					p_input_state->text_input_len++;
 				}
 
 				break;
 			}
 
 			case KeyRelease: {
-				if (p_window->f_callback_on_key_) {
-					p_window->f_callback_on_key_(
-						p_window,
-						p_window->p_callback_on_key_user_ptr_,
-						x11_keycode_to_key(event.xkey.keycode),
-						0,
-						x11_mods_to_input_mods(event.xkey.state));
-				}
+				const enum cx_key key = x11_keycode_to_key(event.xkey.keycode);
+				
+				struct cx_platform_input_state* p_input_state = &p_window->input_state_;
+				struct cx_platform_input_key_state* p_key_state = &p_input_state->keys[key];
+
+				p_key_state->b_is_down = CX_FALSE;
+				p_key_state->repeat_count = 0;
+
 				break;
 			}
 
-			case ButtonPress:
+			case ButtonPress: {
+				struct cx_platform_input_state* p_input_state = &p_window->input_state_;
+
+				if (event.xbutton.button == Button4) {
+					p_input_state->scroll_accum_x -= 1;
+					break;
+				}
+
+				if (event.xbutton.button == Button5) {
+					p_input_state->scroll_accum_x += 1;
+					break;
+				}
+
+				if (event.xbutton.button == 6) {
+					p_input_state->scroll_accum_y -= 1;
+					break;
+				}
+
+				if (event.xbutton.button == 7) {
+					p_input_state->scroll_accum_y += 1;
+					break;
+				}
+
+				const enum cx_button btn = x11_button_to_button(event.xbutton.button);
+				if (btn == CX_BUTTON_unknown) {
+					break;
+				}
+
+				p_input_state->buttons[btn].b_is_down = CX_TRUE;
+
+				break;
+			}
+
 			case ButtonRelease: {
-				const unsigned int input_mods = x11_mods_to_input_mods(event.xbutton.state);
+				struct cx_platform_input_state* p_input_state = &p_window->input_state_;
 
-				if (p_window->f_callback_on_mouse_button_) {
-					enum cx_mouse_button btn = CX_MOUSE_BUTTON_MAX_;
-
-					switch (event.xbutton.button) {
-						case Button1: btn = CX_MOUSE_BUTTON_left; break;
-						case Button2: btn = CX_MOUSE_BUTTON_middle; break;
-						case Button3: btn = CX_MOUSE_BUTTON_right; break;
-						case 8:       btn = CX_MOUSE_BUTTON_extra1; break;
-						case 9:       btn = CX_MOUSE_BUTTON_extra2; break;
-						default: break;
-					}
-
-					if (btn != CX_MOUSE_BUTTON_MAX_) {
-					p_window->f_callback_on_mouse_button_(
-						p_window, 
-						p_window->p_callback_on_mouse_button_user_ptr_, 
-						btn, 
-						event.type == ButtonPress,
-						input_mods);
-					}
+				const enum cx_button btn = x11_button_to_button(event.xbutton.button);
+				if (btn == CX_BUTTON_unknown) {
+					break;
 				}
 
-				if (p_window->p_callback_on_scroll_user_ptr_) {
-					switch (event.xbutton.button) {
-						case Button4: {
-							p_window->f_callback_on_scroll_(
-								p_window,
-								p_window->p_callback_on_scroll_user_ptr_,
-								-1,
-								input_mods);
-							break;
-						}
-						
-						case Button5: {
-							p_window->f_callback_on_scroll_(
-								p_window,
-								p_window->p_callback_on_scroll_user_ptr_,
-								1,
-								input_mods);
-							break;
-						}
+				p_input_state->buttons[btn].b_is_down = CX_FALSE;
 
-						case 6: /* Horizontal scroll */ break;
-						case 7: /* Horizontal scroll */ break;
-
-						default: break;
-					}
-				}
 				break;
 			}
 
 			case MotionNotify: {
-				p_window->mouse_pos_[0] = event.xmotion.x;
-				p_window->mouse_pos_[1] = event.xmotion.y;
-				if (p_window->f_callback_on_mouse_move_) {
-					const int delta_x = p_window->mouse_pos_[0] - p_window->mouse_pos_old_[0];
-					const int delta_y = p_window->mouse_pos_[1] - p_window->mouse_pos_old_[1];
-					p_window->f_callback_on_mouse_move_(
-						p_window,
-						p_window->p_callback_on_mouse_move_user_ptr_,
-						delta_x, delta_y,
-						x11_mods_to_input_mods(event.xmotion.state));
-				}
+				struct cx_platform_input_state* p_input_state = &p_window->input_state_;
+				p_input_state->mouse_x = event.xmotion.x;
+				p_input_state->mouse_y = event.xmotion.y;
 				break;                
 			}
 
 			case Expose: {
-				if (p_window->f_callback_on_resize_) {
-					unsigned int width, height;
-					platform_window_size(p_window, &width, &height);
-					p_window->f_callback_on_resize_(
-						p_window,
-						p_window->p_callback_on_resize_user_ptr_,
-						width, 
-						height);
-				}
+				// resize
 				break;
 			}
 
 			default: break;
 		}
 	}
-
-	p_window->mouse_pos_old_[0] = p_window->mouse_pos_[0];
-	p_window->mouse_pos_old_[1] = p_window->mouse_pos_[1];
 }
 
 int platform_window_is_open(const struct platform_window* p_window) {
@@ -425,15 +364,15 @@ void platform_window_size(
 		&b, &d);
 }
 
-enum cx_error x11_init_connection(void) {
+cx_result x11_init_connection(void) {
 	if (p_x11_display) {
-		return CX_ERROR_none;
+		return CX_SUCCESS;
 	}
 
 	p_x11_display = XOpenDisplay(NULL);
 
 	if (!p_x11_display) {
-		return CX_ERROR_api_x11;
+		return CX_ERROR_PLATFORM;
 	}
 
 	(void)XSetLocaleModifiers("");
@@ -445,14 +384,17 @@ enum cx_error x11_init_connection(void) {
 	}
 
 	if (!x11_input_method) {
-		return CX_ERROR_api_x11;
+		return CX_ERROR_PLATFORM;
 	}
 
 	(void)XSetErrorHandler(x11_error_handler);
 
+	int b_supported;
+	XkbSetDetectableAutoRepeat(p_x11_display, True, &b_supported);
+
 	CX_LOG(INFO, PLATFORM_WINDOW, "Connection to X server established\n");
 
-	return CX_ERROR_none;
+	return CX_SUCCESS;
 }
 
 void x11_close_connection(void) {
@@ -536,15 +478,26 @@ enum cx_key x11_keycode_to_key(unsigned int keycode) {
 	}
 }
 
+enum cx_button x11_button_to_button(unsigned int button) {
+	switch (button) {
+		case Button1: return CX_BUTTON_mouse_left;
+		case Button2: return CX_BUTTON_mouse_middle;
+		case Button3: return CX_BUTTON_mouse_right;
+		case 8:       return CX_BUTTON_mouse_extra1;
+		case 9:       return CX_BUTTON_mouse_extra2;
+		default:      return CX_BUTTON_unknown;
+	}
+}
+
 unsigned int x11_mods_to_input_mods(unsigned int mods) {
 	return
-		(!!(mods & ControlMask) * INPUT_MOD_ctrl) |
-		(!!(mods & ShiftMask) * INPUT_MOD_shift) |
-		(!!(mods & Mod1Mask) * INPUT_MOD_1) |
-		(!!(mods & Mod2Mask) * INPUT_MOD_2) |
-		(!!(mods & Mod3Mask) * INPUT_MOD_3) |
-		(!!(mods & Mod4Mask) * INPUT_MOD_4) |
-		(!!(mods & Mod5Mask) * INPUT_MOD_5);
+		(!!(mods & ControlMask) * CX_INPUT_MOD_ctrl) |
+		(!!(mods & ShiftMask) * CX_INPUT_MOD_shift) |
+		(!!(mods & Mod1Mask) * CX_INPUT_MOD_1) |
+		(!!(mods & Mod2Mask) * CX_INPUT_MOD_2) |
+		(!!(mods & Mod3Mask) * CX_INPUT_MOD_3) |
+		(!!(mods & Mod4Mask) * CX_INPUT_MOD_4) |
+		(!!(mods & Mod5Mask) * CX_INPUT_MOD_5);
 }
 
 char x11_keypressed_to_utf8(XIC input_ctx, XKeyPressedEvent* p_keypressed_event) {

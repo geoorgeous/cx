@@ -3,112 +3,48 @@
 
 #include <stdint.h>
 
-#include "cx_error.h"
-#include "cx_keys.h"
 #include "cx_macro.h"
-#include "cx_mouse_buttons.h"
+#include "cx_platform_input_state.h"
+#include "cx_result.h"
 
 #define CX_LOG_CAT_PLATFORM_WINDOW "platform:window"
 
+struct platform_window;
+
 struct platform_window {
-	void(*f_callback_on_created_)(struct platform_window*, void*);
-	void* p_callback_on_created_user_ptr_;
-	void(*f_callback_on_close_)(struct platform_window*, void*);
-	void* p_callback_on_close_user_ptr_;
-	void(*f_callback_on_focus_change_)(struct platform_window*, void*, int);
-	void* p_callback_on_focus_change_user_ptr_;
-	void(*f_callback_on_resize_)(struct platform_window*, void*, uint32_t, uint32_t);
-	void* p_callback_on_resize_user_ptr_;
-	void(*f_callback_on_key_)(struct platform_window*, void*, enum cx_key, int, unsigned int);
-	void* p_callback_on_key_user_ptr_;
-	void(*f_callback_on_mouse_button_)(struct platform_window*, void*, enum cx_mouse_button, int, unsigned int);
-	void* p_callback_on_mouse_button_user_ptr_;
-	void(*f_callback_on_mouse_move_)(struct platform_window*, void*, int, int, unsigned int);
-	void* p_callback_on_mouse_move_user_ptr_;
-	void(*f_callback_on_scroll_)(struct platform_window*, void*, int, unsigned int);
-	void* p_callback_on_scroll_user_ptr_;
-	void(*f_callback_on_char_)(struct platform_window*, void*, unsigned int);
-	void* p_callback_on_char_user_ptr_;
-	int          mouse_pos_[2];
-	int          mouse_pos_old_[2];
-	unsigned int mods_;
+	struct cx_platform_input_state input_state_;
 	CX_OPAQUE_INTERNALS(50);
 };
 
-enum cx_error platform_window_create(
-	uint32_t width, uint32_t height,
-	const char* s_title,
-	void(*f_callback_on_created)(struct platform_window*, void*),
-	void* p_callback_on_created_user_ptr,
-	struct platform_window* p_out_window);
+cx_result platform_window_create(
+	uint32_t width, uint32_t height, const char* s_title, struct platform_window* p_out_window);
 
 void platform_window_destroy(struct platform_window* p_window);
 
-void platform_window_poll_events(struct platform_window* p_window);
+void platform_window_process_events(struct platform_window* p_window);
 
-int  platform_window_is_open(const struct platform_window* p_window);
+int platform_window_is_open(const struct platform_window* p_window);
 
-void platform_window_size(const struct platform_window* p_window, unsigned int* p_width, unsigned int* p_height);
+int platform_window_is_focused(const struct platform_window* p_window);
 
-void platform_window_get_mouse_client_coords(const struct platform_window* p_window, int* p_client_x, int* p_client_y);
+void platform_window_size(const struct platform_window* p_window, unsigned int* p_out_x, unsigned int* p_out_y);
 
-void platform_window_get_mouse_client_coord_scaled(
-	const struct platform_window* p_window, unsigned int width, unsigned int height, int* p_out_x, int* p_out_y);
+int platform_window_was_focus_changed(const struct platform_window* p_window);
+
+int platform_window_was_resized(const struct platform_window* p_window);
+
+const struct cx_platform_input_state* platform_window_input_state(const struct platform_window* p_window);
 
 void platform_window_normalize_client_coords(
-	const struct platform_window* p_window,
-	int client_x, int client_y,
-	float* p_x, float* p_y);
+	const struct platform_window* p_window, int client_x, int client_y, float* p_x, float* p_y);
 
 void platform_window_client_coords_to_ndc(
-	const struct platform_window* p_window,
-	int client_x, int client_y,
-	float* p_out_x, float* p_out_y);
+	const struct platform_window* p_window, int client_x, int client_y, float* p_out_x, float* p_out_y);
 
 void platform_window_client_to_world_ray(
 	const struct platform_window* p_window,
 	const float* p_camera_matrix,
 	int client_x, int client_y,
 	float* p_out_ray);
-
-void platform_window_set_on_close_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*),
-	void* p_user_ptr);
-
-void platform_window_set_on_focus_change_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, int),
-	void* p_user_ptr);
-
-void platform_window_set_on_resize_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, uint32_t, uint32_t),
-	void* p_user_ptr);
-
-void platform_window_set_on_key_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, enum cx_key, int, unsigned int),
-	void* p_user_ptr);
-
-void platform_window_set_on_mouse_button_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, enum cx_mouse_button, int, unsigned int),
-	void* p_user_ptr);
-
-void platform_window_set_on_mouse_move_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, int, int, unsigned int),
-	void* p_user_ptr);
-
-void platform_window_set_on_scroll_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, int, unsigned int),
-	void* p_user_ptr);
-
-void platform_window_set_on_char_callback(
-	struct platform_window* p_window,
-	void(*f_callback)(struct platform_window*, void*, unsigned int),
-	void* p_user_ptr);
 
 #endif

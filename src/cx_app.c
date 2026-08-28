@@ -13,16 +13,15 @@
 #include "cx_component.h"
 #include "cx_console.h"
 #include "cx_console_view.h"
-#include "cx_error.h"
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
 #include "cx_image.h"
+#include "cx_input.h"
 #include "cx_keys.h"
 #include "cx_logging.h"
-#include "cx_mouse_buttons.h"
 #include "cx_pixel_format.h"
 #include "cx_platform_time.h"
 #include "cx_text_mesher.h"
@@ -31,7 +30,6 @@
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
 #include "gl.h"
-#include "input.h"
 #include "material.h"
 #include "matrix.h"
 #include "platform_window.h"
@@ -55,15 +53,6 @@ static struct {
 	struct cx_gfx_texture console_font_glyph_atlas_texture;
 } cx_app;
 
-static void platform_window_on_created(struct platform_window*, void*);
-static void platform_window_on_close(struct platform_window*, void*);
-static void platform_window_on_key(struct platform_window*, void*, enum cx_key, int, unsigned int);
-static void platform_window_on_mouse_button(struct platform_window*, void*, enum cx_mouse_button, int, unsigned int);
-static void platform_window_on_mouse_move(struct platform_window*, void*, int, int, unsigned int);
-static void platform_window_on_char(struct platform_window*, void*, unsigned int);
-
-static void on_key(const void* p_e, void* p_user_ptr);
-
 static int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 
 static int cx_asset_source_get_package_asset_name(cx_asset_id id, void* p_context, const char** pp_out);
@@ -79,27 +68,25 @@ int cx_app_init(
 	int argc,
 	const char** argv) {
 
-	enum cx_error err;
+	cx_result result;
 
 	srand(time(CX_NULL));
 
-	err = platform_window_create(
+	result = platform_window_create(
 		window_width, window_height,
 		s_name,
-		platform_window_on_created,
-		0,
 		&cx_app.window);
 
-	if (err != CX_ERROR_none) {
-		return (int)err;
+	if (result != CX_SUCCESS) {
+		return result;
 	}
 
-	err = cx_gfx_context_create(&cx_app.window, &cx_app.gfx_context);
+	result = cx_gfx_context_create(&cx_app.window, &cx_app.gfx_context);
 
 	cx_gfx_context_set_swap_interval(&cx_app.gfx_context, 0);
 
-	if (err != CX_ERROR_none) {
-		return (int)err;
+	if (result != CX_SUCCESS) {
+		return result;
 	}
 
 	// create framebuffer
@@ -108,7 +95,7 @@ int cx_app_init(
 	uint32_t fb_width = (uint32_t)((float)window_width * resolution_scale);
 	uint32_t fb_height = (uint32_t)((float)window_height * resolution_scale);
 
-	cx_gfx_framebuffer_create(&cx_app.primary_framebuffer);
+	(void)cx_gfx_framebuffer_create(&cx_app.primary_framebuffer);
 
 	cx_gfx_texture_create(
 		&cx_app.primary_framebuffer_texture_color, fb_width, fb_height, CX_PIXEL_FORMAT_rgb);
@@ -222,10 +209,6 @@ int cx_app_init(
 		CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
 	}
 
-	input_init();
-
-	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
-
 	f_init(argc, argv);
 
 	return 0;
@@ -240,12 +223,19 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 
 		old_frame_start = frame_start;
 
-		input_frame_reset();
-		platform_window_poll_events(&cx_app.window);
+		platform_window_process_events(&cx_app.window);
 
 		if (!platform_window_is_open(&cx_app.window)) {
 			break;
 		}
+
+		cx_input_sample(&cx_app.window);
+
+		if (cx_input_was_key_pressed(CX_KEY_grave)) {
+			cx_console_set_is_input_enabled(cx_console_get(), 1);
+		}
+
+		cx_console_update(cx_console_get());
 
 		f_update(frame_delta_seconds);
 
@@ -319,112 +309,13 @@ void cx_app_shutdown(cx_app_shutdown_callback_fn f_shutdown) {
 
 	cx_asset_cache_free();
 
+	cx_gfx_context_destroy(&cx_app.gfx_context);
+
 	CX_LOG(INFO, DONTCARE, "Exiting\n");
 }
 
 struct platform_window* cx_app_primary_window(void) {
 	return &cx_app.window;
-}
-
-void platform_window_on_created(struct platform_window* p_window, void* p_user_ptr) {
-	(void)p_user_ptr;
-
-	platform_window_set_on_close_callback(p_window, platform_window_on_close, CX_NULL);
-	platform_window_set_on_key_callback(p_window, platform_window_on_key, CX_NULL);
-	platform_window_set_on_mouse_button_callback(p_window, platform_window_on_mouse_button, CX_NULL);
-	platform_window_set_on_mouse_move_callback(p_window, platform_window_on_mouse_move, CX_NULL);
-	platform_window_set_on_char_callback(p_window, platform_window_on_char, CX_NULL);
-}
-
-void platform_window_on_close(struct platform_window* p_window, void* p_user_ptr) {
-	(void)p_window;
-	(void)p_user_ptr;
-
-	cx_gfx_context_destroy(&cx_app.gfx_context);
-}
-
-void platform_window_on_key(
-	struct platform_window* p_window,
-	void* p_user_ptr,
-	enum cx_key key,
-	int b_is_down,
-	unsigned int mods) {
-
-	(void)p_window;
-	(void)p_user_ptr;
-
-	struct input_event_data_key event_data = {
-		.key = key,
-		.b_is_down = b_is_down,
-		.mods = mods
-	};
-	input_event_broadcast(INPUT_EVENT_key, &event_data);
-}
-
-void platform_window_on_mouse_button(
-	struct platform_window* p_window,
-	void* p_user_ptr,
-	enum cx_mouse_button button,
-	int b_is_down,
-	unsigned int mods) {
-
-	(void)p_user_ptr;
-
-	struct input_event_data_mouse_button event_data = {
-		.button = button,
-		.b_is_down = b_is_down,
-		.mods = mods
-	};
-	platform_window_get_mouse_client_coords(p_window, &event_data.client_pos[0], &event_data.client_pos[1]);
-	input_event_broadcast(INPUT_EVENT_mouse_button, &event_data);
-}
-
-void platform_window_on_mouse_move(
-	struct platform_window* p_window,
-	void* p_user_ptr,
-	int delta_x,
-	int delta_y,
-	unsigned int mods) {
-
-	(void)p_window;
-	(void)p_user_ptr;
-
-	struct input_event_data_mouse_move event_data = {
-		.delta_x = delta_x,
-		.delta_y = delta_y,
-		.mods = mods
-	};
-	input_event_broadcast(INPUT_EVENT_mouse_move, &event_data);
-}
-
-void platform_window_on_char(struct platform_window* p_window, void* p_user_ptr, unsigned int code) {
-	(void)p_window;
-	(void)p_user_ptr;
-
-	struct input_event_data_char event_data = {
-		.code = code
-	};
-	input_event_broadcast(INPUT_EVENT_char, &event_data);
-}
-
-void on_key(const void* p_e, void* p_user_ptr) {
-	(void)p_user_ptr;
-
-	const struct input_event_data_key* p_key_event = p_e;
-
-	if (p_key_event->b_is_down) {
-		return;
-	}
-
-	switch (p_key_event->key) {
-		case CX_KEY_grave: {
-			struct cx_console* p_console = cx_console_get();
-			cx_console_set_is_input_enabled(p_console, 1);
-			break;
-		}
-
-		default: break;
-	}
 }
 
 int console_command_quit(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {

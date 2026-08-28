@@ -4,19 +4,18 @@
 
 #include "cx_command.h"
 #include "cx_console.h"
+#include "cx_input.h"
+#include "cx_input_mods.h"
 #include "cx_keys.h"
 #include "cx_logging.h"
 #include "cx_str.h"
 #include "cx_var.h"
-#include "input.h"
 
 #define CX_CONSOLE_LOG_LINE_BREAK "------------------------------------------------------------"
 
 static struct cx_console console;
 
 static void cx_console_history_set(struct cx_console* p_console, int index);
-static void cx_console_on_key(const void*, void*);
-static void cx_console_on_char(const void*, void*);
 static int cx_console_command_clear(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 static int cx_console_command_help(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
 static int cx_console_command_alias(const struct cx_command_args* p_args, const struct cx_command_context* p_context);
@@ -114,105 +113,92 @@ void cx_console_init(struct cx_console* p_console) {
 		CX_CONSOLE_COMMAND_PARAM(ENUM("seven", "", entries, 5), REQUIRED));
 }
 
+void cx_console_update(struct cx_console* p_console) {
+	if (!p_console->b_is_input_enabled) {
+		return;
+	}
+
+	const unsigned int mods = cx_input_mods();
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_left)) {
+		if (mods & CX_INPUT_MOD_ctrl) {
+			cx_text_edit_cursor_prev_word(&p_console->input.text);
+		} else {
+			cx_text_edit_cursor_offset(&p_console->input.text, -1);
+		}
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_right)) {
+		if (mods & CX_INPUT_MOD_ctrl) {
+			cx_text_edit_cursor_next_word(&p_console->input.text);
+		} else {
+			cx_text_edit_cursor_offset(&p_console->input.text, 1);
+		}
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_up)) {
+		cx_console_history_set(p_console, p_console->history.index + 1);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_down)) {
+		cx_console_history_set(p_console, p_console->history.index - 1);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_backspace)) {
+		cx_text_edit_delete(&p_console->input.text, -1);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_delete)) {
+		cx_text_edit_delete(&p_console->input.text, 1);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_home)) {
+		cx_text_edit_cursor_set(&p_console->input.text, 0);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_end)) {
+		cx_text_edit_cursor_set(&p_console->input.text, p_console->input.text.len);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_enter)) {
+		cx_alloc_ring_push(
+			&p_console->history.ring,
+			p_console->input.text.p_buf,
+			p_console->input.text.len + 1,
+			CX_ALLOC_RING_PUSH_POLICY_auto);
+		cx_command_registry_execute(
+			&p_console->command_registry,
+			p_console->input.text.p_buf,
+			&p_console->flogger);
+		cx_console_history_set(p_console, -1);
+		cx_text_edit_clear(&p_console->input.text);
+	}
+
+	if (cx_input_was_key_pressed_or_repeated(CX_KEY_tab)) {
+		// todo
+	}
+
+	if (cx_input_was_key_pressed(CX_KEY_escape)) {
+		cx_console_set_is_input_enabled(p_console, 0);
+	}
+
+	if (!cx_input_is_text_buffer_empty()) {
+		const char* p_text;
+		unsigned int len;
+		cx_input_get_text_buffer(&p_text, &len);
+
+		for (unsigned int i = 0; i < len; ++i) {
+			if (iscntrl(p_text[i])) {
+				continue;
+			}
+
+			cx_text_edit_insert(&p_console->input.text, &p_text[i], 1);
+		}
+	}
+}
+
 void cx_console_set_is_input_enabled(struct cx_console* p_console, int b_is_input_enabled) {
-	if (!!p_console->b_is_input_enabled == !!b_is_input_enabled) {
-		return;
-	}
-
-	if (b_is_input_enabled) {
-		input_event_subscribe(INPUT_EVENT_key, cx_console_on_key, p_console);
-		input_event_subscribe(INPUT_EVENT_char, cx_console_on_char, p_console);
-	} else {
-		input_event_unsubscribe(INPUT_EVENT_key, cx_console_on_key);
-		input_event_unsubscribe(INPUT_EVENT_char, cx_console_on_char);
-	}
-
 	p_console->b_is_input_enabled = !!b_is_input_enabled;
-}
-
-void cx_console_on_key(const void* p_event, void* p_user_ptr) {
-	const struct input_event_data_key* p_e = p_event;
-	struct cx_console* p_console = p_user_ptr;
-
-	if (!p_e->b_is_down) {
-		return;
-	}
-
-	switch (p_e->key) {
-		case CX_KEY_left: {
-			if (p_e->mods & INPUT_MOD_ctrl) {
-				cx_text_edit_cursor_prev_word(&p_console->input.text);
-			} else {
-				cx_text_edit_cursor_offset(&p_console->input.text, -1);
-			}
-			break;
-		}
-		case CX_KEY_right: {
-			if (p_e->mods & INPUT_MOD_ctrl) {
-				cx_text_edit_cursor_next_word(&p_console->input.text);
-			} else {
-				cx_text_edit_cursor_offset(&p_console->input.text, 1);
-			}
-			break;
-		}
-		case CX_KEY_up: {
-			cx_console_history_set(p_console, p_console->history.index + 1);
-			break;
-		}
-		case CX_KEY_down: {
-			cx_console_history_set(p_console, p_console->history.index - 1);
-			break;
-		}
-		case CX_KEY_backspace: {
-			cx_text_edit_delete(&p_console->input.text, -1);
-			break;
-		}
-		case CX_KEY_delete: {
-			cx_text_edit_delete(&p_console->input.text, 1);
-			break;
-		}
-		case CX_KEY_home: {
-			cx_text_edit_cursor_set(&p_console->input.text, 0);
-			break;
-		}
-		case CX_KEY_end: {
-			cx_text_edit_cursor_set(&p_console->input.text, p_console->input.text.len);
-			break;
-		}
-		case CX_KEY_enter: {
-			cx_alloc_ring_push(
-				&p_console->history.ring,
-				p_console->input.text.p_buf,
-				p_console->input.text.len + 1,
-				CX_ALLOC_RING_PUSH_POLICY_auto);
-			cx_command_registry_execute(
-				&p_console->command_registry,
-				p_console->input.text.p_buf,
-				&p_console->flogger);
-			cx_console_history_set(p_console, -1);
-			cx_text_edit_clear(&p_console->input.text);
-			break;
-		}
-		case CX_KEY_tab: {
-			break;
-		}
-		case CX_KEY_escape: {
-			cx_console_set_is_input_enabled(p_console, 0);
-		}
-		default: break;
-	}
-}
-
-void cx_console_on_char(const void* p_event, void* p_user_ptr) {
-	const struct input_event_data_char* p_e = p_event;
-	struct cx_console* p_console = p_user_ptr;
-	char c = (char)p_e->code;
-
-	if (iscntrl(c)) {
-		return;
-	}
-
-	cx_text_edit_insert(&p_console->input.text, &c, 1);
 }
 
 static int cx_console_command_clear(const struct cx_command_args* p_args, const struct cx_command_context* p_context) {

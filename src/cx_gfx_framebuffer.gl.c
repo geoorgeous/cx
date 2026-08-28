@@ -1,7 +1,6 @@
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_texture.h"
 #include "cx_gfx_texture.gl.h"
-#include "cx_error.h"
 #include "gl.h"
 
 static const GLenum gl_fb_attachment_point_table[] = {
@@ -22,21 +21,20 @@ struct cx_gfx_framebuffer_gl_internals {
 	GLuint id;
 };
 
-enum cx_error cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer) {
+cx_result cx_gfx_framebuffer_create(struct cx_gfx_framebuffer* p_framebuffer) {
 	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->bytes_;
 
 	glGenFramebuffers(1, &p_internals->id);
 
 	if (!p_internals->id) {
-		return CX_ERROR_allocation_failed;
+		return CX_ERROR_UNKNOWN;
 	}
 
-	return CX_ERROR_none;
+	return CX_SUCCESS;
 }
 
 void cx_gfx_framebuffer_destroy(struct cx_gfx_framebuffer* p_framebuffer) {
 	struct cx_gfx_framebuffer_gl_internals* p_internals = (void*)p_framebuffer->bytes_;
-
 
 	glDeleteFramebuffers(1, &p_internals->id);
 

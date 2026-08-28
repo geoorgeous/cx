@@ -13,6 +13,8 @@
 #include "cx_ed_transform_gizmo.h"
 #include "cx_ed_ui.h"
 #include "cx_ed_world_editor.h"
+#include "cx_input.h"
+#include "cx_input_mods.h"
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_object_id_capturer.h"
@@ -21,7 +23,6 @@
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
 #include "cx_world_renderer.h"
-#include "input.h"
 #include "matrix.h"
 #include "physics.h"
 #include "platform_window.h"
@@ -165,8 +166,6 @@ void cx_ed_action_set_entity_transform_undo(void* p_ctx) {
 
 uint16_t cx_ed_destroy_entity(uint16_t entity_id);
 uint16_t cx_ed_set_entity_parent(uint16_t entity_id, uint16_t parent_entity_id);
-
-static void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr);
 
 void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_world_blueprint_asset_name) {
 	ed.p_window = p_window;
@@ -321,8 +320,6 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_impulse);
 	physics_world_add_solver(&ed.physics_world, physics_collision_solver_smooth_positions);
 
-	input_event_subscribe(INPUT_EVENT_key, cx_ed_world_editor_on_key, 0);
-
 	unsigned window_width, window_height;
 	platform_window_size(p_window, &window_width, &window_height);
 
@@ -339,29 +336,31 @@ void cx_ed_world_editor_shutdown(void) {
 void cx_ed_world_editor_update(double dt_seconds) {
 	float move_direction[3] = {0};
 	if (!cx_console_get()->b_is_input_enabled) {
-		if (input_frame_is_key_down(CX_KEY_a)) {
+		if (cx_input_is_key_down(CX_KEY_a)) {
 			move_direction[0] -= 1;
 		}
-		if (input_frame_is_key_down(CX_KEY_d)) {
+		if (cx_input_is_key_down(CX_KEY_d)) {
 			move_direction[0] += 1;
 		}
-		if (input_frame_is_key_down(CX_KEY_s)) {
+		if (cx_input_is_key_down(CX_KEY_s)) {
 			move_direction[2] += 1;
 		}
-		if (input_frame_is_key_down(CX_KEY_w)) {
+		if (cx_input_is_key_down(CX_KEY_w)) {
 			move_direction[2] -= 1;
 		}
-		if (input_frame_is_key_down(CX_KEY_space)) {
+		if (cx_input_is_key_down(CX_KEY_space)) {
 			move_direction[1] += 1;
 		}
-		if (input_frame_is_key_down(CX_KEY_c)) {
+		if (cx_input_is_key_down(CX_KEY_c)) {
 			move_direction[1] -= 1;
 		}
 
-		if (input_frame_is_mouse_button_down(CX_MOUSE_BUTTON_right)) {
+		if (cx_input_is_button_down(CX_BUTTON_mouse_right)) {
 			int mouse_delta_x;
 			int mouse_delta_y;
-			input_frame_mouse_delta(&mouse_delta_x, &mouse_delta_y);
+			cx_input_mouse_delta(&mouse_delta_x, &mouse_delta_y);
+
+			CX_LAZYLOG_FMT("RMB pressed: x=%d, y=%d\n", mouse_delta_x, mouse_delta_y);
 
 			ed.camera.pitch += (float)mouse_delta_y * 0.01f;
 			ed.camera.yaw += (float)mouse_delta_x * 0.01f;
@@ -378,7 +377,7 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	matrix_multiply(pitch_rotation_matrix, yaw_rotation_matrix, rotation_matrix);
 
 	if (!vec3_is_zero(move_direction)) {
-		const float speed = input_frame_is_key_down(CX_KEY_shift_left) ? 50.f : 7.f;
+		const float speed = cx_input_is_key_down(CX_KEY_shift_left) ? 50.f : 7.f;
 		float offset[4] = { 0, 0, 0, 1 };
 
 		vec3_norm(move_direction, move_direction);
@@ -430,24 +429,21 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	}
 
 	if (ed.gizmo.interaction_state != CX_TRANSFORM_GIZMO_INTERACTION_STATE_in_progress &&
-		input_frame_is_mouse_button_released(CX_MOUSE_BUTTON_left)) {
+		cx_input_was_button_released(CX_BUTTON_mouse_left)) {
 		
 		ed.selected_entity_id = ed.entity_id_at_cursor;
 	}
 
 	// upate the gizmo while we have a selected entity
 	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
-		int mouse_client_coords[2];
-		platform_window_get_mouse_client_coords(ed.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+		int mouse_x, mouse_y;
+		cx_input_mouse_position(&mouse_x, &mouse_y);
 
 		float projection_view_matrix[16];
 		matrix_multiply(ed.camera.projection_matrix, ed.camera.view_matrix, projection_view_matrix);
 
 		float cursor_ray[3];
-		platform_window_client_to_world_ray(ed.p_window,
-			projection_view_matrix,
-			mouse_client_coords[0], mouse_client_coords[1],
-			cursor_ray);
+		platform_window_client_to_world_ray(ed.p_window, projection_view_matrix, mouse_x, mouse_y, cursor_ray);
 
 		const float gizmo_view_scale = 2.0f / ed.camera.projection_matrix[5];
 		
@@ -473,14 +469,22 @@ void cx_ed_world_editor_update(double dt_seconds) {
 				.transform = t
 			}));
 		} else {
-			if (input_frame_is_key_pressed(CX_KEY_e)) {
+			if (cx_input_was_key_pressed(CX_KEY_e)) {
 				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_translate;
-			} else if (input_frame_is_key_pressed(CX_KEY_r)) {
+			} else if (cx_input_was_key_pressed(CX_KEY_r)) {
 				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_rotate;
-			} else if (input_frame_is_key_pressed(CX_KEY_t)) {
+			} else if (cx_input_was_key_pressed(CX_KEY_t)) {
 				ed.gizmo.mode = CX_TRANSFORM_GIZMO_MODE_scale;
 			}
 		}
+	}
+
+	const unsigned int mods = cx_input_mods();
+	if (cx_input_was_key_pressed(CX_KEY_z) && mods & CX_INPUT_MOD_ctrl) {
+		cx_ed_action_history_undo(&ed.action_history);
+	}
+	else if (cx_input_was_key_pressed(CX_KEY_y) && mods & CX_INPUT_MOD_ctrl) {
+		cx_ed_action_history_redo(&ed.action_history);
 	}
 
 	cx_world_compute_transforms(&ed.world);
@@ -637,33 +641,13 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 		&render_command_buffer);
 	render_command_buffer.num = 0;
 
-	int mouse_client_coords[2];
-	platform_window_get_mouse_client_coords(ed.p_window, &mouse_client_coords[0], &mouse_client_coords[1]);
+	int mouse_x, mouse_y;
+	cx_input_mouse_position(&mouse_x, &mouse_y);
 
-	float mouse_position_normalized[2];
-	platform_window_normalize_client_coords(ed.p_window,
-		mouse_client_coords[0], mouse_client_coords[1],
-		&mouse_position_normalized[0], &mouse_position_normalized[1]);
+	float norm_mouse_x, norm_mouse_y;
+	platform_window_normalize_client_coords(ed.p_window, mouse_x, mouse_y, &norm_mouse_x, &norm_mouse_y);
 
-	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer,
-		mouse_position_normalized[0], mouse_position_normalized[1]);
-}
-
-void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
-	(void)p_user_ptr;
-
-	const struct input_event_data_key* p_key_event = p_e;
-
-	if (!p_key_event->b_is_down) {
-		return;
-	}
-
-	if (p_key_event->key == CX_KEY_z && p_key_event->mods & INPUT_MOD_ctrl) {
-		cx_ed_action_history_undo(&ed.action_history);
-	}
-	else if (p_key_event->key == CX_KEY_y && p_key_event->mods & INPUT_MOD_ctrl) {
-		cx_ed_action_history_redo(&ed.action_history);
-	}
+	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer, norm_mouse_x, norm_mouse_y);
 }
 
 cx_result cx_ed_world_editor_load_world_from_world_blueprint(const char* s_asset_name) {

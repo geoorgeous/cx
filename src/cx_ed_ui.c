@@ -12,6 +12,7 @@
 #include "cx_gfx_program.h"
 #include "cx_gfx_texture.h"
 #include "cx_image.h"
+#include "cx_input.h"
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_math.h"
@@ -19,7 +20,6 @@
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
 #include "cx_text_mesher.h"
-#include "input.h"
 #include "matrix.h"
 #include "platform_window.h"
 
@@ -65,10 +65,6 @@ static void cx_ed_ui_submit_text(
 	struct cx_ed_ui* p_ui, const struct cx_ed_ui_draw_command_text* p_text);
 static void cx_ed_ui_init_shared_resources(void);
 
-static void cx_ed_ui_mouse_button_event_cb(const void* p_event, void* p_user_ptr);
-static void cx_ed_ui_key_event_cb(const void* p_event, void* p_user_ptr);
-static void cx_ed_ui_char_event_cb(const void* p_event, void* p_user_ptr);
-
 static struct {
 	struct cx_gfx_program program;
 	struct cx_gfx_program_param_block program_pblk_camera;
@@ -109,10 +105,6 @@ void cx_ed_ui_init(uint32_t canvas_width, uint32_t canvas_height, struct cx_ed_u
 		.canvas_width = canvas_width,
 		.canvas_height = canvas_height
 	};
-
-	input_event_subscribe(INPUT_EVENT_mouse_button, cx_ed_ui_mouse_button_event_cb, p_out);
-	input_event_subscribe(INPUT_EVENT_key, cx_ed_ui_key_event_cb, p_out);
-	input_event_subscribe(INPUT_EVENT_char, cx_ed_ui_char_event_cb, p_out);
 }
 
 void cx_ed_ui_window_begin(
@@ -807,7 +799,13 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 	platform_window_size(p_window, &window_width, &window_height);
 
 	int mouse_x, mouse_y;
-	platform_window_get_mouse_client_coord_scaled(p_window, window_width, window_height, &mouse_x, &mouse_y);
+	cx_input_mouse_position(&mouse_x, &mouse_y);
+
+	float sx, sy;
+	platform_window_normalize_client_coords(p_window, mouse_x, mouse_y, &sx, &sy);
+
+	mouse_x = (int)((float)window_width * sx);
+	mouse_y = (int)((float)window_height * sy);
 
 	uint16_t interaction_hovered_new = CX_ED_UI_INTERACTION_NONE;
 
@@ -860,7 +858,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 	}
 
 	int mouse_dx, mouse_dy;
-	input_frame_mouse_delta(&mouse_dx, &mouse_dy);
+	cx_input_mouse_delta(&mouse_dx, &mouse_dy);
 
 	int canvas_mouse_dx = (int)((((float)mouse_dx / (float)window_width)) * (float)p_ui->canvas_width);
 	int canvas_mouse_dy = (int)((((float)mouse_dy / (float)window_height)) * (float)p_ui->canvas_height);
@@ -885,7 +883,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 					p_interaction_hovered_new->callbacks.f_mouse_button_cb != CX_NULL) {
 
 					p_interaction_hovered_new->callbacks.f_mouse_button_cb(
-						(enum cx_mouse_button)i,
+						(enum cx_button)i,
 						p_e->data.mouse_button.b_is_down,
 						p_interaction_hovered_new->callbacks.p_user_ptr);
 				}
@@ -970,7 +968,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 	cx_ed_ui_persistent_state_pool_remove_inactive(&p_ui->window_pool);
 	cx_ed_ui_persistent_state_pool_remove_inactive(&p_ui->interaction_pool);
 
-	for (uint16_t i = 0; i < CX_MOUSE_BUTTON_MAX_; ++i) {
+	for (uint16_t i = 0; i < CX_BUTTON_MAX_; ++i) {
 		if (p_ui->interaction_pressed[i] != CX_ED_UI_INTERACTION_NONE &&
 			!p_ui->interactions[p_ui->interaction_pressed[i]].pool_slot.b_is_occupied) {
 			p_ui->interaction_pressed[i] = CX_ED_UI_INTERACTION_NONE;
@@ -978,7 +976,7 @@ void cx_ed_ui_end_frame(struct cx_ed_ui* p_ui, const struct platform_window* p_w
 	}
 
 	cx_ed_ui_process_interaction_hovered(p_ui, p_ui->interaction_hovered);
-	cx_ed_ui_process_interaction_pressed(p_ui, p_ui->interaction_pressed[CX_MOUSE_BUTTON_left]);
+	cx_ed_ui_process_interaction_pressed(p_ui, p_ui->interaction_pressed[CX_BUTTON_mouse_left]);
 	cx_ed_ui_process_interaction_focused(p_ui, p_ui->interaction_focused);
 }
 
@@ -1380,47 +1378,4 @@ void cx_ed_ui_persistent_state_pool_remove_inactive(
 
 		checked++;
 	}
-}
-
-void cx_ed_ui_mouse_button_event_cb(const void* p_event, void* p_user_ptr) {
-	const struct input_event_data_mouse_button* p_e = p_event;
-	struct cx_ed_ui* p_ui = p_user_ptr;
-
-	p_ui->events[p_ui->num_events] = (struct cx_ed_ui_input_event) {
-		.type = CX_ED_UI_INPUT_EVENT_TYPE_mouse_button,
-		.data.mouse_button = {
-			.button = p_e->button,
-			.b_is_down = p_e->b_is_down,
-			.mods = p_e->mods
-		}
-	};
-	p_ui->num_events++;
-}
-
-void cx_ed_ui_key_event_cb(const void* p_event, void* p_user_ptr) {
-	const struct input_event_data_key* p_e = p_event;
-	struct cx_ed_ui* p_ui = p_user_ptr;
-
-	p_ui->events[p_ui->num_events] = (struct cx_ed_ui_input_event) {
-		.type = CX_ED_UI_INPUT_EVENT_TYPE_keys,
-		.data.key = {
-			.key = p_e->key,
-			.b_is_down = p_e->b_is_down,
-			.mods = p_e->mods
-		}
-	};
-	p_ui->num_events++;
-}
-
-void cx_ed_ui_char_event_cb(const void* p_event, void* p_user_ptr) {
-	const struct input_event_data_char* p_e = p_event;
-	struct cx_ed_ui* p_ui = p_user_ptr;
-
-	p_ui->events[p_ui->num_events] = (struct cx_ed_ui_input_event) {
-		.type = CX_ED_UI_INPUT_EVENT_TYPE_charcode,
-		.data.charcode = {
-			.code = p_e->code
-		}
-	};
-	p_ui->num_events++;
 }

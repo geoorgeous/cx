@@ -92,6 +92,7 @@ struct cx_console {
 struct cx_console* cx_console_get(void);
 
 void cx_console_init(struct cx_console* p_console);
+void cx_console_update(struct cx_console* p_console);
 void cx_console_set_is_input_enabled(struct cx_console* p_console, int b_is_input_enabled);
 
 #endif

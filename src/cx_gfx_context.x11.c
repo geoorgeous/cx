@@ -8,7 +8,6 @@
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_logging.h"
-#include "cx_error.h"
 #include "platform_window.h"
 #include "platform_window.x11.h"
 
@@ -99,7 +98,7 @@ struct gl_context_nix_x11_internals {
 	GLXContext                    context;
 };
 
-enum cx_error cx_gfx_context_create(
+cx_result cx_gfx_context_create(
 	const struct platform_window* p_window,
 	struct cx_gfx_context* p_out_context) {
 
@@ -114,7 +113,7 @@ enum cx_error cx_gfx_context_create(
 		CX_LOG_FMT(ERROR, GFX_CORE,
 			"glX %d.%d or greater is required (glX version = %d.%d)\n",
 			GLX_MIN_VERSION_MAJOR, GLX_MIN_VERSION_MINOR, glx_version_major, glx_version_minor);
-		return CX_ERROR_api_glx;
+		return CX_ERROR_UNSUPPORTED;
 	}
 
 	const int screen = DefaultScreen(p_window_internals->p_display);
@@ -155,7 +154,7 @@ enum cx_error cx_gfx_context_create(
 	}
 
 	if (!p_context_internals->context) {
-		return CX_ERROR_api_glx;
+		return CX_ERROR_UNKNOWN;
 	}
 
 	glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
@@ -188,7 +187,7 @@ enum cx_error cx_gfx_context_create(
 		"Graphics platform: %s, %s\n",
 		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
 
-	return CX_ERROR_none;
+	return CX_SUCCESS;
 }
 
 void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
@@ -198,12 +197,12 @@ void cx_gfx_context_destroy(struct cx_gfx_context* p_context) {
 	glXDestroyContext(p_window_internals->p_display, p_context_internals->context);
 }
 
-enum cx_error cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
+cx_result cx_gfx_context_make_current(const struct cx_gfx_context* p_context) {
 	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
 	const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	glXMakeCurrent(p_window_internals->p_display, p_window_internals->window, p_context_internals->context);
-	return CX_ERROR_none;
+	return CX_SUCCESS;
 }
 
 const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_gfx_context* p_context) {
@@ -212,12 +211,12 @@ const struct cx_gfx_framebuffer* cx_gfx_context_get_backbuffer(const struct cx_g
 	return &default_fb;
 }
 
-enum cx_error cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
+cx_result cx_gfx_context_swap_buffers(const struct cx_gfx_context* p_context) {
 	const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
 	const struct platform_window_nix_x11_internals* p_window_internals =
 		(const void*)p_context_internals->p_window->internals_.bytes_;
 	glXSwapBuffers(p_window_internals->p_display, p_window_internals->window);
-	return CX_ERROR_none;
+	return CX_SUCCESS;
 }
 
 unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_context) {
@@ -233,17 +232,17 @@ unsigned int cx_gfx_context_get_swap_interval(const struct cx_gfx_context* p_con
 	return interval;
 }
 
-enum cx_error cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
+cx_result cx_gfx_context_set_swap_interval(const struct cx_gfx_context* p_context, unsigned int interval) {
 	if (f_glXSwapIntervalEXT) {
 		const struct gl_context_nix_x11_internals* p_context_internals = (const void*)p_context->bytes_;
 		const struct platform_window_nix_x11_internals* p_platform_window_internals =
 			(const void*)p_context_internals->p_window->internals_.bytes_;
 		f_glXSwapIntervalEXT(p_platform_window_internals->p_display, p_platform_window_internals->window, (int)interval);
 		CX_LOG_FMT(INFO, GFX_CORE, "Swap interval set to %d\n", interval);
-		return CX_ERROR_none;
+		return CX_SUCCESS;
 	}
 	CX_LOG(INFO, GFX_CORE, "Failed to set swap interval: gl function not loaded\n");
-	return CX_ERROR_not_supported;
+	return CX_ERROR_UNSUPPORTED;
 }
 
 #ifndef NDEBUG
