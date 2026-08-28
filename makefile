@@ -7,8 +7,8 @@ BUILD_DIR_ROOT ?= build
 BUILD_DIR   := $(BUILD_DIR_ROOT)/$(TARGET)/$(MODE)
 OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
-JOBS        ?= 8
-MAKEFLAGS   += --no-print-directory -j$(JOBS)
+JOBS        ?= 16
+MAKEFLAGS   += --no-print-directory -j$(JOBS) --output-sync=target
 
 ifeq ($(TARGET),runtime)
 	TARGET_NAME ?= cx
@@ -32,6 +32,7 @@ endif
 TARGET_OUTPUT := $(BIN_DIR)/$(TARGET_NAME)
 
 CFLAGS += \
+	-fdiagnostics-color=always \
 	-ffp-contract=off \
 	-fno-common \
 	-fstrict-flex-arrays=3 \
@@ -149,13 +150,13 @@ all: release ed-release
 build: $(TARGET_OUTPUT)
 
 run: build
-	@./$(TARGET_OUTPUT)
+	env ASAN_OPTIONS="color=always" ./$(TARGET_OUTPUT)
 
 # build debug target, run through gdb, and show backtrace when gdb breaks
 # (`set confirm off` disabled confirmation checks inside gdb)
 
 gdb: build
-	gdb -ex "set confirm off" -ex run -ex bt --args ./$(TARGET_OUTPUT)
+	gdb -iex "set color on" -ex "set confirm off" -ex run -ex bt --args ./$(TARGET_OUTPUT)
 
 clean:
 	@$(CMD_RMDIR) $(BUILD_DIR_ROOT)
