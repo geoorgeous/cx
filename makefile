@@ -193,10 +193,8 @@ ed-debug-gdb:
 
 # generate compile_commands.json compilation database for clangd lsp tooling
 
-compile_commands:
-	@$(MAKE) clean
-	@bear -- $(MAKE) debug
-	@bear --append -- $(MAKE) ed-debug
+compile_commands: clean
+	@bear -- $(MAKE) debug ed-debug
 
 # dependency includes
 
