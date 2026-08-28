@@ -192,6 +192,8 @@ void platform_window_process_events(struct platform_window* p_window) {
 	p_window->input_state_.text_input_len = 0;
 	p_window->input_state_.scroll_accum_x = 0;
 	p_window->input_state_.scroll_accum_y = 0;
+	p_window->b_was_focus_changed = CX_FALSE;
+	p_window->b_was_resized = CX_FALSE;
 
 	struct platform_window_nix_x11_internals* p_internals = (void*)p_window->internals_.bytes_;
 
@@ -217,17 +219,17 @@ void platform_window_process_events(struct platform_window* p_window) {
 			}
 
 			case FocusIn: {
-				// focus change
+				p_window->b_was_focus_changed = CX_TRUE;
 				break;
 			}
 
 			case FocusOut: {
-				// focus change
+				p_window->b_was_focus_changed = CX_TRUE;
 				break;
 			}
 
 			case ConfigureNotify: {
-				// resized
+				p_window->b_was_resized = CX_TRUE;
 				break;
 			}
 
@@ -318,7 +320,7 @@ void platform_window_process_events(struct platform_window* p_window) {
 			}
 
 			case Expose: {
-				// resize
+				p_window->b_was_resized = CX_TRUE;
 				break;
 			}
 
@@ -336,6 +338,20 @@ int platform_window_is_open(const struct platform_window* p_window) {
 
 	XWindowAttributes window_attribs;
 	return XGetWindowAttributes(p_internals->p_display, p_internals->window, &window_attribs) != BadWindow;
+}
+
+int platform_window_is_focused(const struct platform_window* p_window) {
+	const struct platform_window_nix_x11_internals* p_internals = (const void*)p_window->internals_.bytes_;
+
+	Window window;
+	int revert_to;
+	XGetInputFocus(p_internals->p_display, &window, &revert_to);
+
+	if (window == None) {
+		return CX_FALSE;
+	}
+
+	return window == p_internals->window;
 }
 
 void platform_window_size(

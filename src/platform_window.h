@@ -13,6 +13,8 @@ struct platform_window;
 
 struct platform_window {
 	struct cx_platform_input_state input_state_;
+	int b_was_focus_changed;
+	int b_was_resized;
 	CX_OPAQUE_INTERNALS(50);
 };
 

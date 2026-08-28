@@ -2,6 +2,14 @@
 #include "platform_window.h"
 #include "vector.h"
 
+int platform_window_was_focus_changed(const struct platform_window* p_window) {
+	return p_window->b_was_focus_changed;
+}
+
+int platform_window_was_resized(const struct platform_window* p_window) {
+	return p_window->b_was_resized;
+}
+
 const struct cx_platform_input_state* platform_window_input_state(const struct platform_window* p_window) {
 	return &p_window->input_state_;
 }
