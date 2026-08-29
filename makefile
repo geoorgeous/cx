@@ -7,8 +7,7 @@ BUILD_DIR_ROOT ?= build
 BUILD_DIR   := $(BUILD_DIR_ROOT)/$(TARGET)/$(MODE)
 OBJ_DIR     := $(BUILD_DIR)/obj
 BIN_DIR     := $(BUILD_DIR)/bin
-JOBS        ?= 16
-MAKEFLAGS   += --no-print-directory -j$(JOBS) --output-sync=target
+MAKEFLAGS   += --no-print-directory -j16
 
 ifeq ($(TARGET),runtime)
 	TARGET_NAME ?= cx
@@ -140,7 +139,7 @@ $(BIN_DIR):
 	@$(CMD_MKDIR) $(BIN_DIR)
 
 .PHONY: \
-	all build run gdb clean \
+	all build clean run run-gdb \
 	release debug release-run debug-run debug-gdb \
 	ed-release ed-debug ed-release-run ed-debug-run ed-debug-gdb \
 	compile_commands
@@ -149,52 +148,60 @@ all: release ed-release
 
 build: $(TARGET_OUTPUT)
 
-run: build
-	env ASAN_OPTIONS="color=always" ./$(TARGET_OUTPUT)
-
-# build debug target, run through gdb, and show backtrace when gdb breaks
-# (`set confirm off` disabled confirmation checks inside gdb)
-
-gdb: build
-	gdb -iex "set color on" -ex "set confirm off" -ex run -ex bt --args ./$(TARGET_OUTPUT)
-
 clean:
 	@$(CMD_RMDIR) $(BUILD_DIR_ROOT)
 
+run:
+	./$(TARGET_OUTPUT)
+
+# run through gdb, and show backtrace when gdb breaks
+# (`set confirm off` disables confirmation checks inside gdb)
+
+run-gdb:
+	gdb -ex "set confirm off" -ex run -ex bt --args ./$(TARGET_OUTPUT)
+
+
+# runtime recipes
+
 release:
-	@$(MAKE) build TARGET=runtime MODE=release
+	@$(MAKE) --output-sync=target build TARGET=runtime MODE=release
 
 debug:
-	@$(MAKE) build TARGET=runtime MODE=debug
+	@$(MAKE) --output-sync=target build TARGET=runtime MODE=debug
 
-release-run:
+release-run: release
 	@$(MAKE) run TARGET=runtime MODE=release
 
-debug-run:
+debug-run: debug
 	@$(MAKE) run TARGET=runtime MODE=debug
 
-debug-gdb:
-	@$(MAKE) gdb TARGET=runtime MODE=debug
+debug-gdb: debug
+	@$(MAKE) run-gdb TARGET=runtime MODE=debug
+
+
+# editor recipes
 
 ed-release:
-	@$(MAKE) build TARGET=editor MODE=release
+	@$(MAKE) --output-sync=target build TARGET=editor MODE=release
 
 ed-debug:
-	@$(MAKE) build TARGET=editor MODE=debug
+	@$(MAKE) --output-sync=target build TARGET=editor MODE=debug
 
-ed-release-run:
+ed-release-run: ed-release
 	@$(MAKE) run TARGET=editor MODE=release
 
-ed-debug-run:
+ed-debug-run: ed-debug
 	@$(MAKE) run TARGET=editor MODE=debug
 
-ed-debug-gdb:
-	@$(MAKE) gdb TARGET=editor MODE=debug
+ed-debug-gdb: ed-debug
+	@$(MAKE) run-gdb TARGET=editor MODE=debug
+
 
 # generate compile_commands.json compilation database for clangd lsp tooling
 
 compile_commands: clean
 	@bear $(BEAR_ARGS) -- $(MAKE) debug ed-debug
+
 
 # dependency includes
 
