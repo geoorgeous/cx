@@ -132,7 +132,16 @@ cx_result cx_platform_window_create(
 		return CX_ERROR_PLATFORM;
 	}
 
+	char res_name[] = "cx-engine";
+	char res_class[] = "CXEngine";
+
+	XClassHint class_hint;
+	class_hint.res_name = res_name;
+	class_hint.res_class = res_class;
+	XSetClassHint(p_x11_display, x11_window, &class_hint);
+
 	XStoreName(p_x11_display, x11_window, s_title);
+
 	XSelectInput(p_x11_display, x11_window,
 		KeyPressMask |
 		KeyReleaseMask |
@@ -143,6 +152,7 @@ cx_result cx_platform_window_create(
 		FocusChangeMask |
 		StructureNotifyMask |
 		ExposureMask);
+
 	XMapWindow(p_x11_display, x11_window);
 
 	XSetICFocus(x11_input_ctx);
@@ -167,6 +177,9 @@ cx_result cx_platform_window_create(
 		1);
 
 	++num_x11_windows;
+
+	CX_LOG_FMT(INFO, PLATFORM_WINDOW, "X11 Window created (%dx%d) res_name='%s', res_class='%s'\n",
+		width, height, res_name, res_class);
 	
 	return CX_SUCCESS;
 }
