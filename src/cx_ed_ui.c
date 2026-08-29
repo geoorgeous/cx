@@ -1174,9 +1174,6 @@ void cx_ed_ui_draw(struct cx_ed_ui* p_ui) {
 					(int16_t)p_ui->canvas_height - p_ui->clip_rect_pos[1] - (int16_t)p_ui->clip_rect_size[1],
 					p_ui->clip_rect_size[0],
 					p_ui->clip_rect_size[1]);
-
-				CX_LOG_FMT(INFO, UI, "Clip rect: [%d, %d] [%u, %u]\n",
-					p_ui->clip_rect_pos[0], p_ui->clip_rect_pos[1], p_ui->clip_rect_size[0], p_ui->clip_rect_size[1]);
 			}
 		} else if (p_ui->b_clip) {
 			p_ui->b_clip = CX_FALSE;
