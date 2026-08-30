@@ -124,7 +124,7 @@ OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 LDLIBS := $(addprefix -l,$(LDLIBS))
 
-default: all
+default: help
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	@$(CC) $(CFLAGS) $(CFLAGS_$(MODE)) -c $< -o $@
@@ -139,67 +139,65 @@ $(BIN_DIR):
 	@$(CMD_MKDIR) $(BIN_DIR)
 
 .PHONY: \
-	all build clean run run-gdb \
+	help all build clean run run-gdb \
 	release debug release-run debug-run debug-gdb \
 	ed-release ed-debug ed-release-run ed-debug-run ed-debug-gdb \
-	compile_commands
+	compile-commands
 
-all: release ed-release
+help: ## Shows all commands
+	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-build: $(TARGET_OUTPUT)
+all: release ed-release ## Build both the Runtime and the Editor in release mode
 
-clean:
+build: $(TARGET_OUTPUT) # Builds TARGET_OUTPUT
+
+clean: ## Cleans the project, deleting the build directory
 	@$(CMD_RMDIR) $(BUILD_DIR_ROOT)
 
-run:
+run: # Runs TARGET_OUTPUT
 	./$(TARGET_OUTPUT)
 
-# run through gdb, and show backtrace when gdb breaks
-# (`set confirm off` disables confirmation checks inside gdb)
-
-run-gdb:
+run-gdb: # Run TARGET_OUTPUT through GDB, showing the backtrace (bt) when the debugger breaks
 	gdb -ex "set confirm off" -ex run -ex bt --args ./$(TARGET_OUTPUT)
 
 
 # runtime recipes
 
-release:
+release: ## Builds the Runtime in release mode
 	@$(MAKE) --output-sync=target build TARGET=runtime MODE=release
 
-debug:
+debug: ## Builds the Runtime in debug mode
 	@$(MAKE) --output-sync=target build TARGET=runtime MODE=debug
 
-release-run: release
+release-run: release ## Builds the Runtime in release mode and runs it
 	@$(MAKE) run TARGET=runtime MODE=release
 
-debug-run: debug
+debug-run: debug ## Builds the Runtime in debug mode and runs it
 	@$(MAKE) run TARGET=runtime MODE=debug
 
-debug-gdb: debug
+debug-gdb: debug ## Builds the Runtime in debug mode and runs it through the debugger
 	@$(MAKE) run-gdb TARGET=runtime MODE=debug
 
 
 # editor recipes
 
-ed-release:
+ed-release: ## Builds the Editor in release mode
 	@$(MAKE) --output-sync=target build TARGET=editor MODE=release
 
-ed-debug:
+ed-debug: ## Builds the Editor in debug mode
 	@$(MAKE) --output-sync=target build TARGET=editor MODE=debug
 
-ed-release-run: ed-release
+ed-release-run: ed-release ## Builds the Editor in release mode and runs it
 	@$(MAKE) run TARGET=editor MODE=release
 
-ed-debug-run: ed-debug
+ed-debug-run: ed-debug ## Builds the Editor in debug mode and runs it
 	@$(MAKE) run TARGET=editor MODE=debug
 
-ed-debug-gdb: ed-debug
+ed-debug-gdb: ed-debug ## Builds the Editor in debug mode and runs it through the debugger
 	@$(MAKE) run-gdb TARGET=editor MODE=debug
 
 
-# generate compile_commands.json compilation database for clangd lsp tooling
-
-compile_commands: clean
+compile-commands: clean ## Uses Bear to generate compile_commands.json compilation database for external tools
 	@bear $(BEAR_ARGS) -- $(MAKE) debug ed-debug
 
 
