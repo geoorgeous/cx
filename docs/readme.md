@@ -35,6 +35,7 @@ This project maintains a set of coding conventions which can be found here: [con
 A list of references and resources I've used throughout this project which I've found very useful.
 
 - [C standard library reference](https://cppreference.com/w/c.html)
+- Casey Muratori - IMGUI: [1](https://caseymuratori.com/blog_0001), [2](https://youtu.be/38gVgJj0eFQ?si=Y012m8OZjnO4rPd8)
 - [Casey Muratori - Implementing GJK](https://caseymuratori.com/blog_0003)
 - [Dirk Gregorius (Valve) - Implementing Quickhull](https://media.steampowered.com/apps/valve/2014/DirkGregorius_ImplementingQuickHull.pdf)
 - [Iain Winter - Designing a physics engine](https://winter.dev/articles/physics-engine)
