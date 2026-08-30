@@ -21,16 +21,17 @@
 | struct                  | snake-case       | `struct foo_bar { ... };`   |
 | enum                    | snake-case       | `enum foo_bar { ... };`     |
 | variable                | snake-case       | `int foo_bar;`              |
+| global variable         | g_*, snake-case  | `static int g_foo_bar;`
  
 ## booleans
 
-There is no reliance on `<stdbool.h>` or any kind of `typedef` or `#define` for boolean types.
+`src/cx_macro.h` defines `CX_TRUE` and `CX_FALSE`
 
- - Signed integers
+ - Plain signed integers
  - Identifier prefixed with `b_`
 
 ```C
-int b_foo;
+int b_foo = CX_TRUE;
 ```
 
 ## pointers
@@ -94,6 +95,27 @@ void get_size(const struct rect* p_rect, float* p_out_width, float* p_out_height
 enum error validate(int* p_out_b_success);
 ```
 
+## cx_result
+
+Where a function might notify the caller of failure beyond a simple flag, `cx_result` (defined in `src/cx_result.h`)
+is used. Creating new `cx_result` values should be avoided in favour of reusing the existing enumerations.
+
+```C
+cx_result try_foo(int arg) {
+    if (!check(arg)) {
+        return CX_ERROR_INVALID_ARG;
+    }
+    // ...
+    return CX_SUCCESS;
+}
+
+// ...
+
+if (try_foo(val) != CX_SUCCESS) {
+    // handle error
+}
+```
+
 ## read-only members
 
 Some structs may have members that should only be modified by the implimentation, and not the user.
@@ -122,6 +144,10 @@ int ray_plane_intersection(const float* p_ray_origin, const float* p_ray_dir, co
 
 // good:
 int ray_plane_intersection(
+    const float* p_ray_origin, const float* p_ray_dir, const float* p_plane_norm, float plane_offset, float* p_out);
+
+// good, where the above might require the parameter list to be broken up on to ultiple lines:
+int ray_plane_intersection(
   const float* p_ray_origin, const float* p_ray_dir,
   const float* p_plane_norm,
   float plane_offset,
@@ -130,6 +156,7 @@ int ray_plane_intersection(
   // recommended to leave a space at the top of the function implementation for clarity
   // ...
 }
+
 ```
 
 ```C
