@@ -54,6 +54,7 @@
 res/*
 !res/builtin/
 !makefile
+bear.json
 compile_commands.json
 
 *untracked/
