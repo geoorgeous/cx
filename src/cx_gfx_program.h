@@ -2,10 +2,15 @@
 #define CX_GFX_PROGRAM_H
 
 #include <stddef.h>
+#include <stdint.h>
 
-#include "cx_error.h"
+#include "cx_macro.h"
+#include "cx_result.h"
 
 #define CX_LOG_CAT_GFX_PROGRAM "gfx:program"
+
+#define CX_GFX_PROGRAM_MAX_PARAM_BLOCKS 4
+#define CX_GFX_PROGRAM_MAX_PARAMS 8
 
 enum cx_gfx_program_param_type {
 	CX_GFX_PROGRAM_PARAM_TYPE_unknown,
@@ -29,65 +34,24 @@ enum cx_gfx_program_param_type {
 	CX_GFX_PROGRAM_PARAM_TYPE_mat3x2,
 	CX_GFX_PROGRAM_PARAM_TYPE_mat3x4,
 	CX_GFX_PROGRAM_PARAM_TYPE_mat4x2,
-	CX_GFX_PROGRAM_PARAM_TYPE_mat4x3
+	CX_GFX_PROGRAM_PARAM_TYPE_mat4x3,
+	CX_GFX_PROGRAM_PARAM_TYPE_texture2d,
+	CX_GFX_PROGRAM_PARAM_TYPE_cube_map,
+	CX_GFX_PROGRAM_PARAM_TYPE_block
 };
 
-enum cx_gfx_program_opaque_param_type {
-	CX_GFX_PROGRAM_OPAQUE_PARAM_TYPE_unknown,
-	CX_GFX_PROGRAM_OPAQUE_PARAM_TYPE_sampler_2d,
-	CX_GFX_PROGRAM_OPAQUE_PARAM_TYPE_sampler_cube
+struct cx_gfx_program_param {
+	enum cx_gfx_program_param_type type;
+	union {
+		CX_OPAQUE_INTERNALS(4);
+		uint16_t block_index;
+	} u;
 };
-
-struct cx_gfx_program_param_buffer {
-	size_t size;
-	char   bytes_[4];
-};
-
-enum cx_error cx_gfx_program_param_buffer_create(struct cx_gfx_program_param_buffer* p_buffer, size_t size);
-
-void cx_gfx_program_param_buffer_destroy(struct cx_gfx_program_param_buffer* p_buffer);
-
-void cx_gfx_program_param_buffer_bind(const struct cx_gfx_program_param_buffer* p_buffer, unsigned int index);
-
-void cx_gfx_program_param_buffer_bind_range(
-	const struct cx_gfx_program_param_buffer* p_buffer,
-	unsigned int index,
-	size_t offset,
-	size_t size);
-
-void       cx_gfx_program_param_buffer_set(
-	const struct cx_gfx_program_param_buffer* p_buffer,
-	size_t offset,
-	size_t size,
-	const void* p_data);
-
-struct cx_gfx_program_opaque_param {
-	enum cx_gfx_program_opaque_param_type type;
-	size_t                                n;
-	unsigned int                          slot;
-	char bytes_[4];
-};
-
-struct cx_gfx_program_opaque_param_binding {
-	const struct cx_gfx_program_opaque_param* p_param;
-	const void* p_resource;
-};
-
-void cx_gfx_program_opaque_param_bind_resource(const struct cx_gfx_program_opaque_param_binding* p_binding);
 
 struct cx_gfx_program_param_block {
-	size_t size_;
-	char   bytes_[4];
-};
-
-struct cx_gfx_program_param_block_binding {
-	const struct cx_gfx_program_param_block* p_block;
-	const struct cx_gfx_program_param_buffer* p_buffer;
-	size_t offset;
 	size_t size;
+	CX_OPAQUE_INTERNALS(4);
 };
-
-void cx_gfx_program_param_block_bind_buffer(const struct cx_gfx_program_param_block_binding* p_binding);
 
 struct cx_gfx_program_source {
 	const char* s_vertex_stage_source;
@@ -95,26 +59,20 @@ struct cx_gfx_program_source {
 };
 
 struct cx_gfx_program {
-	char bytes_[4];
+	struct cx_gfx_program_param params[CX_GFX_PROGRAM_MAX_PARAMS];
+	uint16_t num_params;
+	struct cx_gfx_program_param_block param_blocks[CX_GFX_PROGRAM_MAX_PARAM_BLOCKS];
+	uint16_t num_param_blocks;
+	CX_OPAQUE_INTERNALS(4);
 };
 
-enum cx_error cx_gfx_program_create(struct cx_gfx_program* p_program);
+cx_result cx_gfx_program_create(struct cx_gfx_program* p_program);
 
 void       cx_gfx_program_destroy(struct cx_gfx_program* p_program);
 
 int        cx_gfx_program_is_built(struct cx_gfx_program* p_program);
 
-enum cx_error cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source);
-
-int        cx_gfx_program_refl_opaque_param(
-	const struct cx_gfx_program* p_program,
-	const char* s_name,
-	struct cx_gfx_program_opaque_param* p_out_opque_param);
-
-int        cx_gfx_program_refl_param_block(
-	const struct cx_gfx_program* p_program,
-	const char* s_name,
-	struct cx_gfx_program_param_block* p_out_param_block);
+cx_result cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source);
 
 void       cx_gfx_program_bind(const struct cx_gfx_program* p_program);
 

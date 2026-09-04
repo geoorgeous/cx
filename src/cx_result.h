@@ -15,5 +15,6 @@ typedef int cx_result;
 #define CX_ERROR_SERIALIZE           7
 #define CX_ERROR_DESERIALIZE         8
 #define CX_ERROR_PERMISSION_DENIED   9
+#define CX_ERROR_INVALID_OPERATION   10
 
 #endif
