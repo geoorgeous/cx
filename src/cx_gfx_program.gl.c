@@ -259,6 +259,38 @@ void cx_gfx_program_bind(const struct cx_gfx_program* p_program) {
 	}
 }
 
+void cx_gfx_program_bind_resource(
+	const struct cx_gfx_program* p_program,
+	const struct cx_gfx_program_resource_binding* p_binding, 
+	const void* p_resource) {
+
+	switch (p_binding->type) {
+		case CX_GFX_PROGRAM_RESOURCE_TYPE_param: {
+			// expects raw bytes sent to uniform
+			break;
+		}
+
+		case CX_GFX_PROGRAM_RESOURCE_TYPE_param_block: {
+			// expects ubo
+			break;
+		}
+
+		case CX_GFX_PROGRAM_RESOURCE_TYPE_opaque: {
+			// expects texture
+			switch (p_binding->info.as_resource.type) {
+				case CX_GFX_PROGRAM_OPQUE_TYPE_sampler2d: {
+					break;
+				}
+
+				case CX_GFX_PROGRAM_OPQUE_TYPE_cubemap: {
+					break;
+				}
+			}
+			break;
+		}
+	}
+}
+
 cx_result compile_shader_source(GLuint shader, const char* s_source) {
 	glShaderSource(shader, 1, &s_source, NULL);
 

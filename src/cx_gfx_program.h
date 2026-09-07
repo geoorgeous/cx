@@ -35,9 +35,11 @@ enum cx_gfx_program_param_type {
 	CX_GFX_PROGRAM_PARAM_TYPE_mat3x4,
 	CX_GFX_PROGRAM_PARAM_TYPE_mat4x2,
 	CX_GFX_PROGRAM_PARAM_TYPE_mat4x3,
-	CX_GFX_PROGRAM_PARAM_TYPE_texture2d,
-	CX_GFX_PROGRAM_PARAM_TYPE_cube_map,
-	CX_GFX_PROGRAM_PARAM_TYPE_block
+};
+
+enum cx_gfx_program_opaque_type {
+	CX_GFX_PROGRAM_OPQUE_TYPE_sampler2d,
+	CX_GFX_PROGRAM_OPQUE_TYPE_cubemap,
 };
 
 struct cx_gfx_program_param {
@@ -66,14 +68,68 @@ struct cx_gfx_program {
 	CX_OPAQUE_INTERNALS(4);
 };
 
+
+
+
+
+
+
+struct cx_gfx_program_binding_param {
+	CX_OPAQUE_INTERNALS(4); // opengl uniform loc
+};
+
+struct cx_gfx_program_binding_block {
+	size_t size;
+	CX_OPAQUE_INTERNALS(4); // opengl binding point
+};
+
+struct cx_gfx_program_binding_block_member {
+	size_t offset;
+	size_t size;
+	CX_OPAQUE_INTERNALS(4);
+};
+
+struct cx_gfx_program_binding_sampler {
+	CX_OPAQUE_INTERNALS(4); // opengl texture unit
+};
+
+enum cx_gfx_program_resource_type {
+	CX_GFX_PROGRAM_RESOURCE_TYPE_param,
+	CX_GFX_PROGRAM_RESOURCE_TYPE_param_block,
+	CX_GFX_PROGRAM_RESOURCE_TYPE_opaque,
+};
+
+struct cx_gfx_program_resource_binding {
+	const char* s_name;
+	enum cx_gfx_program_resource_type type;
+	union {
+		struct cx_gfx_program_binding_param as_param;
+		struct cx_gfx_program_binding_block as_param_block;
+		struct cx_gfx_program_sampler ;
+	} info;
+};
+
+struct cx_gfx_program_interface {
+};
+
 cx_result cx_gfx_program_create(struct cx_gfx_program* p_program);
 
-void       cx_gfx_program_destroy(struct cx_gfx_program* p_program);
+void      cx_gfx_program_destroy(struct cx_gfx_program* p_program);
 
-int        cx_gfx_program_is_built(struct cx_gfx_program* p_program);
+int       cx_gfx_program_is_built(struct cx_gfx_program* p_program);
 
 cx_result cx_gfx_program_build(struct cx_gfx_program* p_program, const struct cx_gfx_program_source* p_source);
 
-void       cx_gfx_program_bind(const struct cx_gfx_program* p_program);
+void      cx_gfx_program_bind(const struct cx_gfx_program* p_program);
+
+void cx_gfx_program_bind_resource(
+	const struct cx_gfx_program* p_program,
+	const struct cx_gfx_program_resource_binding* p_binding, 
+	const void* p_resource);
+
+int cx_gfx_program_interface_find_resource_binding(
+	const struct cx_gfx_program_interface* p_interface,
+	const char* s_name,
+	const struct cx_gfx_program_resource_binding** pp_out);
 
 #endif

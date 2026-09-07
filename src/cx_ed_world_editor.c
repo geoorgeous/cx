@@ -15,6 +15,7 @@
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_object_id_capturer.h"
+#include "cx_result.h"
 #include "cx_str.h"
 #include "cx_var.h"
 #include "cx_world.h"
@@ -27,6 +28,9 @@
 #include "vector.h"
 
 #include "gl.h"
+
+#include "cx_render_draw_command.h"
+#include "cx_render_pipeline.h"
 
 #define CX_ACTION_DEF(NAME, ...) \
 	struct cx_ed_action_##NAME##_ctx { \
@@ -54,16 +58,17 @@ static struct {
 
 	struct cx_ed_action_history action_history;
 
-	struct cx_render_command render_commands[CX_WORLD_MAX_ENTITIES];
-	struct cx_render_pass render_pass_forward;
-	struct cx_render_pass render_pass_flat_color;
+	struct cx_render_draw_command render_draw_commands[CX_WORLD_MAX_ENTITIES];
+	struct cx_render_pipeline render_pipeline_forward;
+	struct cx_render_pipeline render_pipeline_flat_color;
+	struct cx_render_pipeline render_pipeline_grid;
+	struct cx_gfx_program program_forward;
+	struct cx_gfx_program program_flat_color;
+	struct cx_gfx_program program_grid;
 
 	struct cx_transform_gizmo gizmo;
 
 	GLuint gl_dummy_vao;
-	struct cx_gfx_program grid_program;
-	struct cx_gfx_program_param_block grid_program_pblk_camera;
-	struct cx_gfx_program_param_buffer grid_program_pbuf_camera;
 
 	struct cx_world world;
 	struct physics_world physics_world;
@@ -220,70 +225,78 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 
 	void* p_vsource;
 	void* p_fsource;
+
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_SUCCESS, ED_WORLD_EDITOR);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_SUCCESS, ED_WORLD_EDITOR);
+	CX_ASSERT(cx_gfx_program_create(&ed.program_forward) == CX_SUCCESS, ED_WORLD_EDITOR);
+	CX_ASSERT(
+		cx_gfx_program_build(&ed.program_forward, &((struct cx_gfx_program_source) {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		})) == CX_SUCCESS,
+		ED_WORLD_EDITOR);
+
+	cx_io_file_free(p_vsource);
+	cx_io_file_free(p_fsource);
+
+	ed.render_pipeline_forward = (struct cx_render_pipeline) {
+		.p_program = &ed.program_forward,
+		.b_depth_test_enabled = CX_TRUE,
+		.b_depth_writes_enabled = CX_TRUE,
+		.depth_test_func = CX_DEPTH_TEST_FUNC_less_or_equal,
+		.b_blend_enabled = CX_FALSE,
+		.cull_mode = CX_CULL_MODE_back
+	};
 	
 	glGenVertexArrays(1, &ed.gl_dummy_vao);
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/fullscreen_tri.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/fullscreen_tri.vert", (void**)&p_vsource, 0) == CX_SUCCESS,
 		ED_WORLD_EDITOR);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/ed_grid.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/ed_grid.frag", (void**)&p_fsource, 0) == CX_SUCCESS,
 		ED_WORLD_EDITOR);
-
-	CX_ASSERT(cx_gfx_program_create(&ed.grid_program) == CX_ERROR_none,
-		ED_WORLD_EDITOR);
+	CX_ASSERT(cx_gfx_program_create(&ed.program_grid) == CX_SUCCESS, ED_WORLD_EDITOR);
 	CX_ASSERT(
-		cx_gfx_program_build(&ed.grid_program, &((struct cx_gfx_program_source) {
+		cx_gfx_program_build(&ed.program_grid, &((struct cx_gfx_program_source) {
 			.s_vertex_stage_source = p_vsource,
 			.s_fragment_stage_source = p_fsource
-		})) == CX_ERROR_none,
+		})) == CX_SUCCESS,
 		ED_WORLD_EDITOR);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
 
-	cx_gfx_program_refl_param_block(&ed.grid_program, "blk_camera", &ed.grid_program_pblk_camera);
-	cx_gfx_program_param_buffer_create(&ed.grid_program_pbuf_camera, ed.grid_program_pblk_camera.size_);
+	ed.render_pipeline_grid = (struct cx_render_pipeline) {
+		.p_program = &ed.program_grid,
+		.b_depth_test_enabled = CX_TRUE,
+		.b_depth_writes_enabled = CX_FALSE,
+		.depth_test_func = CX_DEPTH_TEST_FUNC_less,
+		.b_blend_enabled = CX_TRUE,
+		.blend_src_func = CX_BLEND_FUNC_src_alpha,
+		.blend_dst_func = CX_BLEND_FUNC_one_minus_src_alpha,
+		.cull_mode = CX_CULL_MODE_back
+	};
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
-		ED_WORLD_EDITOR);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/lit.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
-		ED_WORLD_EDITOR);
-
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_SUCCESS, ED_WORLD_EDITOR);
+	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_SUCCESS, ED_WORLD_EDITOR);
+	CX_ASSERT(cx_gfx_program_create(&ed.program_flat_color) == CX_SUCCESS, ED_WORLD_EDITOR);
 	CX_ASSERT(
-		cx_render_pass_build(&((struct cx_render_pass_build_info){
-			.program_source = {
-				.s_vertex_stage_source = p_vsource,
-				.s_fragment_stage_source = p_fsource
-			},
-			.s_pass_block_name = "blk_camera",
-			.s_object_block_name = "blk_object",
-			.s_material_block_name = "blk_material_properties",
-			.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
-			.num_opaque_params = 1
-		}), &ed.render_pass_forward),
+		cx_gfx_program_build(&ed.program_flat_color, &((struct cx_gfx_program_source) {
+			.s_vertex_stage_source = p_vsource,
+			.s_fragment_stage_source = p_fsource
+		})) == CX_SUCCESS,
 		ED_WORLD_EDITOR);
 
 	cx_io_file_free(p_vsource);
 	cx_io_file_free(p_fsource);
 
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
-		ED_WORLD_EDITOR);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
-		ED_WORLD_EDITOR);
-
-	CX_ASSERT(
-		cx_render_pass_build(&((struct cx_render_pass_build_info){
-			.program_source = {
-				.s_vertex_stage_source = p_vsource,
-				.s_fragment_stage_source = p_fsource
-			},
-			.s_pass_block_name = "blk_camera",
-			.s_object_block_name = "blk_object",
-			.s_material_block_name = "blk_material_properties",
-		}), &ed.render_pass_flat_color),
-		ED_WORLD_EDITOR);
-
-	cx_io_file_free(p_vsource);
-	cx_io_file_free(p_fsource);
+	ed.render_pipeline_flat_color = (struct cx_render_pipeline) {
+		.p_program = &ed.program_flat_color,
+		.b_depth_test_enabled = CX_TRUE,
+		.b_depth_writes_enabled = CX_TRUE,
+		.depth_test_func = CX_DEPTH_TEST_FUNC_less_or_equal,
+		.b_blend_enabled = CX_FALSE,
+		.cull_mode = CX_CULL_MODE_back
+	};
 
 	cx_transform_gizmo_init_shared_resources();
 	cx_transform_gizmo_init_controls(&ed.gizmo);
@@ -465,41 +478,43 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 		(float)fb_width / (float)fb_height,
 		0.01f, 1000.0f,
 		ed.camera.projection_matrix);
+
+	struct cx_render_draw_command draw_commands[256];
+	uint32_t num_draw_commands = 0;
 		   
 	// WORLD
-	
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
 
-	glDepthMask(GL_TRUE);
+	struct cx_render_param render_pass_params[] = {
+		(struct cx_render_param) {
+			.s_name = "camera",
+			.type = CX_RENDER_PARAM_TYPE_block,
+			.p_data = ed.camera.projection_matrix
+		}
+	};
 
-	struct cx_render_pass_execute_info render_pass_execute_info = {
+	struct cx_render_pass render_pass_world = {
 		.p_framebuffer = p_fb,
 		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
-		.b_clear_color = 1,
+		.clear_mask = CX_GFX_RENDER_TARGET_CLEAR_BIT_MASK_color | CX_GFX_RENDER_TARGET_CLEAR_BIT_MASK_depth,
 		.clear_color = { 0.2f, 0.2f, 0.2f, 0.0f },
-		.b_clear_depth = 1,
-		.clear_depth = 1.0f
+		.clear_depth = 1.0f,
+		.param_set = { .p_params = render_pass_params, CX_ARRAY_LEN(render_pass_params) }
 	};
 
-	struct cx_render_command_buffer render_command_buffer = {
-		.p_commands = ed.render_commands,
-		.capacity = CX_ARRAY_LEN(ed.render_commands)
-	};
+	// render-pass parameter set
+	// mat4 projection_matrix
+	// mat4 view_matrix
+	//
+	// material parameter set
+	// vec4 color
+	// sampler2d albedo_texture
+	//
+	// draw call parameter set
+	// mat4 model_matrix
 
-	struct cx_render_pass_data render_pass_data = {
-		.p_data = &ed.camera.projection_matrix[0]
-	};
+	cx_world_renderer_record_forward_pass_commands(&ed.world, );
 
-	cx_world_renderer_record_forward_pass_commands(&ed.world, &render_command_buffer);
-
-	cx_render_pass_execute(
-		&ed.render_pass_forward,
-		&render_pass_execute_info,
-		&render_pass_data,
-		&render_command_buffer);
-	render_command_buffer.num = 0;
+	cx_render_pass_execute(&render_pass_world, draw_commands, num_draw_commands);
 
 	// GRID
 
