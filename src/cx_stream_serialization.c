@@ -8,6 +8,10 @@ int cx_stream_serialize_bytes(struct cx_stream* p_stream, size_t size, const voi
 	return cx_stream_write(p_stream, size, p_bytes);
 }
 
+int cx_stream_serialize_bool(struct cx_stream* p_stream, int b_value) {
+	return cx_stream_serialize_uint8(p_stream, !!b_value);
+}
+
 int cx_stream_serialize_uint8(struct cx_stream* p_stream, uint8_t value) {
 	return cx_stream_serialize_bytes(p_stream, 1, &value);
 }
@@ -60,6 +64,13 @@ int cx_stream_serialize_string(struct cx_stream* p_stream, const char* p_str, si
 
 int cx_stream_deserialize_bytes(struct cx_stream* p_stream, size_t size, void* p_bytes) {
 	return cx_stream_read(p_stream, size, p_bytes);
+}
+
+int cx_stream_deserialize_bool(struct cx_stream* p_stream, int* b_out) {
+	uint8_t b;
+	const int retval = cx_stream_deserialize_uint8(p_stream, &b);
+	*b_out = !!b;
+	return retval;
 }
 
 int cx_stream_deserialize_uint8(struct cx_stream* p_stream, uint8_t* p_out) {

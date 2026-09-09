@@ -10,6 +10,7 @@
 struct cx_stream;
 
 int cx_stream_serialize_bytes(struct cx_stream* p_stream, size_t size, const void* p_bytes);
+int cx_stream_serialize_bool(struct cx_stream* p_stream, int b_value);
 int cx_stream_serialize_uint8(struct cx_stream* p_stream, uint8_t value);
 int cx_stream_serialize_uint16(struct cx_stream* p_stream, uint16_t value);
 int cx_stream_serialize_uint32(struct cx_stream* p_stream, uint32_t value);
@@ -23,6 +24,7 @@ int cx_stream_serialize_float64(struct cx_stream* p_stream, double value);
 int cx_stream_serialize_string(struct cx_stream* p_stream, const char* p_str, size_t len);
 
 int cx_stream_deserialize_bytes(struct cx_stream* p_stream, size_t size, void* p_bytes);
+int cx_stream_deserialize_bool(struct cx_stream* p_stream, int* b_out);
 int cx_stream_deserialize_uint8(struct cx_stream* p_stream, uint8_t* p_out);
 int cx_stream_deserialize_uint16(struct cx_stream* p_stream, uint16_t* p_out);
 int cx_stream_deserialize_uint32(struct cx_stream* p_stream, uint32_t* p_out);
