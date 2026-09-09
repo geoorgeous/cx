@@ -83,6 +83,9 @@ int cx_asset_cache_find_by_name(cx_asset_type type, const char* s_name, struct c
 }
 
 void* cx_asset_cache_acquire(struct cx_asset_ref* p_ref) {
+	CX_ASSERT_MSG(
+		cx_asset_ref_is_set(p_ref), ASSET, "cx_asset_cache_acquire() called with a bad asset_ref\n");
+
 	if (cx_asset_ref_is_valid(p_ref)) {
 		return cx_asset_ref_get(p_ref);
 	}
