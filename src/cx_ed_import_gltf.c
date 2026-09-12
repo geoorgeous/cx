@@ -11,11 +11,11 @@
 #include "cx_ed_import_image.h"
 #include "cx_image.h"
 #include "cx_io.h"
+#include "cx_material.h"
 #include "cx_mesh_data.h"
 #include "cx_texture_sampler_settings.h"
 #include "gltf.h"
 #include "cx_logging.h"
-#include "material.h"
 #include "matrix.h"
 #include "skeleton.h"
 #include "skeletal_animation.h"
@@ -232,15 +232,18 @@ void cx_ed_import_gltf_texture(struct cx_ed_import_gltf_context* p_context, size
 void cx_ed_import_gltf_material(struct cx_ed_import_gltf_context* p_context, size_t gltf_material_index) {
 	const struct gltf_material* p_gltf_material = &p_context->p_gltf->p_materials[gltf_material_index];
 
-	struct material* p_material = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_MATERIAL));
+	struct cx_asset_ref material_lit_asset_ref;
+	CX_ASSERT(cx_ed_asset_library_find_asset_by_name(
+		CX_ASSET_TYPE_MATERIAL, "material_lit", &material_lit_asset_ref), IMPORT_GLTF);
+
+	struct cx_material* p_material = CX_MALLOC(cx_asset_type_size(CX_ASSET_TYPE_MATERIAL));
+
+	cx_material_create_override(&material_lit_asset_ref, p_material);
 
 	const struct cx_asset_ref* p_material_texture_asset_ref = 
 		cx_array_at(&p_context->texture_assets, p_gltf_material->pbr_base_color_texture.source_texture_index);
 
-	*p_material = (struct material) {
-		.texture_asset_ref = *p_material_texture_asset_ref,
-		.color = { 1, 1, 1, 1 }
-	};
+	cx_material_set_texture(p_material, "u_texture_albedo", p_material_texture_asset_ref);
 
 	struct cx_asset_ref asset_ref;
 	cx_ed_asset_library_new(

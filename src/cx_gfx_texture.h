@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "cx_error.h"
+#include "cx_macro.h"
 #include "cx_pixel_format.h"
 
 #define CX_LOG_CAT_GFX_TEXTURE "gfx:texture"
@@ -12,7 +13,7 @@ struct cx_gfx_texture {
 	uint32_t             width_;
 	uint32_t             height_;
 	enum cx_pixel_format pixel_format_;
-	char                 bytes_[8];
+	CX_OPAQUE_INTERNALS(8);
 };
 
 enum cx_error cx_gfx_texture_create(

@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cx_gfx_shader_program_interface.h"
 #include "transform.h"
 
 #define CX_LOG_CAT_GIZMO "gizmo"
@@ -22,15 +23,15 @@ enum cx_transform_gizmo_interaction_state {
 };
 
 struct cx_transform_gizmo_control_render_data {
-	// for both color and picker rendering
+	struct cx_gfx_shader_program_input_block material_shader_program_input_block;
+	struct cx_gfx_shader_program_input_block object_shader_program_input_block;
+	struct {
+		float color[4];
+	} material_block_data;
 	struct {
 		float transform[16];
 		uint32_t object_id;
-	} object_data;
-	// for flat color rendering only
-	struct {
-		float color_ka[4];
-	} material_data;
+	} object_block_data;
 };
 
 struct cx_transform_gizmo {
@@ -72,14 +73,12 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 	const float* p_cursor_world_ray,
 	struct transform* p_out_transform);
 
-struct cx_render_command_buffer;
+struct cx_render_pipeline;
+struct cx_render_draw_command_buffer;
 
-void cx_transform_gizmo_record_flat_color_pass_commands(
+void cx_transform_gizmo_record_draw_commands(
 	const struct cx_transform_gizmo* p_gizmo,
-	struct cx_render_command_buffer* p_buffer);
-
-void cx_transform_gizmo_record_picker_pass_commands(
-	const struct cx_transform_gizmo* p_gizmo,
-	struct cx_render_command_buffer* p_buffer);
+	const struct cx_render_pipeline* p_render_pipeline,
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer);
 
 #endif

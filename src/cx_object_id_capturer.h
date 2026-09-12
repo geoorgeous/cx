@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include "cx_gfx_framebuffer.h"
-#include "cx_render_pass.h"
 #include "cx_gfx_texture.h"
 
 #define CX_LOG_CAT_OBJECT_ID_CAPTURER "object_id_capturer"
@@ -49,13 +48,10 @@ struct cx_object_id_capturer_item {
 
 void cx_object_id_capturer_free(struct cx_object_id_capturer* p_capturer);
 
-void cx_object_id_capturer_draw(
+void cx_object_id_capturer_set_fb_size(
 	struct cx_object_id_capturer* p_capturer,
-	const float* p_projection_matrix,
-	const float* p_view_matrix,
 	uint32_t fb_width,
-	uint32_t fb_height,
-	const struct cx_render_command_buffer* p_render_command_buffer);
+	uint32_t fb_height);
 
 uint32_t cx_object_id_capturer_query(const struct cx_object_id_capturer* p_capturer, float x, float y);
 

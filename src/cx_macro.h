@@ -63,6 +63,10 @@
 		long double unused_alignment_; \
 	} internals_
 
+#define CX_GET_OPAQUE_INTERNALS(X) ((void*)(X).internals_.bytes_)
+
+#define CX_GET_OPAQUE_INTERNALS_CONST(X) ((const void*)(X).internals_.bytes_)
+
 #define CX_PADDING(N) uint8_t CX_CONCAT(CX_CONCAT(PADDING, __LINE__), _##N##_)[N]
 
 #define CX_ALIGN_UP(X, ALIGNMENT) (((X) + (ALIGNMENT) - 1u) & ~((ALIGNMENT) - 1u))

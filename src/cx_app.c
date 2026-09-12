@@ -17,14 +17,13 @@
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
-#include "cx_gfx_program.h"
+#include "cx_gfx_render_pass.h"
 #include "cx_gfx_texture.h"
 #include "cx_image.h"
 #include "cx_logging.h"
 #include "cx_material.h"
 #include "cx_pixel_format.h"
 #include "cx_platform_time.h"
-#include "cx_render_pass.h"
 #include "cx_shader.h"
 #include "cx_text_mesher.h"
 #include "cx_texture.h"
@@ -46,9 +45,6 @@ static struct {
 	struct cx_gfx_framebuffer primary_framebuffer;
 	struct cx_gfx_texture primary_framebuffer_texture_color;
 	struct cx_gfx_texture primary_framebuffer_texture_depth_stencil;
-
-	struct cx_gfx_program screen_quad_program;
-	struct cx_gfx_program_opaque_param screen_quad_program_opaque_param_texture;
 
 	struct cx_asset_package builtin_asset_pkg;
 	struct cx_asset_ref console_font_ref;
@@ -83,7 +79,7 @@ int cx_app_init(
 
 	enum cx_error err;
 
-	srand(time(CX_NULL));
+	srand((unsigned int)time(CX_NULL));
 
 	err = platform_window_create(
 		window_width, window_height,
@@ -128,60 +124,13 @@ int cx_app_init(
 
 	// create screen shader program
 	
-	const char* s_vertex_source =
-			"#version 330 core\n"
-			"out vec2 v_texcoords;\n"
-			"void main() {\n"
-				"vec2 vertices[3] = vec2[3](vec2(-1, -1), vec2(3, -1), vec2(-1, 3));\n"
-				"gl_Position = vec4(vertices[gl_VertexID], 0, 1);\n"
-				"v_texcoords = 0.5 * gl_Position.xy + vec2(0.5);\n"
-			"}";
 
-	const char* s_fragment_source =
-		"#version 330 core\n"
-		"uniform sampler2D u_texture;\n"
-		"in vec2 v_texcoords;\n"
-		"out vec4 f_color;\n"
-		"void main() {\n"
-			"f_color = texture(u_texture, v_texcoords);\n"
-		"}";
-
-	struct cx_shader_source shader_source = {
-		.p_vertex_source = s_vertex_source,
-		.vertex_source_len = strlen(s_vertex_source),
-		.p_fragment_source = s_fragment_source,
-		.fragment_source_len = strlen(s_fragment_source)
-	};
-
-	struct cx_shader shader;
-	cx_shader_create(&shader);
-	cx_shader_build(&shader, &shader_source);
-
-	// TODO(george): refactor gltf import code to import gltf materials as new cx_materials
 	// TODO(george): for materials that are saved (like entity mesh materials) we need to make sure that the shaders
 	//     they use are also saved assets. for other built-in shaders, they don't necessarily need to be saved, like
 	//     screen-quad, mesh-picker, or UI shaders
 	// TODO(george): refactor screen quad code to use new material/shader
 	// TODO(george): refactor mesh picker code to use new material/shader
 	// TODO(george): refactor world renderer to use new material and render param code
-
-	struct cx_asset_ref shader_asset_ref;
-	cx_ed_asset_library_new(CX_ASSET_TYPE_SHADER, "shader_screen_quad", &shader, &shader_asset_ref);
-
-	struct cx_material material = {
-		.render_pipeline = {
-			.shader_asset_ref = shader_asset_ref,
-			.
-		}
-	};
-
-	cx_gfx_program_create(&cx_app.screen_quad_program);
-	cx_gfx_program_build(&cx_app.screen_quad_program, &program_screen_source);
-
-	cx_gfx_program_refl_opaque_param(
-		&cx_app.screen_quad_program,
-		"u_texture",
-		&cx_app.screen_quad_program_opaque_param_texture);
 
 	cx_asset_register_type(CX_ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image),
 		cx_image_asset_serialize, cx_image_asset_deserialize, CX_NULL, cx_image_asset_destroy);
@@ -195,8 +144,11 @@ int cx_app_init(
 	cx_asset_register_type(CX_ASSET_TYPE_SHADER, "shader", sizeof(struct cx_shader), 
 		cx_shader_asset_serialize, cx_shader_asset_deserialize, CX_NULL, cx_shader_asset_free);
 
-	cx_asset_register_type(CX_ASSET_TYPE_MATERIAL, "material", sizeof(struct material),
-		material_asset_serialize, material_asset_deserialize, material_asset_enumerate_dependencies, CX_NULL);
+	cx_asset_register_type(CX_ASSET_TYPE_MATERIAL, "material", sizeof(struct cx_material),
+		cx_material_asset_serialize, 
+		cx_material_asset_deserialize,
+		cx_material_asset_enumerate_dependencies,
+		cx_material_asset_free);
 	
 	cx_asset_register_type(CX_ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh),
 		static_mesh_asset_serialize,
@@ -327,41 +279,40 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 				uint32_t window_height;
 				platform_window_size(&cx_app.window, &window_width, &window_height);
 
-				struct cx_render_pass render_pass_screen_quad = {
+				struct cx_gfx_shader_program_input_texture shader_input_texture = {
+					.s_name = "u_texture",
+					.p_texture = &cx_app.primary_framebuffer_texture_color
+				};
+
+				struct cx_gfx_render_pass render_pass_screen_quad = {
 					.p_framebuffer = cx_gfx_context_get_backbuffer(&cx_app.gfx_context),
 					.viewport = { 0, 0, (int32_t)window_width, (int32_t)window_height },
-					.clear_mask =
-						CX_GFX_RENDER_TARGET_CLEAR_BIT_MASK_color | CX_GFX_RENDER_TARGET_CLEAR_BIT_MASK_depth,
+					.clear_flags =
+						CX_GFX_RENDER_TARGET_CLEAR_FLAG_color |
+						CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
+					.pass_input_set = {
+						.p_textures = &shader_input_texture,
+						.num_textures = 1
+					}
 				};
 
-				struct cx_material material_screen_quad = {
-					
-				};
+				struct cx_asset_ref render_pipeline_shader_asset_ref;
+				cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_screen_quad", &render_pipeline_shader_asset_ref);
 
 				struct cx_render_draw_command draw_command_screen_quad = {
-					.p_material = &material_screen_quad,
-					.p_mesh = 0,
-					.p_param_set = 0
+					.pipeline = {
+						.p_shader = cx_asset_ref_get(&render_pipeline_shader_asset_ref)
+					},
+					.p_mesh = 0 // todo
 				};
 
-				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&cx_app.gfx_context));
+				cx_gfx_render_pass_execute(&render_pass_screen_quad, &draw_command_screen_quad, 1);
 
-				glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
-				glClearColor(0, 0, 0, 0);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				cx_gfx_program_bind(&cx_app.screen_quad_program);
-		
-				cx_gfx_program_opaque_param_bind_resource(&((struct cx_gfx_program_opaque_param_binding){
-					.p_param = &cx_app.screen_quad_program_opaque_param_texture,
-					.p_resource = &cx_app.primary_framebuffer_texture_color
-				}));
-
-				GLuint gl_empty_vao;
-				glGenVertexArrays(1, &gl_empty_vao);
-				glBindVertexArray(gl_empty_vao);
-				glDrawArrays(GL_TRIANGLES, 0, 3);
-				glDeleteVertexArrays(1, &gl_empty_vao);
+				//GLuint gl_empty_vao;
+				//glGenVertexArrays(1, &gl_empty_vao);
+				//glBindVertexArray(gl_empty_vao);
+				//glDrawArrays(GL_TRIANGLES, 0, 3);
+				//glDeleteVertexArrays(1, &gl_empty_vao);
 			}
 		}
 

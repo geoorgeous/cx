@@ -47,11 +47,7 @@ enum cx_render_pipeline_flag {
 	CX_RENDER_PIPELINE_FLAG_front_face_clockwise_ordering_enabled = 0x8
 };
 
-struct cx_shader;
-
-struct cx_render_pipeline {
-	struct cx_asset_ref shader_asset_ref;
-
+struct cx_render_pipeline_state {
 	uint8_t flags;
 
 	enum cx_depth_test_func depth_test_func;
@@ -61,6 +57,13 @@ struct cx_render_pipeline {
 	float              blend_color[4];
 
 	enum cx_cull_mode cull_mode;
+};
+
+struct cx_shader;
+
+struct cx_render_pipeline {
+	const struct cx_shader* p_shader;
+	struct cx_render_pipeline_state state;
 };
 
 #endif
