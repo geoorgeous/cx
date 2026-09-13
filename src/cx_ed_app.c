@@ -11,16 +11,14 @@
 #include "cx_ed_import_bdf.h"
 #include "cx_ed_import_gltf.h"
 #include "cx_ed_world_editor.h"
+#include "cx_gfx_render_pass.h"
+#include "cx_gfx_shader_program.h"
 #include "cx_io.h"
 #include "cx_macro.h"
 #include "cx_material.h"
 #include "cx_shader.h"
 
 // TODO(george): finish material serialization
-// TODO(george): finish shader program interface/bindings
-// TODO(george): make sure material param/render param data setting is correct. maybe
-//     introduce cx_render_param_set helpers
-// TODO(george): rebuild core package and reimport the test scene from scratch
 
 static int cx_ed_app_init(int argc, const char** argv);
 static void cx_ed_app_update(double);
@@ -53,9 +51,6 @@ static int b_is_world_editor_open;
 int cx_ed_app_init(int argc, const char** argv) {
 	(void)argc;
 	(void)argv;
-
-	cx_log_cat_set("gfx", CX_LOG_LEVEL_TRACE);
-	cx_log_cat_set(CX_LOG_CAT_GFX_SHADER_PROGRAM, CX_LOG_LEVEL_TRACE);
 
 	cx_asset_cache_push_source(&(struct cx_asset_source) {
 		.f_get_asset_name = cx_asset_source_get_library_asset_name,
@@ -250,7 +245,6 @@ void cx_ed_rebuild_core_asset_package(void) {
 
 		p_shader = CX_CALLOC(sizeof(struct cx_shader));
 		cx_shader_set_source(p_shader, &shader_source);
-		cx_shader_load_device_program(p_shader);
 
 		cx_ed_asset_library_new(CX_ASSET_TYPE_SHADER, "shader_lit", p_shader, &asset_ref);
 		cx_ed_asset_package_builder_add_asset(&package_builder, &asset_ref);
@@ -391,20 +385,26 @@ void cx_ed_rebuild_core_asset_package(void) {
 			.cull_mode = CX_CULL_MODE_back
 		};
 
-		struct cx_material_parameter_info color_info = {
-			.s_name = "u_color",
-			.type = CX_GFX_SHADER_PROGRAM_VALUE_TYPE_fvec3
-		};
-
 		struct cx_material_texture_info texture_info = {
 			.s_name = "u_texture_albedo"
 		};
 
+		struct cx_material_block_member_info block_member_info = {
+			.s_name = "u_color",
+			.type = CX_GFX_SHADER_PROGRAM_VALUE_TYPE_ivec3
+		};
+
+		struct cx_material_block_info block_info = {
+			.s_name = "blk_material_properties",
+			.p_members = &block_member_info,
+			.num_members = 1
+		};
+
 		struct cx_material_property_info material_property_info = {
-			.p_parameters = &color_info,
-			.num_parameters = 1,
 			.p_textures = &texture_info,
-			.num_textures = 1
+			.num_textures = 1,
+			.p_blocks = &block_info,
+			.num_blocks = 1
 		};
 
 		cx_material_create(
@@ -412,6 +412,9 @@ void cx_ed_rebuild_core_asset_package(void) {
 			&render_pipeline_state,
 			&material_property_info,
 			p_material);
+
+		cx_material_set_block_member(
+			p_material, "blk_material_properties", "u_color", (const float[]) { 1.0f, 1.0f, 1.0f, 1.0f });
 
 		cx_ed_asset_library_new(CX_ASSET_TYPE_MATERIAL, "material_lit", p_material, &asset_ref);
 		cx_ed_asset_package_builder_add_asset(&package_builder, &asset_ref);

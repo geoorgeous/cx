@@ -36,10 +36,15 @@ void static_mesh_load_device_meshes(struct static_mesh* p_static_mesh) {
 }
 
 void static_mesh_unload_device_meshes(struct static_mesh* p_static_mesh) {
+	if (!p_static_mesh->b_loaded_device_meshes) {
+		return;
+	}
+
 	for (size_t i = 0; i < p_static_mesh->num_primitives; ++i) {
 		cx_gfx_mesh_destroy(&p_static_mesh->p_gfx_meshes[i]);
 	}
-	free(p_static_mesh->p_gfx_meshes);
+
+	CX_FREE(p_static_mesh->p_gfx_meshes);
 	p_static_mesh->b_loaded_device_meshes = 0;
 }
 

@@ -13,6 +13,8 @@
 
 #define CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS 1024
 
+static struct cx_asset_ref g_asset_ref_shader_flat;
+static struct cx_asset_ref g_asset_ref_shader_text;
 static struct cx_render_pipeline g_render_pipeline_flat;
 static struct cx_render_pipeline g_render_pipeline_text;
 
@@ -122,6 +124,7 @@ void cx_console_view_draw(
 
 	struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
 		.s_name = "blk_camera",
+		.size = sizeof(camera),
 		.p_data = &camera
 	};
 
@@ -165,8 +168,12 @@ void cx_console_view_draw(
 		output_bg_height,
 		&bg_color);
 
-	cx_console_view_record_text_mesh(&render_draw_command_buffer,
-		&g_text_mesh, p_font_render_data->p_glyph_texture, input_text_x, input_text_baseline);
+	cx_console_view_record_text_mesh(
+		&render_draw_command_buffer,
+		&g_text_mesh,
+		p_font_render_data->p_glyph_texture,
+		input_text_x,
+		input_text_baseline);
 
 	if (p_console->flogger.ring_entries_.entries_count_ > 0) {
 		size_t size;
@@ -174,9 +181,12 @@ void cx_console_view_draw(
 		float log_width, log_height;
 		cx_text_mesher_measure(p_flog->s, SIZE_MAX, p_font_render_data, 1, &log_width, &log_height);
 
-		cx_console_view_record_text_mesh(&render_draw_command_buffer,
-			&g_log_text_mesh, p_font_render_data->p_glyph_texture,
-			output_text_x, output_text_baseline + log_height - line_height);
+		cx_console_view_record_text_mesh(
+			&render_draw_command_buffer,
+			&g_log_text_mesh,
+			p_font_render_data->p_glyph_texture,
+			output_text_x,
+			output_text_baseline + log_height - line_height);
 	}
 
 	cx_gfx_render_pass_execute(&render_pass, render_draw_command_buffer.p_first, render_draw_command_buffer.len);
@@ -195,26 +205,32 @@ int cx_console_view_init(void) {
 		return CX_TRUE;
 	}
 
-	struct cx_asset_ref asset_ref;
-
 	struct cx_shader* p_shader;
 
-	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_flat", &asset_ref);
-	p_shader = cx_asset_cache_acquire(&asset_ref);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_flat", &g_asset_ref_shader_flat);
+	p_shader = cx_asset_cache_acquire(&g_asset_ref_shader_flat);
+	cx_shader_load_device_program(p_shader);
 
 	g_render_pipeline_flat = (struct cx_render_pipeline) {
 		.p_shader = p_shader,
 		.state = {
+			.flags = CX_RENDER_PIPELINE_FLAG_blend_enabled,
+			.blend_src_func = CX_BLEND_FUNC_src_alpha,
+			.blend_dst_func = CX_BLEND_FUNC_one_minus_src_alpha,
 			.cull_mode = CX_CULL_MODE_back
 		}
 	};
 
-	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_text", &asset_ref);
-	p_shader = cx_asset_cache_acquire(&asset_ref);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_text", &g_asset_ref_shader_text);
+	p_shader = cx_asset_cache_acquire(&g_asset_ref_shader_text);
+	cx_shader_load_device_program(p_shader);
 
 	g_render_pipeline_text = (struct cx_render_pipeline) {
 		.p_shader = p_shader,
 		.state = {
+			.flags = CX_RENDER_PIPELINE_FLAG_blend_enabled,
+			.blend_src_func = CX_BLEND_FUNC_src_alpha,
+			.blend_dst_func = CX_BLEND_FUNC_one_minus_src_alpha,
 			.cull_mode = CX_CULL_MODE_back
 		}
 	};
@@ -289,12 +305,14 @@ void cx_console_view_record_quad(
 
 	struct cx_gfx_shader_program_input_block* p_material_shader_program_input_block =
 		&g_shader_program_input_block_pool[g_shader_program_input_block_pool_len++];
-	p_material_shader_program_input_block->s_name = "blk_material";
+	p_material_shader_program_input_block->s_name = "blk_material_properties";
+	p_material_shader_program_input_block->size = sizeof(float) * 4;
 	p_material_shader_program_input_block->p_data = p_color;
 
 	struct cx_gfx_shader_program_input_block* p_draw_shader_program_input_block =
 		&g_shader_program_input_block_pool[g_shader_program_input_block_pool_len++];
 	p_draw_shader_program_input_block->s_name = "blk_object";
+	p_draw_shader_program_input_block->size = sizeof(float) * 16;
 	p_draw_shader_program_input_block->p_data = p_vertex_matrix;
 
 	cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &(struct cx_render_draw_command) {
@@ -329,6 +347,7 @@ void cx_console_view_record_text_mesh(
 	struct cx_gfx_shader_program_input_block* p_draw_shader_program_input_block =
 		&g_shader_program_input_block_pool[g_shader_program_input_block_pool_len++];
 	p_draw_shader_program_input_block->s_name = "blk_object";
+	p_draw_shader_program_input_block->size = sizeof(float) * 16;
 	p_draw_shader_program_input_block->p_data = p_vertex_matrix;
 
 	cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &(struct cx_render_draw_command) {

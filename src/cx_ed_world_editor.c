@@ -59,6 +59,11 @@ static struct {
 
 	struct cx_ed_action_history action_history;
 
+	struct cx_asset_ref asset_ref_shader_lit;
+	struct cx_asset_ref asset_ref_shader_flat;
+	struct cx_asset_ref asset_ref_shader_editor_grid;
+	struct cx_asset_ref asset_ref_shader_object_id;
+
 	struct cx_render_draw_command render_draw_commands[CX_WORLD_MAX_ENTITIES];
 	struct cx_render_pipeline render_pipeline_lit;
 	struct cx_render_pipeline render_pipeline_flat;
@@ -221,11 +226,10 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 		CX_CONSOLE_COMMAND_PARAM(STRING("entity", "The entity to remove the component from"), REQUIRED),
 		CX_CONSOLE_COMMAND_PARAM(STRING("component", "The name of the component type to remove"), REQUIRED));
 	
-	struct cx_asset_ref asset_ref;
 	struct cx_shader* p_shader;
 
-	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_lit", &asset_ref);
-	p_shader = cx_asset_ref_get(&asset_ref);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_lit", &ed.asset_ref_shader_lit);
+	p_shader = cx_asset_cache_acquire(&ed.asset_ref_shader_lit);
 	cx_shader_load_device_program(p_shader);
 
 	ed.render_pipeline_lit = (struct cx_render_pipeline) {
@@ -239,8 +243,8 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 		}
 	};
 
-	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_flat", &asset_ref);
-	p_shader = cx_asset_ref_get(&asset_ref);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_flat", &ed.asset_ref_shader_flat);
+	p_shader = cx_asset_cache_acquire(&ed.asset_ref_shader_flat);
 	cx_shader_load_device_program(p_shader);
 
 	ed.render_pipeline_flat = (struct cx_render_pipeline) {
@@ -254,8 +258,8 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 		}
 	};
 
-	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_editor_grid", &asset_ref);
-	p_shader = cx_asset_ref_get(&asset_ref);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_editor_grid", &ed.asset_ref_shader_editor_grid);
+	p_shader = cx_asset_cache_acquire(&ed.asset_ref_shader_editor_grid);
 	cx_shader_load_device_program(p_shader);
 
 	ed.render_pipeline_editor_grid = (struct cx_render_pipeline) {
@@ -263,16 +267,17 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 		.state = {
 			.flags =
 				CX_RENDER_PIPELINE_FLAG_depth_test_enabled |
+				CX_RENDER_PIPELINE_FLAG_depth_writes_enabled |
 				CX_RENDER_PIPELINE_FLAG_blend_enabled,
 			.depth_test_func = CX_DEPTH_TEST_FUNC_less,
 			.blend_src_func = CX_BLEND_FUNC_src_alpha,
 			.blend_dst_func = CX_BLEND_FUNC_one_minus_src_alpha,
-			.cull_mode = CX_CULL_MODE_back
+			.cull_mode = CX_CULL_MODE_none
 		}
 	};
 
-	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_object_id", &asset_ref);
-	p_shader = cx_asset_ref_get(&asset_ref);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_object_id", &ed.asset_ref_shader_object_id);
+	p_shader = cx_asset_cache_acquire(&ed.asset_ref_shader_object_id);
 	cx_shader_load_device_program(p_shader);
 
 	ed.render_pipeline_object_id = (struct cx_render_pipeline) {
@@ -281,7 +286,7 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 			.flags =
 				CX_RENDER_PIPELINE_FLAG_depth_test_enabled |
 				CX_RENDER_PIPELINE_FLAG_depth_writes_enabled,
-			.depth_test_func = CX_DEPTH_TEST_FUNC_less,
+			.depth_test_func = CX_DEPTH_TEST_FUNC_always,
 			.cull_mode = CX_CULL_MODE_back
 		}
 	};
@@ -312,6 +317,15 @@ void cx_ed_world_editor_init(struct platform_window* p_window, const char* s_wor
 	input_event_subscribe(INPUT_EVENT_key, cx_ed_world_editor_on_key, 0);
 
 	cx_ed_world_editor_load_world_from_world_blueprint(s_world_blueprint_asset_name);
+
+	struct cx_asset_ref blueprint_asset_ref;
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_BLUEPRINT, "test", &blueprint_asset_ref);
+
+	const struct cx_blueprint* p_blueprint = cx_asset_cache_acquire(&blueprint_asset_ref);
+
+	cx_world_instantiate_blueprint(&ed.world, p_blueprint);
+
+	cx_asset_cache_release(&blueprint_asset_ref);
 }
 
 void cx_ed_world_editor_shutdown(void) {
@@ -485,6 +499,7 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 	{
 		struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
 			.s_name = "blk_camera",
+			.size = sizeof(ed.camera.projection_matrix) + sizeof(ed.camera.view_matrix),
 			.p_data = ed.camera.projection_matrix
 		};
 
@@ -504,12 +519,8 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 
 		cx_world_renderer_record_draw_commands_lit(&ed.world, &draw_command_buffer);
 
-		if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
-			cx_transform_gizmo_record_draw_commands(&ed.gizmo, &ed.render_pipeline_flat, &draw_command_buffer);
-		}
-
 		cx_gfx_render_pass_execute(&render_pass_world, draw_command_buffer.p_first, draw_command_buffer.len);
-		
+
 		draw_command_buffer.len = 0;
 	}
 
@@ -525,17 +536,13 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 
 		struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
 			.s_name = "blk_camera",
+			.size = sizeof(camera_block),
 			.p_data = &camera_block
 		};
 
 		struct cx_gfx_render_pass render_pass_world = {
 			.p_framebuffer = p_fb,
 			.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
-			.clear_flags =
-				CX_GFX_RENDER_TARGET_CLEAR_FLAG_color |
-				CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
-			.clear_color = { 0.2f, 0.2f, 0.2f, 0.0f },
-			.clear_depth = 1.0f,
 			.pass_input_set = {
 				.p_blocks = &render_pass_shader_program_input_block,
 				.num_blocks = 1
@@ -552,20 +559,18 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 		draw_command_buffer.len = 0;
 	}
 
-	// object ids
-	{
+	// gizmo
+	if (ed.selected_entity_id != CX_ENTITY_ID_INVALID) {
 		struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
 			.s_name = "blk_camera",
+			.size = sizeof(ed.camera.projection_matrix) + sizeof(ed.camera.view_matrix),
 			.p_data = ed.camera.projection_matrix
 		};
 
 		struct cx_gfx_render_pass render_pass_world = {
-			.p_framebuffer = &ed.object_id_capturer.framebuffer,
+			.p_framebuffer = p_fb,
 			.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
-			.clear_flags =
-				CX_GFX_RENDER_TARGET_CLEAR_FLAG_color |
-				CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
-			.clear_color = { 0.2f, 0.2f, 0.2f, 0.0f },
+			.clear_flags = CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
 			.clear_depth = 1.0f,
 			.pass_input_set = {
 				.p_blocks = &render_pass_shader_program_input_block,
@@ -573,7 +578,40 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 			}
 		};
 
+		cx_transform_gizmo_record_draw_commands(&ed.gizmo, &ed.render_pipeline_flat, &draw_command_buffer);
+		
+		cx_gfx_render_pass_execute(&render_pass_world, draw_command_buffer.p_first, draw_command_buffer.len);
+
+		draw_command_buffer.len = 0;
+	}
+
+	// object ids
+	{
 		cx_object_id_capturer_set_fb_size(&ed.object_id_capturer, fb_width, fb_height);
+
+		struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
+			.s_name = "blk_camera",
+			.size = sizeof(ed.camera.projection_matrix) + sizeof(ed.camera.view_matrix),
+			.p_data = ed.camera.projection_matrix
+		};
+
+		struct cx_gfx_render_pass render_pass_world = {
+			.p_framebuffer = &ed.object_id_capturer.framebuffer,
+			.viewport = {
+				0,
+				0, 
+				(int32_t)ed.object_id_capturer.framebuffer_width,
+				(int32_t)ed.object_id_capturer.framebuffer_height
+			},
+			.clear_flags =
+				CX_GFX_RENDER_TARGET_CLEAR_FLAG_color |
+				CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
+			.clear_depth = 1.0f,
+			.pass_input_set = {
+				.p_blocks = &render_pass_shader_program_input_block,
+				.num_blocks = 1
+			}
+		};
 
 		cx_world_renderer_record_draw_commands_object_id(&ed.world, &draw_command_buffer);
 
@@ -596,6 +634,8 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 
 	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer,
 		mouse_position_normalized[0], mouse_position_normalized[1]);
+
+	CX_LAZYLOG_FMT("object_id_at_cursor=%u\n", CX_OBJECT_ID_GET_PAYLOAD(ed.object_id_at_cursor));
 }
 
 void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {

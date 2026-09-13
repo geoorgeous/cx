@@ -144,12 +144,6 @@ static void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-#ifndef CX_ED_BUILTIN_ASSET_IDS_H
-#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_TRANSLATE 0
-#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_ROTATE 0
-#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_SCALE 0
-#endif
-
 void cx_transform_gizmo_init_shared_resources(void) {
 	struct cx_asset_ref asset_ref;
 	struct cx_blueprint* p_blueprint;
@@ -200,13 +194,15 @@ static inline void cx_transform_gizmo_init_control(
 
 	vec_copy(4, p_color, p_out->material_block_data.color);
 	
-	p_out->material_shader_program_input_block.s_name = "blk_material";
+	p_out->material_shader_program_input_block.s_name = "blk_material_properties";
+	p_out->material_shader_program_input_block.size = sizeof(p_out->material_block_data);
 	p_out->material_shader_program_input_block.p_data = &p_out->material_block_data;
 
 	matrix_make_identity(p_out->object_block_data.transform);
-	p_out->object_block_data.object_id = object_id;
+	p_out->object_block_data.object_id = CX_OBJECT_ID_MAKE(CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY, object_id);
 
 	p_out->object_shader_program_input_block.s_name = "blk_object";
+	p_out->object_shader_program_input_block.size = sizeof(p_out->object_block_data);
 	p_out->object_shader_program_input_block.p_data = &p_out->object_block_data;
 }
 

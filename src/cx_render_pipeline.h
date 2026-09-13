@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "cx_asset_defs.h"
-
 enum cx_depth_test_func {
 	CX_DEPTH_TEST_FUNC_never,
 	CX_DEPTH_TEST_FUNC_always,

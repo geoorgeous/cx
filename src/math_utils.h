@@ -14,6 +14,9 @@
 #define CX_MATH_TAU      6.28318530717958647692f
 #define CX_MATH_TAU_DBL  6.28318530717958647692
 
+#define CX_MATH_MIN(A, B) ((A) > (B) ? (B) : (A))
+#define CX_MATH_MAX(A, B) ((A) < (B) ? (B) : (A))
+
 #include <stdint.h>
 
 int ray_plane_intersection(const float* p_ray_origin, const float* p_ray_dir, const float* p_plane_norm, float plane_offset, float* p_result);

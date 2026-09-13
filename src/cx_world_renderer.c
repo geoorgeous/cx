@@ -1,6 +1,8 @@
 #include "cx_asset_cache.h"
 #include "cx_cmp_static_mesh.h"
+#include "cx_dbg.h"
 #include "cx_gfx_mesh.h"
+#include "cx_logging.h"
 #include "cx_material.h"
 #include "cx_object_id_capturer.h"
 #include "cx_render_draw_command.h"
@@ -33,6 +35,7 @@ void cx_world_renderer_record_draw_commands_lit(
 
 		g_draw_shader_program_input_set_blocks[i].s_name = "blk_object";
 		g_draw_shader_program_input_set_blocks[i].p_data = p_transform->world_trs_matrix;
+		g_draw_shader_program_input_set_blocks[i].size = sizeof(p_transform->world_trs_matrix);
 
 		for (size_t j = 0; j < p_static_mesh->num_primitives; ++j) {
 			struct cx_asset_ref* p_material_asset_ref = &p_static_mesh->p_primitives_material_asset_refs[j];
@@ -85,15 +88,16 @@ void cx_world_renderer_record_draw_commands_object_id(
 		const struct transform* p_transform =
 			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);
 
+		matrix_copy(p_transform->world_trs_matrix, object_data[i].transform);
+
+		object_data[i].object_id =
+			CX_OBJECT_ID_MAKE(CX_OBJECT_ID_CATEGORY_ENTITY, p_pool->p_dense_entities[i]);
+
+		g_draw_shader_program_input_set_blocks[i].s_name = "blk_object";
+		g_draw_shader_program_input_set_blocks[i].size = sizeof(object_data[i]);
+		g_draw_shader_program_input_set_blocks[i].p_data = &object_data[i];
+
 		for (size_t j = 0; j < p_static_mesh->num_primitives; ++j) {
-			matrix_copy(p_transform->world_trs_matrix, object_data[p_render_draw_command_buffer->len].transform);
-
-			object_data[p_render_draw_command_buffer->len].object_id =
-				CX_OBJECT_ID_MAKE(CX_OBJECT_ID_CATEGORY_ENTITY, p_pool->p_dense_entities[i]);
-
-			g_draw_shader_program_input_set_blocks[i].s_name = "blk_object";
-			g_draw_shader_program_input_set_blocks[i].p_data = &object_data[i];
-
 			struct cx_render_draw_command draw_command = {
 				.pipeline = {
 					.p_shader = p_shader,
@@ -101,7 +105,7 @@ void cx_world_renderer_record_draw_commands_object_id(
 						.flags =
 							CX_RENDER_PIPELINE_FLAG_depth_test_enabled |
 							CX_RENDER_PIPELINE_FLAG_depth_writes_enabled,
-						.depth_test_func = CX_DEPTH_TEST_FUNC_less,
+						.depth_test_func = CX_DEPTH_TEST_FUNC_always,
 						.cull_mode = CX_CULL_MODE_back
 					}
 				},

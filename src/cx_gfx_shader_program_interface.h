@@ -89,6 +89,7 @@ struct cx_gfx_shader_program_input_texture {
 
 struct cx_gfx_shader_program_input_block {
 	const char* s_name;
+	size_t      size;
 	const void* p_data;
 };
 

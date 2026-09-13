@@ -391,6 +391,8 @@ void cx_gfx_shader_program_free_interface(struct cx_gfx_shader_program_interface
 void cx_gfx_shader_program_bind(const struct cx_gfx_shader_program* p_shader_program) {
 	const struct cx_gfx_shader_program_gl_internals* p_internals = (const void*)p_shader_program->internals_.bytes_;
 
+	CX_ASSERT(p_internals->gl_handle != 0, GFX_SHADER_PROGRAM);
+
 	glUseProgram(p_internals->gl_handle);
 }
 

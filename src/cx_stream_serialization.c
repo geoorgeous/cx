@@ -116,8 +116,10 @@ int cx_stream_deserialize_float64(struct cx_stream* p_stream, double* p_out) {
 int cx_stream_deserialize_string(struct cx_stream* p_stream, char* p_out_str, size_t* p_out_len) {
 	uint64_t temp;
 	if (cx_stream_deserialize_uint64(p_stream, &temp)) {
-		*p_out_len = temp;
-		return cx_stream_deserialize_bytes(p_stream, *p_out_len, p_out_str);
+		if (p_out_len) {
+			*p_out_len = temp;
+		}
+		return cx_stream_deserialize_bytes(p_stream, temp, p_out_str);
 	}
 	return CX_FALSE;
 }

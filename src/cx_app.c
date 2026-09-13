@@ -17,6 +17,7 @@
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
+#include "cx_gfx_mesh.h"
 #include "cx_gfx_render_pass.h"
 #include "cx_gfx_texture.h"
 #include "cx_image.h"
@@ -30,7 +31,6 @@
 #include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
-#include "gl.h"
 #include "input.h"
 #include "keys.h"
 #include "matrix.h"
@@ -45,6 +45,9 @@ static struct {
 	struct cx_gfx_framebuffer primary_framebuffer;
 	struct cx_gfx_texture primary_framebuffer_texture_color;
 	struct cx_gfx_texture primary_framebuffer_texture_depth_stencil;
+
+	struct cx_asset_ref asset_ref_shader_screen_quad;
+	struct cx_gfx_mesh dummy_mesh;
 
 	struct cx_asset_package builtin_asset_pkg;
 	struct cx_asset_ref console_font_ref;
@@ -182,7 +185,20 @@ int cx_app_init(
 			.f_find_asset_by_name = cx_asset_source_find_package_asset_by_name,
 			.f_try_deserialize_asset = cx_asset_source_deserialize_package_asset
 		});
+	}
 
+	input_init();
+
+	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
+	
+	cx_console_init(cx_console_get());
+
+	CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
+	CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
+	
+	f_init(argc, argv);
+	
+	{
 		cx_asset_cache_find_by_name(CX_ASSET_TYPE_FONT, "default_8x14", &cx_app.console_font_ref);
 		struct cx_font* p_font = cx_asset_cache_acquire(&cx_app.console_font_ref);
 
@@ -204,18 +220,17 @@ int cx_app_init(
 			&font_atlas_image.pixel_data_format);
 
 		free(font_atlas_image.p_pixel_data);
-
-		cx_console_init(cx_console_get());
-
-		CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
-		CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
 	}
 
-	input_init();
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_screen_quad", &cx_app.asset_ref_shader_screen_quad);
+	struct cx_shader* p_shader = cx_asset_cache_acquire(&cx_app.asset_ref_shader_screen_quad);
+	cx_shader_load_device_program(p_shader);
 
-	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
-
-	f_init(argc, argv);
+	const struct cx_mesh_data dummy_mesh_data = {
+		.layout.draw_mode = CX_MESH_DRAW_MODE_triangles,
+		.vertex_count = 3
+	};
+	cx_gfx_mesh_create(&dummy_mesh_data, CX_GFX_BUFFER_USAGE_static, &cx_app.dummy_mesh);
 
 	return 0;
 }
@@ -243,9 +258,6 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 			f_draw(&cx_app.primary_framebuffer);
 
 			if (cx_console_get()->b_is_input_enabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 				struct cx_font_render_data font_render_data = {
 					.p_font = cx_asset_cache_acquire(&cx_app.console_font_ref),
 					.p_glyph_texture = &cx_app.console_font_glyph_atlas_texture,
@@ -265,7 +277,8 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 					projection_matrix);
 				matrix_make_identity(view_matrix);
 
-				cx_console_view_draw(cx_console_get(),
+				cx_console_view_draw(
+					cx_console_get(),
 					&font_render_data,
 					&cx_app.primary_framebuffer,
 					cx_app.primary_framebuffer_texture_color.width_,
@@ -296,23 +309,14 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 					}
 				};
 
-				struct cx_asset_ref render_pipeline_shader_asset_ref;
-				cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_screen_quad", &render_pipeline_shader_asset_ref);
-
 				struct cx_render_draw_command draw_command_screen_quad = {
 					.pipeline = {
-						.p_shader = cx_asset_ref_get(&render_pipeline_shader_asset_ref)
+						.p_shader = cx_asset_ref_get(&cx_app.asset_ref_shader_screen_quad)
 					},
-					.p_mesh = 0 // todo
+					.p_mesh = &cx_app.dummy_mesh
 				};
 
 				cx_gfx_render_pass_execute(&render_pass_screen_quad, &draw_command_screen_quad, 1);
-
-				//GLuint gl_empty_vao;
-				//glGenVertexArrays(1, &gl_empty_vao);
-				//glBindVertexArray(gl_empty_vao);
-				//glDrawArrays(GL_TRIANGLES, 0, 3);
-				//glDeleteVertexArrays(1, &gl_empty_vao);
 			}
 		}
 

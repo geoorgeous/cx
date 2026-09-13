@@ -210,7 +210,7 @@ int cx_ed_asset_library_find_asset_by_name(cx_asset_type type, const char* s_nam
 	while (hashtable_itr_is_valid(&itr)) {
 		const struct cx_ed_asset_library_entry* p_entry = itr.p_value;
 
-		CX_LOG_FMT(INFO, ASSET, "Comparing asset name: %s == %s\n", s_name, p_entry->name);
+		CX_LOG_FMT(TRACE, ASSET, "Comparing asset name: %s == %s\n", s_name, p_entry->name);
 
 		if (strcmp(s_name, p_entry->name) == 0) {
 			*p_out = (struct cx_asset_ref) { .asset_id = p_entry->asset_ref.asset_id };

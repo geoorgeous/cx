@@ -55,7 +55,7 @@ void cx_asset_cache_adopt(cx_asset_id asset_id, void* p_asset, struct cx_asset_r
 		.pp_asset = &p_cache_entry->p_asset
 	};
 
-	CX_LOG_FMT(INFO, ASSET_CACHE, "Asset adopted: type=%u(%s), id=%X, p=%p\n",
+	CX_LOG_FMT(TRACE, ASSET_CACHE, "Asset adopted: type=%u(%s), id=%X, p=%p\n",
 		CX_ASSET_GET_TYPE_ID(asset_id),
 		cx_asset_type_display_name_str(CX_ASSET_GET_TYPE_ID(asset_id)),
 		asset_id,
@@ -122,7 +122,7 @@ void* cx_asset_cache_acquire(struct cx_asset_ref* p_ref) {
 
 	p_ref->pp_asset = &p_cache_entry->p_asset;
 
-	CX_LOG_FMT(INFO, ASSET_CACHE, "Asset reference acquired: type=%u(%s), id=%X, ref_count=%u\n",
+	CX_LOG_FMT(TRACE, ASSET_CACHE, "Asset reference acquired: type=%u(%s), id=%X, ref_count=%u\n",
 		CX_ASSET_GET_TYPE_ID(p_ref->asset_id),
 		cx_asset_type_display_name_str(CX_ASSET_GET_TYPE_ID(p_ref->asset_id)),
 		p_ref->asset_id,
@@ -132,6 +132,10 @@ void* cx_asset_cache_acquire(struct cx_asset_ref* p_ref) {
 }
 
 void cx_asset_cache_release(struct cx_asset_ref* p_ref) {
+	if (p_ref->pp_asset == CX_NULL) {
+		return;
+	}
+
 	const cx_asset_id asset_id = p_ref->asset_id;
 
 	*p_ref = (struct cx_asset_ref){ .asset_id = asset_id };
@@ -144,7 +148,7 @@ void cx_asset_cache_release(struct cx_asset_ref* p_ref) {
 	struct cx_asset_cache_entry* p_cache_entry = itr.p_value;
 	p_cache_entry->ref_count--;
 
-	CX_LOG_FMT(INFO, ASSET_CACHE, "Asset reference released: type=%u(%s), id=%X, ref_count=%u\n",
+	CX_LOG_FMT(TRACE, ASSET_CACHE, "Asset reference released: type=%u(%s), id=%X, ref_count=%u\n",
 		CX_ASSET_GET_TYPE_ID(asset_id),
 		cx_asset_type_display_name_str(CX_ASSET_GET_TYPE_ID(asset_id)),
 		asset_id,

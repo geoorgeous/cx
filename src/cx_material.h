@@ -8,6 +8,8 @@
 #include "cx_gfx_shader_program_interface.h"
 #include "cx_render_pipeline.h"
 
+#define CX_LOG_CAT_MATERIAL "material"
+
 #define CX_ASSET_TYPE_MATERIAL 3
 
 #define CX_MATERIAL_MAX_PARAMS 16

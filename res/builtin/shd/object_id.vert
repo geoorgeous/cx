@@ -12,7 +12,7 @@ layout(std140) uniform blk_object {
 
 layout(location=0) in vec3 a_pos;
 
-out uint v_object_id;
+flat out uint v_object_id;
 
 void main() {
 	v_object_id = u_object_id;
