@@ -7,7 +7,6 @@
 #include "cx_input.h"
 #include "cx_object_id_capturer.h"
 #include "cx_render_draw_command.h"
-#include "input.h"
 #include "matrix.h"
 #include "static_mesh.h"
 #include "vector.h"
@@ -38,9 +37,10 @@ static struct {
 	const struct cx_gfx_mesh* t_meshes[7];
 	const struct cx_gfx_mesh* r_meshes[4];
 	const struct cx_gfx_mesh* s_meshes[7];
+	struct cx_gfx_shader_program_input_block material_hovered_input_block;
 	struct {
 		float color_ka[4];
-	} material_hovered;
+	} material_hovered_block_data;
 } shared_resources;
 
 static void cx_transform_gizmo_init_shared_resource(
@@ -185,7 +185,11 @@ void cx_transform_gizmo_init_shared_resources(void) {
 
 	cx_asset_cache_release(&asset_ref);
 
-	vec_copy(4, CX_TRANSFORM_GIZMO_CONTROL_COLOR_HOVER, shared_resources.material_hovered.color_ka);
+	shared_resources.material_hovered_input_block.s_name = "blk_material_properties";
+	shared_resources.material_hovered_input_block.size = sizeof(shared_resources.material_hovered_block_data);
+	shared_resources.material_hovered_input_block.p_data = &shared_resources.material_hovered_block_data;
+
+	vec_copy(4, CX_TRANSFORM_GIZMO_CONTROL_COLOR_HOVER, shared_resources.material_hovered_block_data.color_ka);
 }
 
 static inline void cx_transform_gizmo_init_control(
@@ -320,7 +324,7 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 			p_view_pos, p_cursor_world_ray,
 			p_out_transform);
 
-		if (cx_input_was_button_pressed(CX_BUTTON_mouse_left)) {
+		if (cx_input_was_button_released(CX_BUTTON_mouse_left)) {
 			p_gizmo->interaction_state = CX_TRANSFORM_GIZMO_INTERACTION_STATE_ended;
 		}
 	} else {
@@ -339,11 +343,21 @@ void cx_transform_gizmo_record_draw_commands(
 		.pipeline = *p_render_pipeline,
 	};
 
+	const int b_is_gizmo_hovered =
+		CX_OBJECT_ID_GET_CATEGORY(p_gizmo->active_control_id) == CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY;
+
 	switch (p_gizmo->mode) {
 		case CX_TRANSFORM_GIZMO_MODE_translate: {
 			for (size_t i = 0; i < 7; ++i) {
+				const int b_is_control_hovered =
+					b_is_gizmo_hovered && (CX_OBJECT_ID_GET_PAYLOAD(p_gizmo->active_control_id) == i);
+
 				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.t[i];
-				draw_command.material_input_set.p_blocks = &p_rd->material_shader_program_input_block;
+
+				draw_command.material_input_set.p_blocks =
+					b_is_control_hovered ?
+					&shared_resources.material_hovered_input_block :
+					&p_rd->material_shader_program_input_block;
 				draw_command.material_input_set.num_blocks = 1;
 				draw_command.draw_input_set.p_blocks = &p_rd->object_shader_program_input_block;
 				draw_command.draw_input_set.num_blocks = 1;
@@ -355,8 +369,15 @@ void cx_transform_gizmo_record_draw_commands(
 
 		case CX_TRANSFORM_GIZMO_MODE_rotate: {
 			for (size_t i = 0; i < 4; ++i) {
+				const int b_is_control_hovered =
+					b_is_gizmo_hovered && (CX_OBJECT_ID_GET_PAYLOAD(p_gizmo->active_control_id) == i);
+
 				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.r[i];
-				draw_command.material_input_set.p_blocks = &p_rd->material_shader_program_input_block;
+
+				draw_command.material_input_set.p_blocks =
+					b_is_control_hovered ?
+					&shared_resources.material_hovered_input_block :
+					&p_rd->material_shader_program_input_block;
 				draw_command.material_input_set.num_blocks = 1;
 				draw_command.draw_input_set.p_blocks = &p_rd->object_shader_program_input_block;
 				draw_command.draw_input_set.num_blocks = 1;
@@ -368,8 +389,15 @@ void cx_transform_gizmo_record_draw_commands(
 
 		case CX_TRANSFORM_GIZMO_MODE_scale: {
 			for (size_t i = 0; i < 7; ++i) {
+				const int b_is_control_hovered =
+					b_is_gizmo_hovered && (CX_OBJECT_ID_GET_PAYLOAD(p_gizmo->active_control_id) == i);
+
 				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.s[i];
-				draw_command.material_input_set.p_blocks = &p_rd->material_shader_program_input_block;
+
+				draw_command.material_input_set.p_blocks =
+					b_is_control_hovered ?
+					&shared_resources.material_hovered_input_block :
+					&p_rd->material_shader_program_input_block;
 				draw_command.material_input_set.num_blocks = 1;
 				draw_command.draw_input_set.p_blocks = &p_rd->object_shader_program_input_block;
 				draw_command.draw_input_set.num_blocks = 1;

@@ -11,13 +11,15 @@
 #include "cx_ed_action.h"
 #include "cx_ed_asset_library.h"
 #include "cx_ed_transform_gizmo.h"
-#include "cx_ed_ui.h"
 #include "cx_ed_world_editor.h"
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_render_pass.h"
+#include "cx_input.h"
+#include "cx_input_mods.h"
 #include "cx_macro.h"
 #include "cx_mesh_data.h"
 #include "cx_object_id_capturer.h"
+#include "cx_platform_window.h"
 #include "cx_result.h"
 #include "cx_shader.h"
 #include "cx_str.h"
@@ -95,9 +97,6 @@ static struct {
 		float projection_matrix[16];
 		float view_matrix[16];
 	} camera;
-
-	struct cx_ed_ui ui;
-	char ui_textbox_buf[255];
 } ed;
 
 static void cx_ed_world_editor_ui_click_cb(void* p_user_ptr) {
@@ -324,9 +323,6 @@ void cx_ed_world_editor_init(struct cx_platform_window* p_window, const char* s_
 	unsigned window_width, window_height;
 	cx_platform_window_size(p_window, &window_width, &window_height);
 
-	cx_ed_ui_init(window_width, window_height, &ed.ui);
-	strcpy(ed.ui_textbox_buf, "hello");
-
 	cx_ed_world_editor_load_world_from_world_blueprint(s_world_blueprint_asset_name);
 
 	struct cx_asset_ref blueprint_asset_ref;
@@ -369,8 +365,6 @@ void cx_ed_world_editor_update(double dt_seconds) {
 			int mouse_delta_x;
 			int mouse_delta_y;
 			cx_input_mouse_delta(&mouse_delta_x, &mouse_delta_y);
-
-			CX_LAZYLOG_FMT("RMB pressed: x=%d, y=%d\n", mouse_delta_x, mouse_delta_y);
 
 			ed.camera.pitch += (float)mouse_delta_y * 0.01f;
 			ed.camera.yaw += (float)mouse_delta_x * 0.01f;
@@ -498,44 +492,6 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	}
 
 	cx_world_compute_transforms(&ed.world);
-
-	// ui
-
-	cx_ed_ui_window_begin(&ed.ui, "test_window", "test window", 100, 100, 450, 800);
-		cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-			cx_ed_ui_column_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-				cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 128, 32, CX_NULL);
-			cx_ed_ui_column_end(&ed.ui);
-			cx_ed_ui_column_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-				cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-					cx_ed_ui_image(&ed.ui, "image0", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, CX_NULL, 64, 32, CX_NULL);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-				cx_ed_ui_row_end(&ed.ui);
-				cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-				cx_ed_ui_row_end(&ed.ui);
-				cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-					cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 64, 32, CX_NULL);
-				cx_ed_ui_row_end(&ed.ui);
-			cx_ed_ui_column_end(&ed.ui);
-		cx_ed_ui_row_end(&ed.ui);
-		cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_start);
-			cx_ed_ui_image(&ed.ui, CX_NULL, CX_NULL, CX_NULL, 300, 300, CX_NULL);
-		cx_ed_ui_row_end(&ed.ui);
-		cx_ed_ui_row_begin(&ed.ui, CX_ED_UI_ALIGNMENT_center);
-			cx_ed_ui_label(&ed.ui, CX_NULL, CX_NULL, "@@@ WWWW XXXX hello george !!!!! ||||||", CX_NULL, CX_NULL);
-			cx_ed_ui_button(&ed.ui, "button0", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, "BUTTON");
-		cx_ed_ui_row_end(&ed.ui);
-		cx_ed_ui_button(&ed.ui, "button1", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, "HEHEHEHEHE");
-		cx_ed_ui_textbox(&ed.ui, "textbox0", &(struct cx_ed_ui_interaction_callbacks) { .f_click_cb = cx_ed_world_editor_ui_click_cb }, ed.ui_textbox_buf, sizeof(ed.ui_textbox_buf));
-	cx_ed_ui_window_end(&ed.ui);
-
-	cx_ed_ui_end_frame(&ed.ui, ed.p_window);
 }
 
 void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
@@ -686,27 +642,7 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 	float norm_mouse_x, norm_mouse_y;
 	cx_platform_window_normalize_client_coords(ed.p_window, mouse_x, mouse_y, &norm_mouse_x, &norm_mouse_y);
 
-	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer,
-		mouse_position_normalized[0], mouse_position_normalized[1]);
-
-	CX_LAZYLOG_FMT("object_id_at_cursor=%u\n", CX_OBJECT_ID_GET_PAYLOAD(ed.object_id_at_cursor));
-}
-
-void cx_ed_world_editor_on_key(const void* p_e, void* p_user_ptr) {
-	(void)p_user_ptr;
-
-	const struct input_event_data_key* p_key_event = p_e;
-
-	if (!p_key_event->b_is_down) {
-		return;
-	}
-
-	if (p_key_event->key == KEY_z && p_key_event->mods & INPUT_MOD_ctrl) {
-		cx_ed_action_history_undo(&ed.action_history);
-	}
-	else if (p_key_event->key == KEY_y && p_key_event->mods & INPUT_MOD_ctrl) {
-		cx_ed_action_history_redo(&ed.action_history);
-	}
+	ed.object_id_at_cursor = cx_object_id_capturer_query(&ed.object_id_capturer, norm_mouse_x, norm_mouse_y);
 }
 
 cx_result cx_ed_world_editor_load_world_from_world_blueprint(const char* s_asset_name) {

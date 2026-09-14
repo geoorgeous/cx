@@ -118,7 +118,7 @@ cx_result cx_platform_window_create(
 	if (!x11_window) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform window\n"));
 
-		return CX_ERROR_PLATFORM;
+		return CX_ERROR_UNKNOWN;
 	}
 
 	XIC x11_input_ctx = XCreateIC(x11_input_method,
@@ -129,7 +129,7 @@ cx_result cx_platform_window_create(
 
 	if (!x11_input_ctx) {
 		CX_DBG(CX_LOG(ERROR, PLATFORM_WINDOW, "Failed to create platform input context\n"));
-		return CX_ERROR_PLATFORM;
+		return CX_ERROR_UNKNOWN;
 	}
 
 	char res_name[] = "cx-engine";
@@ -401,7 +401,7 @@ cx_result x11_init_connection(void) {
 	p_x11_display = XOpenDisplay(NULL);
 
 	if (!p_x11_display) {
-		return CX_ERROR_PLATFORM;
+		return CX_ERROR_UNKNOWN;
 	}
 
 	(void)XSetLocaleModifiers("");
@@ -413,7 +413,7 @@ cx_result x11_init_connection(void) {
 	}
 
 	if (!x11_input_method) {
-		return CX_ERROR_PLATFORM;
+		return CX_ERROR_UNKNOWN;
 	}
 
 	(void)XSetErrorHandler(x11_error_handler);

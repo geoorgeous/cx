@@ -312,13 +312,13 @@ void upload_shader_program_input_set(
 			get_shader_program_prameter_info_by_name(p_shader_program_interface, p_input_set->p_parameters[i].s_name);
 
 		if (p_info == CX_NULL) {
-			CX_LOG_FMT(WARNING, GFX_RENDER_PASS, "Couldn't upload shader program parameter '%s': Not found\n",
+			CX_LOG_FMT(TRACE, GFX_RENDER_PASS, "Couldn't upload shader program parameter '%s': Not found\n",
 				p_input_set->p_parameters[i].s_name);
 			continue;
 		}
 
 		if (p_info->type != p_input_set->p_parameters[i].type) {
-			CX_LOG_FMT(WARNING, GFX_RENDER_PASS,
+			CX_LOG_FMT(TRACE, GFX_RENDER_PASS,
 				"Couldn't upload shader program parameter '%s': Type mismatch (expected %d, got %d)\n",
 				p_input_set->p_parameters[i].s_name, p_info->type, p_input_set->p_parameters[i].type);
 			continue;
@@ -332,7 +332,7 @@ void upload_shader_program_input_set(
 			get_shader_program_texture_info_by_name(p_shader_program_interface, p_input_set->p_textures[i].s_name);
 
 		if (p_info == CX_NULL) {
-			CX_LOG_FMT(WARNING, GFX_RENDER_PASS, "Couldn't upload shader program texture '%s': Not found\n",
+			CX_LOG_FMT(TRACE, GFX_RENDER_PASS, "Couldn't upload shader program texture '%s': Not found\n",
 				p_input_set->p_textures[i].s_name);
 			continue;
 		}
@@ -345,7 +345,7 @@ void upload_shader_program_input_set(
 			get_shader_program_block_info_by_name(p_shader_program_interface, p_input_set->p_blocks[i].s_name);
 
 		if (p_info == CX_NULL) {
-			CX_LOG_FMT(WARNING, GFX_RENDER_PASS, "Couldn't upload shader program block '%s': Not found\n",
+			CX_LOG_FMT(TRACE, GFX_RENDER_PASS, "Couldn't upload shader program block '%s': Not found\n",
 				p_input_set->p_blocks[i].s_name);
 			continue;
 		}

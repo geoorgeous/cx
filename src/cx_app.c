@@ -26,14 +26,13 @@
 #include "cx_material.h"
 #include "cx_pixel_format.h"
 #include "cx_platform_time.h"
+#include "cx_platform_window.h"
 #include "cx_shader.h"
 #include "cx_text_mesher.h"
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
-#include "input.h"
-#include "keys.h"
 #include "matrix.h"
 #include "static_mesh.h"
 
@@ -175,10 +174,6 @@ int cx_app_init(
 		});
 	}
 
-	input_init();
-
-	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
-	
 	cx_console_init(cx_console_get());
 
 	CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
@@ -230,13 +225,13 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 
 		old_frame_start = frame_start;
 
+		cx_input_sample(&cx_app.window);
+
 		cx_platform_window_process_events(&cx_app.window);
 
 		if (!cx_platform_window_is_open(&cx_app.window)) {
 			break;
 		}
-
-		cx_input_sample(&cx_app.window);
 
 		if (cx_input_was_key_pressed(CX_KEY_grave)) {
 			cx_console_set_is_input_enabled(cx_console_get(), 1);
@@ -287,7 +282,7 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 			{
 				uint32_t window_width;
 				uint32_t window_height;
-				platform_window_size(&cx_app.window, &window_width, &window_height);
+				cx_platform_window_size(&cx_app.window, &window_width, &window_height);
 
 				struct cx_gfx_shader_program_input_texture shader_input_texture = {
 					.s_name = "u_texture",
