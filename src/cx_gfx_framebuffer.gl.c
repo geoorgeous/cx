@@ -46,7 +46,7 @@ void cx_gfx_framebuffer_set_attachment(
 	enum cx_gfx_framebuffer_attachment attachment_point,
 	const struct cx_gfx_texture* p_texture) {
 
-	const struct cx_gfx_texture_gl_internals* p_texture_internals = (const void*)p_texture->bytes_;
+	const struct cx_gfx_texture_gl_internals* p_texture_internals = CX_GET_OPAQUE_INTERNALS_CONST(*p_texture);
 
 	cx_gfx_framebuffer_bind(p_framebuffer);
 	

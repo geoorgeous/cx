@@ -1,25 +1,24 @@
 #include "cx_asset_cache.h"
 #include "cx_cmp_static_mesh.h"
-#include "cx_image.h"
+#include "cx_dbg.h"
+#include "cx_gfx_mesh.h"
+#include "cx_logging.h"
+#include "cx_material.h"
 #include "cx_object_id_capturer.h"
-#include "cx_render_pass.h"
-#include "cx_texture.h"
+#include "cx_render_draw_command.h"
+#include "cx_shader.h"
 #include "cx_world.h"
 #include "cx_world_renderer.h"
-#include "material.h"
 #include "matrix.h"
 #include "static_mesh.h"
 
-static struct cx_gfx_texture texture_white_1x1;
-static float color_white[3] = { 1, 1, 1 };
+static struct cx_gfx_shader_program_input_block g_draw_shader_program_input_set_blocks[1024];
 
-static void cx_world_renderer_init(void);
+static struct cx_asset_ref g_object_id_shader_asset_ref;
 
-void cx_world_renderer_record_forward_pass_commands(
+void cx_world_renderer_record_draw_commands_lit(
 	const struct cx_world* p_world,
-	struct cx_render_command_buffer* p_render_command_buffer) {
-
-	cx_world_renderer_init();
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer) {
 
 	const struct cx_component_pool* p_pool = cx_world_get_component_pool(p_world, &cmp_type_static_mesh);
 	struct cx_cmp_static_mesh* p_static_meshes = (void*)p_pool->p_dense_components;
@@ -27,96 +26,97 @@ void cx_world_renderer_record_forward_pass_commands(
 	for (size_t i = 0; i < p_pool->count; ++i) {
 		struct static_mesh* p_static_mesh = cx_asset_cache_acquire(&p_static_meshes[i].asset_ref);
 
-		const struct transform* p_transform =
-			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);
-
 		if (!p_static_mesh->b_loaded_device_meshes) {
 			static_mesh_load_device_meshes(p_static_mesh);
 		}
 
+		const struct transform* p_transform =
+			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);
+
+		g_draw_shader_program_input_set_blocks[i].s_name = "blk_object";
+		g_draw_shader_program_input_set_blocks[i].p_data = p_transform->world_trs_matrix;
+		g_draw_shader_program_input_set_blocks[i].size = sizeof(p_transform->world_trs_matrix);
+
 		for (size_t j = 0; j < p_static_mesh->num_primitives; ++j) {
-			const struct cx_gfx_texture* p_gfx_texture = &texture_white_1x1;
-			const float* p_color = color_white;
-			
 			struct cx_asset_ref* p_material_asset_ref = &p_static_mesh->p_primitives_material_asset_refs[j];
-			if (cx_asset_ref_is_set(p_material_asset_ref)) {
-				struct material* p_material = cx_asset_cache_acquire(p_material_asset_ref);
+			struct cx_material* p_material = cx_asset_cache_acquire(p_material_asset_ref);
+			struct cx_shader* p_pipeline_shader = cx_asset_cache_acquire(&p_material->pipeline_shader_asset_ref);
 
-				if (cx_asset_ref_is_set(&p_material->texture_asset_ref)) {
-					struct cx_texture* p_texture = cx_asset_cache_acquire(&p_material->texture_asset_ref);
-					cx_texture_load_gfx_texture(p_texture, CX_FALSE);
-					p_gfx_texture = &p_texture->gfx_texture_;
-				}
-				p_color = p_material->color;
-			}
+			struct cx_render_draw_command draw_command = {
+				.pipeline = {
+					.p_shader = p_pipeline_shader,
+					.state = p_material->pipeline_state
+				},
+				.material_input_set = p_material->shader_program_input_set,
+				.draw_input_set = {
+					.p_blocks = &g_draw_shader_program_input_set_blocks[i],
+					.num_blocks = 1
+				},
+				.p_mesh = &p_static_mesh->p_gfx_meshes[j]
+			};
 
-			cx_render_command_buffer_push(p_render_command_buffer, &((struct cx_render_command) {
-				.p_mesh = &p_static_mesh->p_gfx_meshes[j],
-				.p_object_data = p_transform->world_trs_matrix,
-				.p_material_data = p_color,
-				.p_opaque_resources = { p_gfx_texture },
-				.num_opaque_params = 1
-			}));
+			cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &draw_command);
 		}
 	}
 }
 
-void cx_world_renderer_record_picker_pass_commands(
+void cx_world_renderer_record_draw_commands_object_id(
 	const struct cx_world* p_world,
-	struct cx_render_command_buffer* p_render_command_buffer) {
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer) {
 
 	static struct {
 		float transform[16];
 		uint32_t object_id;
 	} object_data[1024];
 
+	if (!cx_asset_ref_is_set(&g_object_id_shader_asset_ref)) {
+		cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_object_id", &g_object_id_shader_asset_ref);
+	}
+
+	struct cx_shader* p_shader = cx_asset_cache_acquire(&g_object_id_shader_asset_ref);
+
 	const struct cx_component_pool* p_pool = cx_world_get_component_pool(p_world, &cmp_type_static_mesh);
 	struct cx_cmp_static_mesh* p_static_meshes = (void*)p_pool->p_dense_components;
 
 	for (size_t i = 0; i < p_pool->count; ++i) {
 		struct static_mesh* p_static_mesh = cx_asset_cache_acquire(&p_static_meshes[i].asset_ref);
 
-		const struct transform* p_transform =
-			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);
-
 		if (!p_static_mesh->b_loaded_device_meshes) {
 			static_mesh_load_device_meshes(p_static_mesh);
 		}
 
+		const struct transform* p_transform =
+			cx_world_entity_get_transform_const(p_world, p_pool->p_dense_entities[i]);
+
+		matrix_copy(p_transform->world_trs_matrix, object_data[i].transform);
+
+		object_data[i].object_id =
+			CX_OBJECT_ID_MAKE(CX_OBJECT_ID_CATEGORY_ENTITY, p_pool->p_dense_entities[i]);
+
+		g_draw_shader_program_input_set_blocks[i].s_name = "blk_object";
+		g_draw_shader_program_input_set_blocks[i].size = sizeof(object_data[i]);
+		g_draw_shader_program_input_set_blocks[i].p_data = &object_data[i];
+
 		for (size_t j = 0; j < p_static_mesh->num_primitives; ++j) {
-			matrix_copy(p_transform->world_trs_matrix, object_data[p_render_command_buffer->num].transform);
+			struct cx_render_draw_command draw_command = {
+				.pipeline = {
+					.p_shader = p_shader,
+					.state = {
+						.flags =
+							CX_RENDER_PIPELINE_FLAG_depth_test_enabled |
+							CX_RENDER_PIPELINE_FLAG_depth_writes_enabled,
+						.depth_test_func = CX_DEPTH_TEST_FUNC_always,
+						.cull_mode = CX_CULL_MODE_back
+					}
+				},
+				.draw_input_set = {
+					.p_blocks = &g_draw_shader_program_input_set_blocks[i],
+					.num_blocks = 1
+				},
+				.p_mesh = &p_static_mesh->p_gfx_meshes[j]
+			};
 
-			object_data[p_render_command_buffer->num].object_id =
-				CX_OBJECT_ID_MAKE(CX_OBJECT_ID_CATEGORY_ENTITY, p_pool->p_dense_entities[i]);
-
-			cx_render_command_buffer_push(p_render_command_buffer, &((struct cx_render_command) {
-				.p_mesh = p_static_mesh->p_gfx_meshes + j,
-				.p_object_data = &object_data[p_render_command_buffer->num],
-			}));
+			cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &draw_command);
 		}
 	}
-}
-
-static void cx_world_renderer_init(void) {
-	static int b_done = 0;
-
-	if (b_done) {
-		return;
-	}
-
-	uint8_t white_pixel[] = { 0xFF, 0xFF, 0xFF };
-	struct cx_image white_image = {
-		.width = 1,
-		.height = 1,
-		.pixel_data_format = {
-			.pixel_format = CX_PIXEL_FORMAT_rgb,
-			.pixel_type = CX_PIXEL_TYPE_u8
-		},
-		.p_pixel_data = white_pixel
-	};
-
-	cx_gfx_texture_create(&texture_white_1x1, white_image.width, white_image.height, CX_PIXEL_FORMAT_rgb);
-	cx_gfx_texture_set_data(&texture_white_1x1, white_image.p_pixel_data, &white_image.pixel_data_format);
-
-	b_done = 1;
 }

@@ -6,6 +6,8 @@
 #include "cx_gfx_mesh.h"
 #include "cx_input.h"
 #include "cx_object_id_capturer.h"
+#include "cx_render_draw_command.h"
+#include "input.h"
 #include "matrix.h"
 #include "static_mesh.h"
 #include "vector.h"
@@ -143,12 +145,6 @@ static void cx_transform_gizmo_apply_scale_uniformly(
 	const float* p_cursor_ray_origin, const float* p_cursor_ray, const float* p_cursor_world_start,
 	const float* p_v, float* p_out_v);
 
-#ifndef CX_ED_BUILTIN_ASSET_IDS_H
-#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_TRANSLATE 0
-#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_ROTATE 0
-#define CX_ED_BUILTIN_ASSET_ID_BLUEPRINT_GIZMO_SCALE 0
-#endif
-
 void cx_transform_gizmo_init_shared_resources(void) {
 	struct cx_asset_ref asset_ref;
 	struct cx_blueprint* p_blueprint;
@@ -197,9 +193,18 @@ static inline void cx_transform_gizmo_init_control(
 	const float* p_color,
 	struct cx_transform_gizmo_control_render_data* p_out) {
 
-	matrix_make_identity(p_out->object_data.transform);
-	p_out->object_data.object_id = CX_OBJECT_ID_MAKE(CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY, object_id);
-	vec_copy(4, p_color, p_out->material_data.color_ka);
+	vec_copy(4, p_color, p_out->material_block_data.color);
+	
+	p_out->material_shader_program_input_block.s_name = "blk_material_properties";
+	p_out->material_shader_program_input_block.size = sizeof(p_out->material_block_data);
+	p_out->material_shader_program_input_block.p_data = &p_out->material_block_data;
+
+	matrix_make_identity(p_out->object_block_data.transform);
+	p_out->object_block_data.object_id = CX_OBJECT_ID_MAKE(CX_TRANSFORM_GIZMO_OBJECT_ID_CATEGORY, object_id);
+
+	p_out->object_shader_program_input_block.s_name = "blk_object";
+	p_out->object_shader_program_input_block.size = sizeof(p_out->object_block_data);
+	p_out->object_shader_program_input_block.p_data = &p_out->object_block_data;
 }
 
 void cx_transform_gizmo_init_controls(struct cx_transform_gizmo* p_gizmo) {
@@ -325,22 +330,25 @@ enum cx_transform_gizmo_interaction_state cx_transform_gizmo_update(
 	return p_gizmo->interaction_state;
 }
 
-void cx_transform_gizmo_record_flat_color_pass_commands(
+void cx_transform_gizmo_record_draw_commands(
 	const struct cx_transform_gizmo* p_gizmo,
-	struct cx_render_command_buffer* p_buffer) {
+	const struct cx_render_pipeline* p_render_pipeline,
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer) {
+
+	struct cx_render_draw_command draw_command = {
+		.pipeline = *p_render_pipeline,
+	};
 
 	switch (p_gizmo->mode) {
 		case CX_TRANSFORM_GIZMO_MODE_translate: {
 			for (size_t i = 0; i < 7; ++i) {
 				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.t[i];
-				cx_render_command_buffer_push(p_buffer, &((struct cx_render_command){
-					.p_mesh = shared_resources.t_meshes[i],
-					.p_object_data = &p_rd->object_data,
-					.p_material_data =
-						(p_rd->object_data.object_id == p_gizmo->active_control_id) ? 
-							(const void*)&shared_resources.material_hovered :
-							(const void*)&p_rd->material_data,
-				}));
+				draw_command.material_input_set.p_blocks = &p_rd->material_shader_program_input_block;
+				draw_command.material_input_set.num_blocks = 1;
+				draw_command.draw_input_set.p_blocks = &p_rd->object_shader_program_input_block;
+				draw_command.draw_input_set.num_blocks = 1;
+				draw_command.p_mesh = shared_resources.t_meshes[i];
+				cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &draw_command);
 			}
 			break;
 		}
@@ -348,14 +356,12 @@ void cx_transform_gizmo_record_flat_color_pass_commands(
 		case CX_TRANSFORM_GIZMO_MODE_rotate: {
 			for (size_t i = 0; i < 4; ++i) {
 				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.r[i];
-				cx_render_command_buffer_push(p_buffer, &((struct cx_render_command){
-					.p_mesh = shared_resources.r_meshes[i],
-					.p_object_data = &p_rd->object_data,
-					.p_material_data =
-						(p_rd->object_data.object_id == p_gizmo->active_control_id) ? 
-							(const void*)&shared_resources.material_hovered :
-							(const void*)&p_rd->material_data,
-				}));
+				draw_command.material_input_set.p_blocks = &p_rd->material_shader_program_input_block;
+				draw_command.material_input_set.num_blocks = 1;
+				draw_command.draw_input_set.p_blocks = &p_rd->object_shader_program_input_block;
+				draw_command.draw_input_set.num_blocks = 1;
+				draw_command.p_mesh = shared_resources.r_meshes[i];
+				cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &draw_command);
 			}
 			break;
 		}
@@ -363,25 +369,16 @@ void cx_transform_gizmo_record_flat_color_pass_commands(
 		case CX_TRANSFORM_GIZMO_MODE_scale: {
 			for (size_t i = 0; i < 7; ++i) {
 				const struct cx_transform_gizmo_control_render_data* p_rd = &p_gizmo->render_data.s[i];
-				cx_render_command_buffer_push(p_buffer, &((struct cx_render_command){
-					.p_mesh = shared_resources.s_meshes[i],
-					.p_object_data = &p_rd->object_data,
-					.p_material_data =
-						(p_rd->object_data.object_id == p_gizmo->active_control_id) ? 
-							(const void*)&shared_resources.material_hovered :
-							(const void*)&p_rd->material_data,
-				}));
+				draw_command.material_input_set.p_blocks = &p_rd->material_shader_program_input_block;
+				draw_command.material_input_set.num_blocks = 1;
+				draw_command.draw_input_set.p_blocks = &p_rd->object_shader_program_input_block;
+				draw_command.draw_input_set.num_blocks = 1;
+				draw_command.p_mesh = shared_resources.s_meshes[i];
+				cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &draw_command);
 			}
 			break;
 		}
 	}
-}
-
-void cx_transform_gizmo_record_picker_pass_commands(
-	const struct cx_transform_gizmo* p_gizmo,
-	struct cx_render_command_buffer* p_buffer) {
-
-	cx_transform_gizmo_record_flat_color_pass_commands(p_gizmo, p_buffer);
 }
 
 void cx_transform_gizmo_init_shared_resource(
@@ -430,12 +427,14 @@ void cx_transform_gizmo_update_transform(
 	matrix_multiply(translation, p_gizmo->gizmo_transform, p_gizmo->gizmo_transform);
 
 	// update per-control transform
+	
 	for (size_t i = 0; i < 7; ++i) {
-		matrix_copy(p_gizmo->gizmo_transform, p_gizmo->render_data.t[i].object_data.transform);
-		matrix_copy(p_gizmo->gizmo_transform, p_gizmo->render_data.s[i].object_data.transform);
+		matrix_copy(p_gizmo->gizmo_transform, p_gizmo->render_data.t[i].object_block_data.transform);
+		matrix_copy(p_gizmo->gizmo_transform, p_gizmo->render_data.s[i].object_block_data.transform);
 	}
+
 	for (size_t i = 0; i < 4; ++i) {
-		matrix_copy(p_gizmo->gizmo_transform, p_gizmo->render_data.r[i].object_data.transform);
+		matrix_copy(p_gizmo->gizmo_transform, p_gizmo->render_data.r[i].object_block_data.transform);
 	}
 }
 

@@ -1,17 +1,11 @@
-#include "cx_dbg.h"
 #include "cx_gfx_framebuffer.h"
 #include "cx_gfx_texture.h"
-#include "cx_io.h"
 #include "cx_object_id_capturer.h"
 #include "cx_pixel_format.h"
 #include "gl.h"
 #include "math_utils.h"
-#include "matrix.h"
 #include <stdint.h>
 
-static struct cx_render_pass render_pass;
-
-static void cx_object_id_capturer_init_statics(void);
 static void cx_object_id_capturer_destroy_framebuffer(struct cx_object_id_capturer* p_capturer);
 static void cx_object_id_capturer_rebuild_framebuffer(
 	struct cx_object_id_capturer* p_capturer,
@@ -22,45 +16,15 @@ void cx_object_id_capturer_free(struct cx_object_id_capturer* p_capturer) {
 	cx_object_id_capturer_destroy_framebuffer(p_capturer);
 }
 
-void cx_object_id_capturer_draw(
+void cx_object_id_capturer_set_fb_size(
 	struct cx_object_id_capturer* p_capturer,
-	const float* p_projection_matrix,
-	const float* p_view_matrix,
 	uint32_t fb_width,
-	uint32_t fb_height,
-	const struct cx_render_command_buffer* p_render_command_buffer) {
-
-	cx_object_id_capturer_init_statics();
+	uint32_t fb_height) {
 
 	if (p_capturer->framebuffer_width != fb_width ||
 		p_capturer->framebuffer_height!= fb_height) {
 		cx_object_id_capturer_rebuild_framebuffer(p_capturer, fb_width, fb_height);
 	}
-
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-
-	struct cx_render_pass_execute_info render_pass_execute_info = {
-		.p_framebuffer = &p_capturer->framebuffer,
-		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
-		.b_clear_color = 1,
-		.b_clear_depth = 1,
-		.clear_depth = 1.0f
-	};
-
-	float camera[32];
-	matrix_copy(p_projection_matrix, &camera[0]);
-	matrix_copy(p_view_matrix, &camera[16]);
-
-	struct cx_render_pass_data render_pass_data = {
-		.p_data = camera
-	};
-
-	cx_render_pass_execute(
-		&render_pass,
-		&render_pass_execute_info,
-		&render_pass_data,
-		p_render_command_buffer);
 }
 
 uint32_t cx_object_id_capturer_query(const struct cx_object_id_capturer* p_capturer, float x, float y) {
@@ -119,34 +83,4 @@ void cx_object_id_capturer_rebuild_framebuffer(
 
 	p_capturer->framebuffer_width = fb_width;
 	p_capturer->framebuffer_height = fb_height;
-}
-
-void cx_object_id_capturer_init_statics(void) {
-	static int b_done = 0;
-	if (b_done) {
-		return;
-	}
-
-	void* p_vsource;
-	void* p_fsource;
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/object_id.vert", (void**)&p_vsource, 0) == CX_ERROR_none,
-		OBJECT_ID_CAPTURER);
-	CX_ASSERT(cx_io_file_read_all("res/builtin/shd/object_id.frag", (void**)&p_fsource, 0) == CX_ERROR_none,
-		OBJECT_ID_CAPTURER);
-
-	const struct cx_render_pass_build_info render_pass_build_info = {
-		.program_source = {
-			.s_vertex_stage_source = p_vsource,
-			.s_fragment_stage_source = p_fsource
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-	};
-
-	CX_ASSERT(cx_render_pass_build(&render_pass_build_info, &render_pass), OBJECT_ID_CAPTURER);
-
-	cx_io_file_free(p_vsource);
-	cx_io_file_free(p_fsource);
-
-	b_done = 1;
 }

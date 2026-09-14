@@ -53,7 +53,7 @@ enum cx_error cx_gfx_texture_create(
 	uint32_t width, uint32_t height,
 	enum cx_pixel_format pixel_format) {
 	
-	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
+	struct cx_gfx_texture_gl_internals* p_internals = CX_GET_OPAQUE_INTERNALS(*p_texture);
 
 	GLuint id;
 
@@ -99,7 +99,7 @@ enum cx_error cx_gfx_texture_create(
 }
 
 void cx_gfx_texture_destroy(struct cx_gfx_texture* p_texture) {
-	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
+	struct cx_gfx_texture_gl_internals* p_internals = CX_GET_OPAQUE_INTERNALS(*p_texture);
 	glDeleteTextures(1, &p_internals->id);
 	*p_texture = (struct cx_gfx_texture){0};
 }
@@ -124,7 +124,7 @@ void cx_gfx_texture_set_data_subregion(
 	uint32_t offset_x, uint32_t offset_y,
 	uint32_t width, uint32_t height) {
 
-	const struct cx_gfx_texture_gl_internals* p_internals = (const void*)p_texture->bytes_;
+	const struct cx_gfx_texture_gl_internals* p_internals = CX_GET_OPAQUE_INTERNALS_CONST(*p_texture);
 
 	glBindTexture(GL_TEXTURE_2D, p_internals->id);
 
@@ -146,7 +146,7 @@ void cx_gfx_texture_set_sampler_settings(
 	struct cx_gfx_texture* p_texture,
 	const struct cx_texture_sampler_settings* p_sampler_settings) {
 
-	struct cx_gfx_texture_gl_internals* p_internals = (void*)p_texture->bytes_;
+	struct cx_gfx_texture_gl_internals* p_internals = CX_GET_OPAQUE_INTERNALS(*p_texture);
 
 	glBindTexture(GL_TEXTURE_2D, p_internals->id);
 

@@ -8,6 +8,10 @@ int cx_stream_serialize_bytes(struct cx_stream* p_stream, size_t size, const voi
 	return cx_stream_write(p_stream, size, p_bytes);
 }
 
+int cx_stream_serialize_bool(struct cx_stream* p_stream, int b_value) {
+	return cx_stream_serialize_uint8(p_stream, !!b_value);
+}
+
 int cx_stream_serialize_uint8(struct cx_stream* p_stream, uint8_t value) {
 	return cx_stream_serialize_bytes(p_stream, 1, &value);
 }
@@ -62,6 +66,13 @@ int cx_stream_deserialize_bytes(struct cx_stream* p_stream, size_t size, void* p
 	return cx_stream_read(p_stream, size, p_bytes);
 }
 
+int cx_stream_deserialize_bool(struct cx_stream* p_stream, int* b_out) {
+	uint8_t b;
+	const int retval = cx_stream_deserialize_uint8(p_stream, &b);
+	*b_out = !!b;
+	return retval;
+}
+
 int cx_stream_deserialize_uint8(struct cx_stream* p_stream, uint8_t* p_out) {
 	return cx_stream_deserialize_bytes(p_stream, 1, p_out);
 }
@@ -105,8 +116,10 @@ int cx_stream_deserialize_float64(struct cx_stream* p_stream, double* p_out) {
 int cx_stream_deserialize_string(struct cx_stream* p_stream, char* p_out_str, size_t* p_out_len) {
 	uint64_t temp;
 	if (cx_stream_deserialize_uint64(p_stream, &temp)) {
-		*p_out_len = temp;
-		return cx_stream_deserialize_bytes(p_stream, *p_out_len, p_out_str);
+		if (p_out_len) {
+			*p_out_len = temp;
+		}
+		return cx_stream_deserialize_bytes(p_stream, temp, p_out_str);
 	}
 	return CX_FALSE;
 }

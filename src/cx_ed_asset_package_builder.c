@@ -17,14 +17,19 @@ static void cx_asset_enumerate_dependencies_cb(cx_asset_id asset_id, void* p_use
 
 void cx_ed_asset_package_builder_add_asset(
 	struct cx_ed_asset_package_builder* p_builder, const struct cx_asset_ref* p_asset_ref) {
-	
+
+	struct cx_asset_ref asset_ref = { .asset_id = p_asset_ref->asset_id };
+	void* p_asset = cx_asset_cache_acquire(&asset_ref);
+
 	cx_asset_type_enumerate_dependencies(
 		CX_ASSET_GET_TYPE_ID(p_asset_ref->asset_id),
-		*p_asset_ref->pp_asset,
+		p_asset,
 		cx_asset_enumerate_dependencies_cb,
 		p_builder);
 
 	cx_ed_asset_package_builder_add_asset_internal(p_builder, p_asset_ref);
+
+	cx_asset_cache_release(&asset_ref);
 }
 
 void cx_ed_asset_package_builder_export(const struct cx_ed_asset_package_builder* p_builder, const char* s_filepath) {

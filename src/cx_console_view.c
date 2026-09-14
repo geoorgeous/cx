@@ -1,27 +1,39 @@
+#include "cx_asset_cache.h"
 #include "cx_console.h"
 #include "cx_console_view.h"
-#include "cx_dbg.h"
 #include "cx_font.h"
 #include "cx_gfx_mesh.h"
-#include "cx_render_pass.h"
-#include "cx_io.h"
+#include "cx_gfx_render_pass.h"
 #include "cx_mesh_data.h"
 #include "cx_mesh_gen.h"
+#include "cx_render_draw_command.h"
+#include "cx_shader.h"
 #include "cx_text_mesher.h"
 #include "matrix.h"
 
 #define CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS 1024
 
-static struct cx_render_pass render_pass_flat_color;
-static struct cx_render_pass render_pass_text;
+static struct cx_asset_ref g_asset_ref_shader_flat;
+static struct cx_asset_ref g_asset_ref_shader_text;
+static struct cx_render_pipeline g_render_pipeline_flat;
+static struct cx_render_pipeline g_render_pipeline_text;
 
-static struct cx_render_command render_pass_commands[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
-static float render_command_object_data[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS][16];
-static struct cx_color render_command_material_data[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
+static struct cx_gfx_mesh g_text_mesh;
+static struct cx_gfx_mesh g_log_text_mesh;
+static struct cx_gfx_mesh g_quad_mesh;
 
-static struct cx_gfx_mesh text_mesh;
-static struct cx_gfx_mesh log_text_mesh;
-static struct cx_gfx_mesh quad_mesh;
+static struct cx_render_draw_command g_render_draw_commands[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
+
+static struct cx_gfx_shader_program_input_texture
+	g_shader_program_input_texture_pool[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
+static uint16_t g_shader_program_input_texture_pool_len;
+
+static struct cx_gfx_shader_program_input_block
+	g_shader_program_input_block_pool[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS];
+static uint16_t g_shader_program_input_block_pool_len;
+
+static float g_draw_command_vertex_matrices[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS][16];
+static float g_draw_command_colors[CX_CONSOLE_VIEW_MAX_RENDER_COMMANDS][4];
 
 static int cx_console_view_init(void);
 
@@ -30,13 +42,13 @@ static void cx_console_view_generate_text_meshes(
 	const struct cx_font_render_data* p_font_render_data);
 
 static void cx_console_view_record_quad(
-	struct cx_render_command_buffer* p_render_command_buffer,
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer,
 	float x, float y,
 	float width, float height,
 	const struct cx_color* p_color);
 
 static void cx_console_view_record_text_mesh(
-	struct cx_render_command_buffer* p_render_command_buffer,
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer,
 	const struct cx_gfx_mesh* p_mesh,
 	const struct cx_gfx_texture* p_texture,
 	float x, float baseline);
@@ -110,44 +122,58 @@ void cx_console_view_draw(
 	const float output_text_x = left + padding_x;
 	const float output_text_baseline = output_bg_bottom + padding_y + (float)p_font_render_data->p_font->descent_;
 
-	struct cx_render_pass_execute_info render_pass_execute_info = {
-		.p_framebuffer = p_fb,
-		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
-		.b_clear_depth = 1,
-		.clear_depth = 1.0f
-	};
-
-	struct cx_render_pass_data render_pass_data = {
+	struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
+		.s_name = "blk_camera",
+		.size = sizeof(camera),
 		.p_data = &camera
 	};
 
-	struct cx_render_command_buffer render_command_buffer = {
-		.p_commands = render_pass_commands,
-		.capacity = CX_ARRAY_LEN(render_pass_commands)
+	struct cx_gfx_render_pass render_pass = {
+		.p_framebuffer = p_fb,
+		.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
+		.clear_flags = CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
+		.clear_depth = 1.0f,
+		.pass_input_set = {
+			.p_blocks = &render_pass_shader_program_input_block,
+			.num_blocks = 1
+		}
 	};
 
-	// quads
+	struct cx_render_draw_command_buffer render_draw_command_buffer = {
+		.p_first = g_render_draw_commands,
+		.capacity = CX_ARRAY_LEN(g_render_draw_commands)
+	};
 
-	cx_console_view_record_quad(&render_command_buffer,
-		input_cursor_x, input_cursor_y, input_cursor_width, input_cursor_height, &fg_color);
+	cx_console_view_record_quad(
+		&render_draw_command_buffer,
+		input_cursor_x,
+		input_cursor_y,
+		input_cursor_width,
+		input_cursor_height,
+		&fg_color);
 	
-	cx_console_view_record_quad(&render_command_buffer,
-		input_bg_x, input_bg_y, input_bg_width, input_bg_height, &bg_color);
+	cx_console_view_record_quad(
+		&render_draw_command_buffer,
+		input_bg_x,
+		input_bg_y,
+		input_bg_width,
+		input_bg_height,
+		&bg_color);
 	
-	cx_console_view_record_quad(&render_command_buffer,
-		output_bg_x, output_bg_y, output_bg_width, output_bg_height, &bg_color);
+	cx_console_view_record_quad(
+		&render_draw_command_buffer,
+		output_bg_x,
+		output_bg_y,
+		output_bg_width,
+		output_bg_height,
+		&bg_color);
 
-	cx_render_pass_execute(
-		&render_pass_flat_color,
-		&render_pass_execute_info,
-		&render_pass_data,
-		&render_command_buffer);
-	render_command_buffer.num = 0;
-
-	// text
-
-	cx_console_view_record_text_mesh(&render_command_buffer,
-		&text_mesh, p_font_render_data->p_glyph_texture, input_text_x, input_text_baseline);
+	cx_console_view_record_text_mesh(
+		&render_draw_command_buffer,
+		&g_text_mesh,
+		p_font_render_data->p_glyph_texture,
+		input_text_x,
+		input_text_baseline);
 
 	if (p_console->flogger.ring_entries_.entries_count_ > 0) {
 		size_t size;
@@ -155,73 +181,66 @@ void cx_console_view_draw(
 		float log_width, log_height;
 		cx_text_mesher_measure(p_flog->s, SIZE_MAX, p_font_render_data, 1, &log_width, &log_height);
 
-		cx_console_view_record_text_mesh(&render_command_buffer,
-			&log_text_mesh, p_font_render_data->p_glyph_texture,
-			output_text_x, output_text_baseline + log_height - line_height);
+		cx_console_view_record_text_mesh(
+			&render_draw_command_buffer,
+			&g_log_text_mesh,
+			p_font_render_data->p_glyph_texture,
+			output_text_x,
+			output_text_baseline + log_height - line_height);
 	}
 
-	render_pass_execute_info.b_clear_depth = 0;
+	cx_gfx_render_pass_execute(&render_pass, render_draw_command_buffer.p_first, render_draw_command_buffer.len);
 
-	cx_render_pass_execute(
-		&render_pass_text,
-		&render_pass_execute_info,
-		&render_pass_data,
-		&render_command_buffer);
-	render_command_buffer.num = 0;
+	g_shader_program_input_texture_pool_len = 0;
+	g_shader_program_input_block_pool_len = 0;
 	
-	cx_gfx_mesh_destroy(&text_mesh);
-	cx_gfx_mesh_destroy(&log_text_mesh);
+	cx_gfx_mesh_destroy(&g_text_mesh);
+	cx_gfx_mesh_destroy(&g_log_text_mesh);
 }
 
 int cx_console_view_init(void) {
 	static int b_init;
 
 	if (b_init) {
-		return 1;
+		return CX_TRUE;
 	}
 
-	char* s_vert;
-	char* s_frag;
+	struct cx_shader* p_shader;
 
-	cx_io_file_read_all("res/builtin/shd/flat.vert", (void**)&s_vert, CX_NULL);
-	cx_io_file_read_all("res/builtin/shd/flat.frag", (void**)&s_frag, CX_NULL);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_flat", &g_asset_ref_shader_flat);
+	p_shader = cx_asset_cache_acquire(&g_asset_ref_shader_flat);
+	cx_shader_load_device_program(p_shader);
 
-	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
-		.program_source = {
-			.s_vertex_stage_source = s_vert,
-			.s_fragment_stage_source = s_frag
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-		.s_material_block_name = "blk_material_properties"
-	}), &render_pass_flat_color), CONSOLE);
+	g_render_pipeline_flat = (struct cx_render_pipeline) {
+		.p_shader = p_shader,
+		.state = {
+			.flags = CX_RENDER_PIPELINE_FLAG_blend_enabled,
+			.blend_src_func = CX_BLEND_FUNC_src_alpha,
+			.blend_dst_func = CX_BLEND_FUNC_one_minus_src_alpha,
+			.cull_mode = CX_CULL_MODE_back
+		}
+	};
 
-	cx_io_file_free(s_vert);
-	cx_io_file_free(s_frag);
-	
-	cx_io_file_read_all("res/builtin/shd/text.vert", (void**)&s_vert, CX_NULL);
-	cx_io_file_read_all("res/builtin/shd/text.frag", (void**)&s_frag, CX_NULL);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_text", &g_asset_ref_shader_text);
+	p_shader = cx_asset_cache_acquire(&g_asset_ref_shader_text);
+	cx_shader_load_device_program(p_shader);
 
-	CX_ASSERT(cx_render_pass_build(&((struct cx_render_pass_build_info){
-		.program_source = {
-			.s_vertex_stage_source = s_vert,
-			.s_fragment_stage_source = s_frag
-		},
-		.s_pass_block_name = "blk_camera",
-		.s_object_block_name = "blk_object",
-		.p_s_opaque_param_names = (const char*[]){ "u_texture_albedo" },
-		.num_opaque_params = 1
-	}), &render_pass_text), CONSOLE);
-
-	cx_io_file_free(s_vert);
-	cx_io_file_free(s_frag);
+	g_render_pipeline_text = (struct cx_render_pipeline) {
+		.p_shader = p_shader,
+		.state = {
+			.flags = CX_RENDER_PIPELINE_FLAG_blend_enabled,
+			.blend_src_func = CX_BLEND_FUNC_src_alpha,
+			.blend_dst_func = CX_BLEND_FUNC_one_minus_src_alpha,
+			.cull_mode = CX_CULL_MODE_back
+		}
+	};
 
 	struct cx_mesh_data quad_mesh_data;
 	cx_mesh_gen_quad(0.5f, 0.5f, (float[]){ 0, 0, 1 }, &quad_mesh_data);
-	cx_gfx_mesh_create(&quad_mesh_data, CX_GFX_BUFFER_USAGE_static, &quad_mesh);
+	cx_gfx_mesh_create(&quad_mesh_data, CX_GFX_BUFFER_USAGE_static, &g_quad_mesh);
 	cx_mesh_gen_free(&quad_mesh_data);
 
-	return (b_init = 1);
+	return (b_init = CX_TRUE);
 }
 
 void cx_console_view_generate_text_meshes(
@@ -242,7 +261,7 @@ void cx_console_view_generate_text_meshes(
 
 	cx_text_mesher_generate(&text_mesher_input, 1, &text_mesher_output, &num_text_meshes);
 
-	cx_gfx_mesh_create(&text_mesher_output.mesh_data, CX_GFX_BUFFER_USAGE_dynamic, &text_mesh);
+	cx_gfx_mesh_create(&text_mesher_output.mesh_data, CX_GFX_BUFFER_USAGE_dynamic, &g_text_mesh);
 
 	cx_text_mesher_free(&text_mesher_output, 1);
 
@@ -264,42 +283,83 @@ void cx_console_view_generate_text_meshes(
 
 	cx_text_mesher_generate(&log_text_mesher_input, 1, &text_mesher_output, &num_text_meshes);
 
-	cx_gfx_mesh_create(&text_mesher_output.mesh_data, CX_GFX_BUFFER_USAGE_dynamic, &log_text_mesh);
+	cx_gfx_mesh_create(&text_mesher_output.mesh_data, CX_GFX_BUFFER_USAGE_dynamic, &g_log_text_mesh);
 
 	cx_text_mesher_free(&text_mesher_output, 1);
 }
 
 void cx_console_view_record_quad(
-	struct cx_render_command_buffer* p_render_command_buffer,
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer,
 	float x, float y,
 	float width, float height,
 	const struct cx_color* color) {
 
-	matrix_make_ts((float[]){ x, y, 0 }, (float[]){ width, height, 1 },
-		render_command_object_data[p_render_command_buffer->num]);
+	float* p_vertex_matrix = g_draw_command_vertex_matrices[p_render_draw_command_buffer->len];
+	matrix_make_ts((float[]){ x, y, 0 }, (float[]){ width, height, 1 }, p_vertex_matrix);
 
-	render_command_material_data[p_render_command_buffer->num] = *color;
+	float* p_color = g_draw_command_colors[p_render_draw_command_buffer->len];
+	p_color[0] = CX_COLOR_R(*color);
+	p_color[1] = CX_COLOR_G(*color);
+	p_color[2] = CX_COLOR_B(*color);
+	p_color[3] = CX_COLOR_A(*color);
 
-	cx_render_command_buffer_push(p_render_command_buffer, &((struct cx_render_command){
-		.p_mesh = &quad_mesh,
-		.p_object_data = &render_command_object_data[p_render_command_buffer->num],
-		.p_material_data = &render_command_material_data[p_render_command_buffer->num]
-	}));
+	struct cx_gfx_shader_program_input_block* p_material_shader_program_input_block =
+		&g_shader_program_input_block_pool[g_shader_program_input_block_pool_len++];
+	p_material_shader_program_input_block->s_name = "blk_material_properties";
+	p_material_shader_program_input_block->size = sizeof(float) * 4;
+	p_material_shader_program_input_block->p_data = p_color;
+
+	struct cx_gfx_shader_program_input_block* p_draw_shader_program_input_block =
+		&g_shader_program_input_block_pool[g_shader_program_input_block_pool_len++];
+	p_draw_shader_program_input_block->s_name = "blk_object";
+	p_draw_shader_program_input_block->size = sizeof(float) * 16;
+	p_draw_shader_program_input_block->p_data = p_vertex_matrix;
+
+	cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &(struct cx_render_draw_command) {
+		.pipeline = g_render_pipeline_flat,
+		.p_mesh = &g_quad_mesh,
+		.material_input_set = {
+			.p_blocks = p_material_shader_program_input_block,
+			.num_blocks = 1
+		},
+		.draw_input_set = {
+			.p_blocks = p_draw_shader_program_input_block,
+			.num_blocks = 1
+		}
+	});
 }
 
 void cx_console_view_record_text_mesh(
-	struct cx_render_command_buffer* p_render_command_buffer,
+	struct cx_render_draw_command_buffer* p_render_draw_command_buffer,
 	const struct cx_gfx_mesh* p_mesh,
 	const struct cx_gfx_texture* p_texture,
 	float x, float baseline) {
 
-	matrix_make_translation(x, baseline, 1,
-		render_command_object_data[p_render_command_buffer->num]);
+	float* p_vertex_matrix = g_draw_command_vertex_matrices[p_render_draw_command_buffer->len];
 
-	cx_render_command_buffer_push(p_render_command_buffer, &((struct cx_render_command){
+	matrix_make_translation(x, baseline, 1, p_vertex_matrix);
+
+	struct cx_gfx_shader_program_input_texture* p_material_shader_program_input_texture =
+		&g_shader_program_input_texture_pool[g_shader_program_input_texture_pool_len++];
+	p_material_shader_program_input_texture->s_name = "u_texture_albedo";
+	p_material_shader_program_input_texture->p_texture = p_texture;
+
+	struct cx_gfx_shader_program_input_block* p_draw_shader_program_input_block =
+		&g_shader_program_input_block_pool[g_shader_program_input_block_pool_len++];
+	p_draw_shader_program_input_block->s_name = "blk_object";
+	p_draw_shader_program_input_block->size = sizeof(float) * 16;
+	p_draw_shader_program_input_block->p_data = p_vertex_matrix;
+
+	cx_render_draw_command_buffer_push(p_render_draw_command_buffer, &(struct cx_render_draw_command) {
+		.pipeline = g_render_pipeline_text,
 		.p_mesh = p_mesh,
-		.p_object_data = &render_command_object_data[p_render_command_buffer->num],
-		.p_opaque_resources = { p_texture },
-		.num_opaque_params = 1
-	}));
+		.material_input_set = {
+			.p_textures = p_material_shader_program_input_texture,
+			.num_textures = 1
+		},
+		.draw_input_set = {
+			.p_blocks = p_draw_shader_program_input_block,
+			.num_blocks = 1
+		}
+	});
 }

@@ -16,22 +16,24 @@
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
-#include "cx_gfx_program.h"
+#include "cx_gfx_mesh.h"
+#include "cx_gfx_render_pass.h"
 #include "cx_gfx_texture.h"
 #include "cx_image.h"
 #include "cx_input.h"
 #include "cx_keys.h"
 #include "cx_logging.h"
+#include "cx_material.h"
 #include "cx_pixel_format.h"
 #include "cx_platform_time.h"
-#include "cx_platform_window.h"
+#include "cx_shader.h"
 #include "cx_text_mesher.h"
 #include "cx_texture.h"
 #include "cx_texture_atlas_layout.h"
 #include "cx_world.h"
 #include "cx_world_blueprint.h"
-#include "gl.h"
-#include "material.h"
+#include "input.h"
+#include "keys.h"
 #include "matrix.h"
 #include "static_mesh.h"
 
@@ -43,8 +45,8 @@ static struct {
 	struct cx_gfx_texture primary_framebuffer_texture_color;
 	struct cx_gfx_texture primary_framebuffer_texture_depth_stencil;
 
-	struct cx_gfx_program screen_quad_program;
-	struct cx_gfx_program_opaque_param screen_quad_program_opaque_param_texture;
+	struct cx_asset_ref asset_ref_shader_screen_quad;
+	struct cx_gfx_mesh dummy_mesh;
 
 	struct cx_asset_package builtin_asset_pkg;
 	struct cx_asset_ref console_font_ref;
@@ -70,7 +72,7 @@ int cx_app_init(
 
 	cx_result result;
 
-	srand(time(CX_NULL));
+	srand((unsigned int)time(CX_NULL));
 
 	result = cx_platform_window_create(
 		window_width, window_height,
@@ -113,30 +115,13 @@ int cx_app_init(
 
 	// create screen shader program
 	
-	struct cx_gfx_program_source program_screen_source = {
-		.s_vertex_stage_source = "#version 330 core\n"
-			"out vec2 v_texcoords;\n"
-			"void main() {\n"
-				"vec2 vertices[3] = vec2[3](vec2(-1, -1), vec2(3, -1), vec2(-1, 3));\n"
-				"gl_Position = vec4(vertices[gl_VertexID], 0, 1);\n"
-				"v_texcoords = 0.5 * gl_Position.xy + vec2(0.5);\n"
-			"}",
-		.s_fragment_stage_source = "#version 330 core\n"
-		"uniform sampler2D u_texture;\n"
-		"in vec2 v_texcoords;\n"
-		"out vec4 f_color;\n"
-		"void main() {\n"
-			"f_color = texture(u_texture, v_texcoords);\n"
-		"}"
-	};
 
-	cx_gfx_program_create(&cx_app.screen_quad_program);
-	cx_gfx_program_build(&cx_app.screen_quad_program, &program_screen_source);
-
-	cx_gfx_program_refl_opaque_param(
-		&cx_app.screen_quad_program,
-		"u_texture",
-		&cx_app.screen_quad_program_opaque_param_texture);
+	// TODO(george): for materials that are saved (like entity mesh materials) we need to make sure that the shaders
+	//     they use are also saved assets. for other built-in shaders, they don't necessarily need to be saved, like
+	//     screen-quad, mesh-picker, or UI shaders
+	// TODO(george): refactor screen quad code to use new material/shader
+	// TODO(george): refactor mesh picker code to use new material/shader
+	// TODO(george): refactor world renderer to use new material and render param code
 
 	cx_asset_register_type(CX_ASSET_TYPE_IMAGE, "image", sizeof(struct cx_image),
 		cx_image_asset_serialize, cx_image_asset_deserialize, CX_NULL, cx_image_asset_destroy);
@@ -147,8 +132,14 @@ int cx_app_init(
 		cx_texture_asset_enumerate_dependencies,
 		cx_texture_asset_free);
 
-	cx_asset_register_type(CX_ASSET_TYPE_MATERIAL, "material", sizeof(struct material),
-		material_asset_serialize, material_asset_deserialize, material_asset_enumerate_dependencies, CX_NULL);
+	cx_asset_register_type(CX_ASSET_TYPE_SHADER, "shader", sizeof(struct cx_shader), 
+		cx_shader_asset_serialize, cx_shader_asset_deserialize, CX_NULL, cx_shader_asset_free);
+
+	cx_asset_register_type(CX_ASSET_TYPE_MATERIAL, "material", sizeof(struct cx_material),
+		cx_material_asset_serialize, 
+		cx_material_asset_deserialize,
+		cx_material_asset_enumerate_dependencies,
+		cx_material_asset_free);
 	
 	cx_asset_register_type(CX_ASSET_TYPE_STATIC_MESH, "static_mesh", sizeof(struct static_mesh),
 		static_mesh_asset_serialize,
@@ -182,7 +173,20 @@ int cx_app_init(
 			.f_find_asset_by_name = cx_asset_source_find_package_asset_by_name,
 			.f_try_deserialize_asset = cx_asset_source_deserialize_package_asset
 		});
+	}
 
+	input_init();
+
+	input_event_subscribe(INPUT_EVENT_key, on_key, 0);
+	
+	cx_console_init(cx_console_get());
+
+	CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
+	CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
+	
+	f_init(argc, argv);
+	
+	{
 		cx_asset_cache_find_by_name(CX_ASSET_TYPE_FONT, "default_8x14", &cx_app.console_font_ref);
 		struct cx_font* p_font = cx_asset_cache_acquire(&cx_app.console_font_ref);
 
@@ -202,14 +206,17 @@ int cx_app_init(
 			&font_atlas_image.pixel_data_format);
 
 		free(font_atlas_image.p_pixel_data);
-
-		cx_console_init(cx_console_get());
-
-		CX_NEW_CONSOLE_COMMAND("quit", "Close application", console_command_quit, CX_NULL, CX_CONSOLE_COMMAND_NO_PARAMS);
-		CX_NEW_CONSOLE_COMMAND_ALIAS("q", "quit");
 	}
 
-	f_init(argc, argv);
+	cx_asset_cache_find_by_name(CX_ASSET_TYPE_SHADER, "shader_screen_quad", &cx_app.asset_ref_shader_screen_quad);
+	struct cx_shader* p_shader = cx_asset_cache_acquire(&cx_app.asset_ref_shader_screen_quad);
+	cx_shader_load_device_program(p_shader);
+
+	const struct cx_mesh_data dummy_mesh_data = {
+		.layout.draw_mode = CX_MESH_DRAW_MODE_triangles,
+		.vertex_count = 3
+	};
+	cx_gfx_mesh_create(&dummy_mesh_data, CX_GFX_BUFFER_USAGE_static, &cx_app.dummy_mesh);
 
 	return 0;
 }
@@ -248,9 +255,6 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 			f_draw(&cx_app.primary_framebuffer);
 
 			if (cx_console_get()->b_is_input_enabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 				struct cx_font_render_data font_render_data = {
 					.p_font = cx_asset_cache_acquire(&cx_app.console_font_ref),
 					.p_glyph_texture = &cx_app.console_font_glyph_atlas_texture,
@@ -270,7 +274,8 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 					projection_matrix);
 				matrix_make_identity(view_matrix);
 
-				cx_console_view_draw(cx_console_get(),
+				cx_console_view_draw(
+					cx_console_get(),
 					&font_render_data,
 					&cx_app.primary_framebuffer,
 					cx_app.primary_framebuffer_texture_color.width_,
@@ -280,27 +285,35 @@ void cx_app_run(cx_app_update_callback_fn f_update, cx_app_draw_callback_fn f_dr
 
 			// SCREEN QUAD
 			{
-				uint32_t window_size[2];
-				cx_platform_window_size(&cx_app.window, &window_size[0], &window_size[1]);
+				uint32_t window_width;
+				uint32_t window_height;
+				platform_window_size(&cx_app.window, &window_width, &window_height);
 
-				cx_gfx_framebuffer_bind(cx_gfx_context_get_backbuffer(&cx_app.gfx_context));
+				struct cx_gfx_shader_program_input_texture shader_input_texture = {
+					.s_name = "u_texture",
+					.p_texture = &cx_app.primary_framebuffer_texture_color
+				};
 
-				glViewport(0, 0, (GLsizei)window_size[0], (GLsizei)window_size[1]);
-				glClearColor(0, 0, 0, 0);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				struct cx_gfx_render_pass render_pass_screen_quad = {
+					.p_framebuffer = cx_gfx_context_get_backbuffer(&cx_app.gfx_context),
+					.viewport = { 0, 0, (int32_t)window_width, (int32_t)window_height },
+					.clear_flags =
+						CX_GFX_RENDER_TARGET_CLEAR_FLAG_color |
+						CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
+					.pass_input_set = {
+						.p_textures = &shader_input_texture,
+						.num_textures = 1
+					}
+				};
 
-				cx_gfx_program_bind(&cx_app.screen_quad_program);
-		
-				cx_gfx_program_opaque_param_bind_resource(&((struct cx_gfx_program_opaque_param_binding){
-					.p_param = &cx_app.screen_quad_program_opaque_param_texture,
-					.p_resource = &cx_app.primary_framebuffer_texture_color
-				}));
+				struct cx_render_draw_command draw_command_screen_quad = {
+					.pipeline = {
+						.p_shader = cx_asset_ref_get(&cx_app.asset_ref_shader_screen_quad)
+					},
+					.p_mesh = &cx_app.dummy_mesh
+				};
 
-				GLuint gl_empty_vao;
-				glGenVertexArrays(1, &gl_empty_vao);
-				glBindVertexArray(gl_empty_vao);
-				glDrawArrays(GL_TRIANGLES, 0, 3);
-				glDeleteVertexArrays(1, &gl_empty_vao);
+				cx_gfx_render_pass_execute(&render_pass_screen_quad, &draw_command_screen_quad, 1);
 			}
 		}
 
