@@ -295,7 +295,7 @@ void cx_console_view_record_quad(
 	const struct cx_color* color) {
 
 	float* p_vertex_matrix = g_draw_command_vertex_matrices[p_render_draw_command_buffer->len];
-	matrix_make_ts((float[]){ x, y, 0 }, (float[]){ width, height, 1 }, p_vertex_matrix);
+	matrix_make_ts(x, y, 0, width, height, 1, p_vertex_matrix);
 
 	float* p_color = g_draw_command_colors[p_render_draw_command_buffer->len];
 	p_color[0] = CX_COLOR_R(*color);

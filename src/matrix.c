@@ -98,17 +98,17 @@ void matrix_make_rotation_from_quaternion(const float* p_quaternion, float* p_re
 	p_result[15] = 1.f;
 }
 
-void matrix_make_ts(const float* p_t_xyz, const float* p_s_xyz, float* p_out) {
+void matrix_make_ts(float tx, float ty, float tz, float sx, float sy, float sz, float* p_out) {
 	memset(p_out, 0, sizeof(*p_out) * 16);
 
-	p_out[ 0] = p_s_xyz[0];
-	p_out[ 5] = p_s_xyz[1];
-	p_out[10] = p_s_xyz[2];
+	p_out[ 0] = sx;
+	p_out[ 5] = sy;
+	p_out[10] = sz;
 	p_out[15] = 1.0f;
 
-	p_out[12] = p_t_xyz[0];
-	p_out[13] = p_t_xyz[1];
-	p_out[14] = p_t_xyz[2];
+	p_out[12] = tx;
+	p_out[13] = ty;
+	p_out[14] = tz;
 }
 
 void matrix_make_trs(const float* p_t_xyz, const float* p_r_xyzw, const float* p_s_xyz, float* p_result) {
