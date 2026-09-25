@@ -146,7 +146,7 @@ void cx_gfx_mesh_update(struct cx_gfx_mesh *p_mesh, const struct cx_mesh_data *p
 		cx_gfx_buffer_set(p_vbuf, p_vertex_buffer->size, p_vertex_buffer->p_bytes);
 	}
 
-	if (p_mesh_data->layout.index_type == CX_MESH_VERTEX_INDEX_TYPE_none) {
+	if (p_mesh_data->layout.index_type != CX_MESH_VERTEX_INDEX_TYPE_none) {
 		const size_t index_buffer_size =
 			cx_mesh_vertex_index_type_size(p_mesh_data->layout.index_type) * p_mesh_data->index_buffer.count;
 		cx_gfx_buffer_set(&p_internals->index_buffer, index_buffer_size, p_mesh_data->index_buffer.p_bytes);
