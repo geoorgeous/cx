@@ -11,6 +11,11 @@ struct cx_render_draw_command {
 	struct cx_gfx_shader_program_input_set material_input_set;
 	struct cx_gfx_shader_program_input_set draw_input_set;
 	const struct cx_gfx_mesh* p_mesh;
+	int b_scissor;
+	int16_t scissor_x;
+	int16_t scissor_y;
+	uint16_t scissor_width;
+	uint16_t scissor_height;
 };
 
 struct cx_render_draw_command_buffer {

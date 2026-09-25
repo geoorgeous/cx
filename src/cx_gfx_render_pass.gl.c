@@ -85,6 +85,17 @@ void cx_gfx_render_pass_execute(
 		
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, (GLsizeiptr)g_ubo_staging_buffer_size, g_ubo_staging_buffer);
 
+		if (p_draw_command->b_scissor) {
+			glEnable(GL_SCISSOR_TEST);
+			glScissor(
+				p_draw_command->scissor_x,
+				p_draw_command->scissor_y,
+				p_draw_command->scissor_width,
+				p_draw_command->scissor_height);
+		} else {
+			glDisable(GL_SCISSOR_TEST);
+		}
+
 		cx_gfx_mesh_draw(p_draw_command->p_mesh);
 	}
 }
@@ -226,9 +237,9 @@ void cx_gfx_render_pass_apply_pipeline_state(const struct cx_render_pipeline_sta
 			g_gl_blend_funcs[p_render_pipeline_state->blend_dst_func]);
 
 		if ((p_render_pipeline_state->blend_src_func >= CX_BLEND_FUNC_blend_color &&
-			p_render_pipeline_state->blend_src_func <= CX_BLEND_FUNC_one_minus_blend_color_alpha) ||
+			 p_render_pipeline_state->blend_src_func <= CX_BLEND_FUNC_one_minus_blend_color_alpha) ||
 			(p_render_pipeline_state->blend_dst_func >= CX_BLEND_FUNC_blend_color &&
-			p_render_pipeline_state->blend_dst_func <= CX_BLEND_FUNC_one_minus_blend_color_alpha)) {
+			 p_render_pipeline_state->blend_dst_func <= CX_BLEND_FUNC_one_minus_blend_color_alpha)) {
 
 			glBlendColor(
 				(GLfloat)p_render_pipeline_state->blend_color[0],

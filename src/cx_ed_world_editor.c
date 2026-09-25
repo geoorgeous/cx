@@ -14,6 +14,7 @@
 #include "cx_ed_world_editor.h"
 #include "cx_gfx_mesh.h"
 #include "cx_gfx_render_pass.h"
+#include "cx_imgui.h"
 #include "cx_input.h"
 #include "cx_input_mods.h"
 #include "cx_macro.h"
@@ -88,6 +89,9 @@ static struct {
 	struct cx_flog_style   flog_builder_style_buf[8];
 	struct cx_flog_span    flog_builder_span_buf[8];
 	struct cx_flog_builder flog_builder;
+
+	struct cx_imgui imgui;
+	char imgui_text_input_buf[128];
 
 	// editor camera
 	struct {
@@ -333,6 +337,8 @@ void cx_ed_world_editor_init(struct cx_platform_window* p_window, const char* s_
 	cx_world_instantiate_blueprint(&ed.world, p_blueprint);
 
 	cx_asset_cache_release(&blueprint_asset_ref);
+
+	strcpy(ed.imgui_text_input_buf, "hello world");
 }
 
 void cx_ed_world_editor_shutdown(void) {
@@ -492,6 +498,35 @@ void cx_ed_world_editor_update(double dt_seconds) {
 	}
 
 	cx_world_compute_transforms(&ed.world);
+
+	unsigned int window_width;
+	unsigned int window_height;
+	cx_platform_window_size(ed.p_window, &window_width, &window_height);
+	cx_imgui_begin(&ed.imgui, (uint16_t)window_width, (uint16_t)window_height);
+
+	cx_imgui_set_next_width(&ed.imgui, 120);
+	if (cx_imgui_button(&ed.imgui, "button1", "test button")) {
+		CX_LAZYLOG("click1\n");
+		exit(0);
+	}
+
+	cx_imgui_set_next_width(&ed.imgui, 120);
+	if (cx_imgui_button(&ed.imgui, "button2", "another one!")) {
+		CX_LAZYLOG("click2\n");
+	}
+
+	if (cx_imgui_text_input(&ed.imgui, "textinput1", ed.imgui_text_input_buf, sizeof(ed.imgui_text_input_buf))) {
+	}
+
+	static const char* dropdown_options[] = {
+		"apple",
+		"banana",
+		"clementine",
+		"dragonfruit"
+	};
+	static uint16_t dropdown_current_option = 1;
+
+	cx_imgui_end(&ed.imgui);
 }
 
 void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_width, uint32_t fb_height) {
@@ -595,6 +630,40 @@ void cx_ed_world_editor_draw(const struct cx_gfx_framebuffer* p_fb, uint32_t fb_
 		cx_gfx_render_pass_execute(&render_pass_world, draw_command_buffer.p_first, draw_command_buffer.len);
 
 		draw_command_buffer.len = 0;
+	}
+
+	// imgui
+	{
+		struct {
+			float projection_matrix[16];
+			float view_matrix[16];
+		} imgui_camera;
+
+		matrix_make_orthographic_projection(
+			0, (float)fb_width, (float)fb_height, 0, -1.0f, 1.0f, imgui_camera.projection_matrix);
+		matrix_make_identity(imgui_camera.view_matrix);
+
+		struct cx_gfx_shader_program_input_block render_pass_shader_program_input_block = {
+			.s_name = "blk_camera",
+			.size = sizeof(imgui_camera),
+			.p_data = &imgui_camera
+		};
+
+		struct cx_gfx_render_pass render_pass_world = {
+			.p_framebuffer = p_fb,
+			.viewport = { 0, 0, (int32_t)fb_width, (int32_t)fb_height },
+			.clear_flags = CX_GFX_RENDER_TARGET_CLEAR_FLAG_depth,
+			.clear_depth = 1.0f,
+			.pass_input_set = {
+				.p_blocks = &render_pass_shader_program_input_block,
+				.num_blocks = 1
+			}
+		};
+
+		cx_gfx_render_pass_execute(
+			&render_pass_world,
+			ed.imgui.draw_commands,
+			ed.imgui.num_quad_draw_commands + ed.imgui.num_text_draw_commands);
 	}
 
 	// object ids
