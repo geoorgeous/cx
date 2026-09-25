@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "cx_alloc.h"
 #include "cx_font.h"
 #include "cx_texture_atlas_layout.h"
 #include "matrix.h"
@@ -106,7 +107,7 @@ void cx_text_mesher_generate(
 	const size_t vertices_size = num_vertices * vertex_size;
 	const size_t indices_size = num_indices * sizeof(*p_indices);
 
-	uint8_t* p_buffer = malloc(primitive_data_size + vertices_size + indices_size);
+	uint8_t* p_buffer = CX_MALLOC(primitive_data_size + vertices_size + indices_size);
 
 	p_vertices = (void*)(p_buffer + primitive_data_size);
 	p_indices = (void*)(p_buffer + primitive_data_size + vertices_size);
@@ -316,7 +317,7 @@ void cx_text_mesher_generate(
 
 void cx_text_mesher_free(struct cx_text_mesher_output* p_text_meshes, size_t n) {
 	for (size_t i = 0; i < n; ++i) {
-		free(p_text_meshes[i].mesh_data.p_vertex_buffers);
+		CX_FREE(p_text_meshes[i].mesh_data.p_vertex_buffers);
 		p_text_meshes[i] = (struct cx_text_mesher_output){0};
 	}
 }
