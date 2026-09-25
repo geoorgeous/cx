@@ -7,4 +7,6 @@
 #define CX_M_MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
 #define CX_M_CLAMP(MIN, MAX, X) CX_M_MIN(CX_M_MAX(MIN, X), MAX)
 
+#define CX_M_ABS_INT32(X) (((X) + ((X) >> 31)) ^ ((X) >> 31))
+
 #endif
