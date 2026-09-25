@@ -43,3 +43,19 @@ char* cx_str_f32_n(char* p_dst, const float* p_v, size_t n) {
 
 	return p_dst;
 }
+
+uint32_t cx_str_hash(const char* s_str) {
+	// FNV-1a hash algorithm 
+
+	const uint32_t offset_basis = 2166136261;
+	const uint32_t fnv_prime = 16777619;
+
+	uint32_t result = offset_basis;
+
+	for(; *s_str; s_str++) {
+		result ^= (uint8_t)*s_str;
+		result *= fnv_prime;
+	}
+
+	return result;
+}
