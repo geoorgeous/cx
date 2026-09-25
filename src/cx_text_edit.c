@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "cx_math.h"
 #include "cx_str.h"
 #include "cx_text_edit.h"
 
@@ -39,34 +40,42 @@ void cx_text_edit_insert(struct cx_text_edit* p_text_edit, const char* p_input, 
 	p_text_edit->cursor_pos += n;
 }
 
-void cx_text_edit_delete(struct cx_text_edit* p_text_edit, int n) {
-	if (n > 0) {
-		if (p_text_edit->cursor_pos + (size_t)n > p_text_edit->len) {
-			n = (int)(p_text_edit->len - p_text_edit->cursor_pos);
-		}
-	} else if (n < 0) {
-		if(-n > (int)p_text_edit->cursor_pos) {
-			n = -((int)p_text_edit->cursor_pos);
-		}
-	}
-
-	size_t dst_start = p_text_edit->cursor_pos;
-	size_t src_start = p_text_edit->cursor_pos + (size_t)n;
-
-	if (dst_start == src_start) {
+static void cx_text_edit_delete_range(struct cx_text_edit* p_text_edit, size_t start, size_t n) {
+	if (n == 0) {
 		return;
 	}
 
-	if (src_start < dst_start) {
-		const size_t t = dst_start;
-		dst_start = src_start;
-		src_start = t;
+	if (start >= p_text_edit->len) {
+		return;
 	}
 
-	const size_t src_n = (p_text_edit->len - src_start) + 1;
-	memmove(p_text_edit->p_buf + dst_start, p_text_edit->p_buf + src_start, src_n);
-	p_text_edit->len = dst_start + (src_n - 1);
-	p_text_edit->cursor_pos = dst_start;
+	if (start + n > p_text_edit->len) {
+		n = p_text_edit->len - start;
+	}
+
+	void* p_dest = p_text_edit->p_buf + start;
+	const void* p_src = (const uint8_t*)p_dest + n;
+	const size_t move_len = (p_text_edit->len + 1) - (start + n);
+
+	memmove(p_dest, p_src, move_len);
+
+	p_text_edit->len -= n;
+}
+
+void cx_text_edit_delete(struct cx_text_edit* p_text_edit, int n) {
+	size_t start = p_text_edit->cursor_pos;
+	size_t n2 = (size_t)CX_M_ABS_INT32(n);
+
+	if (n < 0) {
+		if (n2 > p_text_edit->cursor_pos) {
+			n2 = p_text_edit->cursor_pos;
+		}
+		start -= n2;
+	}
+
+	cx_text_edit_delete_range(p_text_edit, start, n2);
+
+	p_text_edit->cursor_pos = start;
 }
 
 void cx_text_edit_clear(struct cx_text_edit* p_text_edit) {
