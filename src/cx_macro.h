@@ -11,6 +11,11 @@
 #define CX_TRUE  1
 #define CX_FALSE 0
 
+// vector indices
+#define CX_X 0
+#define CX_Y 1
+#define CX_Z 2
+
 #define CX_PRAGMA(X) _Pragma(#X)
 
 #ifdef __clang__
