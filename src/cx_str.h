@@ -15,6 +15,8 @@ char* cx_str_f32_n(char* p_dst, const float* p_v, size_t n);
 
 uint32_t cx_str_hash(const char* s_str);
 
+uint32_t cx_str_hash_continue(uint32_t hash, const char* s_str);
+
 static inline int cx_str_eq(const char* s_a, const char* s_b) {
 	return strcmp(s_a, s_b) == 0;
 }

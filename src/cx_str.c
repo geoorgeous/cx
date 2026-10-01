@@ -48,9 +48,16 @@ uint32_t cx_str_hash(const char* s_str) {
 	// FNV-1a hash algorithm 
 
 	const uint32_t offset_basis = 2166136261;
+
+	return cx_str_hash_continue(offset_basis, s_str);
+}
+
+uint32_t cx_str_hash_continue(uint32_t hash, const char* s_str) {
+	// FNV-1a hash algorithm 
+	
 	const uint32_t fnv_prime = 16777619;
 
-	uint32_t result = offset_basis;
+	uint32_t result = hash;
 
 	for(; *s_str; s_str++) {
 		result ^= (uint8_t)*s_str;
