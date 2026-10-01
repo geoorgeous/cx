@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "cx_result.h"
+
 struct cx_gfx_framebuffer;
 struct cx_platform_window;
 
@@ -11,7 +13,7 @@ typedef void(*cx_app_update_callback_fn)(double);
 typedef void(*cx_app_draw_callback_fn)(const struct cx_gfx_framebuffer*);
 typedef void(*cx_app_shutdown_callback_fn)(void);
 
-int cx_app_init(
+cx_result cx_app_init(
 	const char* p_name,
 	uint32_t window_width,
 	uint32_t window_height,

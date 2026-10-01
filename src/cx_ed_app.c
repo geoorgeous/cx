@@ -24,7 +24,7 @@
 // Controller/mover component
 // Player controller component: hands off input to the controller component
 
-static int cx_ed_app_init(int argc, const char** argv);
+static cx_result cx_ed_app_init(int argc, const char** argv);
 static void cx_ed_app_update(double);
 static void cx_ed_app_draw(const struct cx_gfx_framebuffer*);
 static void cx_ed_app_shutdown(void);
@@ -52,7 +52,7 @@ static int cx_asset_source_deserialize_library_asset(cx_asset_id id, void* p_con
 
 static int b_is_world_editor_open;
 
-int cx_ed_app_init(int argc, const char** argv) {
+cx_result cx_ed_app_init(int argc, const char** argv) {
 	(void)argc;
 	(void)argv;
 
@@ -463,13 +463,18 @@ int cx_ed_rebuild_core_asset_package_command(
 	cx_ed_rebuild_core_asset_package();
 	return 0;
 }
+
 int main(int argc, const char** argv) {
-	cx_app_init(
+	cx_result result = cx_app_init(
 		"cx editor"
 #ifndef NDEBUG
 		" (debug)"
 #endif
 		, 960, 640, cx_ed_app_init, argc, argv);
+
+	if (result != CX_SUCCESS) {
+		return result;
+	}
 
 	cx_app_run(cx_ed_app_update, cx_ed_app_draw);
 	cx_app_shutdown(cx_ed_app_shutdown);

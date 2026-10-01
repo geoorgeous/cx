@@ -13,6 +13,7 @@
 #include "cx_component.h"
 #include "cx_console.h"
 #include "cx_console_view.h"
+#include "cx_dbg.h"
 #include "cx_font.h"
 #include "cx_gfx_context.h"
 #include "cx_gfx_framebuffer.h"
@@ -61,7 +62,7 @@ static int cx_asset_source_find_package_asset_by_name(
 	cx_asset_type type, const char* s_name, void* p_context, struct cx_asset_ref* p_out_ref);
 static int cx_asset_source_deserialize_package_asset(cx_asset_id id, void* p_context, void* p_out);
 
-int cx_app_init(
+cx_result cx_app_init(
 	const char* s_name,
 	uint32_t window_width,
 	uint32_t window_height,
@@ -78,17 +79,13 @@ int cx_app_init(
 		s_name,
 		&cx_app.window);
 
-	if (result != CX_SUCCESS) {
-		return result;
-	}
+	CX_ASSERT_MSG_FMT(result == CX_SUCCESS, DONTCARE, "Failed to create platform window (error %d)\n", result);
 
 	result = cx_gfx_context_create(&cx_app.window, &cx_app.gfx_context);
 
-	cx_gfx_context_set_swap_interval(&cx_app.gfx_context, 0);
+	CX_ASSERT_MSG_FMT(result == CX_SUCCESS, DONTCARE, "Failed to create graphics context (error %d)\n", result);
 
-	if (result != CX_SUCCESS) {
-		return result;
-	}
+	cx_gfx_context_set_swap_interval(&cx_app.gfx_context, 0);
 
 	// create framebuffer
 

@@ -1,7 +1,7 @@
 #include "cx_app.h"
 #include "cx_rt_manifest.h"
 
-static int cx_rt_app_init(int argc, const char** argv);
+static cx_result cx_rt_app_init(int argc, const char** argv);
 static void cx_rt_app_update(double);
 static void cx_rt_app_draw(const struct cx_gfx_framebuffer*);
 static void cx_rt_app_shutdown(void);
@@ -21,11 +21,15 @@ int main(int argc, const char** argv) {
 	//struct cx_rt_manifest manifest;
 	//cx_rt_manifest_load_from_file(s_manifest_filename, &manifest);
 
-	cx_app_init("cx runtime"
+	cx_result result = cx_app_init("cx runtime"
 #ifndef NDEBUG
 		" (debug)"
 #endif
 		, 800, 600, cx_rt_app_init, argc, argv);
+
+	if (result != CX_SUCCESS) {
+		return result;
+	}
 
 	cx_app_run(cx_rt_app_update, cx_rt_app_draw);
 	cx_app_shutdown(cx_rt_app_shutdown);
@@ -33,7 +37,7 @@ int main(int argc, const char** argv) {
 	return 0;
 }
 
-int cx_rt_app_init(int argc, const char** argv) {
+cx_result cx_rt_app_init(int argc, const char** argv) {
 	(void)argc;
 	(void)argv;
 	// todo: initialize game and world
