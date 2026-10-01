@@ -121,6 +121,7 @@ cx_result cx_gfx_context_create(
 	CX_LOG_FMT(TRACE, GFX_CORE, "glX supported extensions: %s\n", s_extension_list);
 
 	CX_GFX_CONTEXT_GET_GLX_PROC(glXCreateContextAttribsARB);
+
 	if (!!f_glXCreateContextAttribsARB) {
 		int glx_context_flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 #ifndef NDEBUG
